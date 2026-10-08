@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome | Ruhuna HMS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: var(--dark-black);
+            color: var(--white);
+            text-align: center;
+        }
+        .welcome-box {
+            background-color: var(--light-black);
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border: 2px solid var(--primary-yellow);
+            max-width: 500px;
+        }
+        h1 {
+            color: var(--primary-yellow);
+            margin-bottom: 20px;
+        }
+        .links-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 30px;
+        }
+        .btn-large {
+            display: inline-block;
+            padding: 15px 30px;
+            background-color: var(--primary-yellow);
+            color: var(--dark-black);
+            text-decoration: none;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        .btn-large:hover {
+            background-color: var(--primary-yellow-hover);
+            transform: translateY(-2px);
+        }
+        .btn-admin {
+            background-color: transparent;
+            color: var(--primary-yellow);
+            border: 2px solid var(--primary-yellow);
+        }
+        .btn-admin:hover {
+            background-color: var(--primary-yellow);
+            color: var(--dark-black);
+        }
+    </style>
+</head>
+<body>
+    <div class="welcome-box">
+        <h1>Ruhuna University HMS</h1>
+        <p>Welcome to the advanced Hostel Management System.</p>
+        
+        <div class="links-container">
+            <a href="student-dashboard.html" class="btn-large">Go to Student Dashboard</a>
+            <a href="admin-dashboard.html" class="btn-large btn-admin">Go to Admin Dashboard</a>
+        </div>
+    </div>
+</body>
+</html>

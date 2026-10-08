@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard | Ruhuna HMS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <i class="fas fa-building"></i> RUHUNA HMS
+        </div>
+        <ul class="sidebar-menu">
+            <li class="active"><i class="fas fa-home"></i> My Dashboard</li>
+            <li><i class="fas fa-user"></i> My Profile</li>
+            <li><i class="fas fa-bed"></i> Room Details</li>
+            <li><i class="fas fa-file-invoice-dollar"></i> My Payments</li>
+            <li><i class="fas fa-tools"></i> Maintenance Request</li>
+            <li><i class="fas fa-sign-out-alt"></i> Logout</li>
+        </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="header">
+            <h1>Student Dashboard</h1>
+            <div class="user-profile">
+                <span>Kasun Perera</span>
+                <img src="https://ui-avatars.com/api/?name=Kasun+Perera&background=FFD700&color=121212" alt="Student">
+            </div>
+        </div>
+
+        <!-- Dashboard Cards -->
+        <div class="cards-container">
+            <div class="card">
+                <h3>My Block</h3>
+                <div class="value">Block A</div>
+            </div>
+            <div class="card">
+                <h3>My Room No</h3>
+                <div class="value">A-102</div>
+            </div>
+            <div class="card">
+                <h3>Payment Status</h3>
+                <div class="value" style="color: #155724;">Up to date</div>
+            </div>
+            <div class="card">
+                <h3>Roommates</h3>
+                <div class="value">3</div>
+            </div>
+        </div>
+
+        <!-- Payment History Table -->
+        <div class="table-container">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h2>My Payment History</h2>
+                <button class="btn btn-primary"><i class="fas fa-plus"></i> Make a Payment</button>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Invoice ID</th>
+                        <th>Month</th>
+                        <th>Amount (Rs)</th>
+                        <th>Date Paid</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>INV-1001</td>
+                        <td>January 2026</td>
+                        <td>5,000.00</td>
+                        <td>2026-01-05</td>
+                        <td><span class="status paid">Paid</span></td>
+                        <td><button class="btn btn-dark"><i class="fas fa-download"></i> Receipt</button></td>
+                    </tr>
+                    <tr>
+                        <td>INV-1022</td>
+                        <td>February 2026</td>
+                        <td>5,000.00</td>
+                        <td>-</td>
+                        <td><span class="status pending">Pending</span></td>
+                        <td><button class="btn btn-primary"><i class="fas fa-credit-card"></i> Pay Now</button></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard | Ruhuna HMS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <i class="fas fa-building"></i> RUHUNA HMS
+        </div>
+        <ul class="sidebar-menu">
+            <li class="active"><i class="fas fa-th-large"></i> Dashboard</li>
+            <li><i class="fas fa-users"></i> User Management</li>
+            <li><i class="fas fa-bed"></i> Room Allocation</li>
+            <li><i class="fas fa-money-bill-wave"></i> Payment Mgmt</li>
+            <li><i class="fas fa-boxes"></i> Inventory Mgmt</li>
+            <li><i class="fas fa-bullhorn"></i> Notices</li>
+            <li><i class="fas fa-cog"></i> Settings</li>
+        </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="header">
+            <h1>Admin Dashboard</h1>
+            <div class="user-profile">
+                <span>Admin User</span>
+                <img src="https://ui-avatars.com/api/?name=Admin+User&background=FFD700&color=121212" alt="Admin">
+            </div>
+        </div>
+
+        <!-- Dashboard Cards -->
+        <div class="cards-container">
+            <div class="card">
+                <h3>Total Students</h3>
+                <div class="value">1,250</div>
+            </div>
+            <div class="card">
+                <h3>Available Rooms</h3>
+                <div class="value">45</div>
+            </div>
+            <div class="card">
+                <h3>Pending Payments</h3>
+                <div class="value">Rs. 150,000</div>
+            </div>
+            <div class="card">
+                <h3>Maintenance Requests</h3>
+                <div class="value">12</div>
+            </div>
+        </div>
+
+        <!-- Recent Activity Table -->
+        <div class="table-container">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h2>Recent Room Allocations</h2>
+                <button class="btn btn-primary">Allocate New Room</button>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Student ID</th>
+                        <th>Name</th>
+                        <th>Block</th>
+                        <th>Room No</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>RU/2023/101</td>
+                        <td>Kasun Perera</td>
+                        <td>Block A</td>
+                        <td>A-102</td>
+                        <td><span class="status allocated">Allocated</span></td>
+                        <td><button class="btn btn-dark"><i class="fas fa-edit"></i> Edit</button></td>
+                    </tr>
+                    <tr>
+                        <td>RU/2023/145</td>
+                        <td>Nimali Silva</td>
+                        <td>Block B</td>
+                        <td>B-205</td>
+                        <td><span class="status allocated">Allocated</span></td>
+                        <td><button class="btn btn-dark"><i class="fas fa-edit"></i> Edit</button></td>
+                    </tr>
+                    <tr>
+                        <td>RU/2023/201</td>
+                        <td>Saman Kumara</td>
+                        <td>Pending</td>
+                        <td>-</td>
+                        <td><span class="status pending">Pending</span></td>
+                        <td><button class="btn btn-primary"><i class="fas fa-check"></i> Assign</button></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</body>
+</html>
