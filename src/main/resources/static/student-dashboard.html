@@ -3,26 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student Dashboard | Ruhuna HMS</title>
+    <title>Student Dashboard | RUHUNA Hostel Management System</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏢</text></svg>">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/style.css">
+    <style>
+        /* Modal Styles */
+        .modal {
+            display: none; position: fixed; z-index: 1000; left: 0; top: 0;
+            width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);
+        }
+        .modal-content {
+            background-color: var(--white);
+            margin: 10% auto; padding: 20px;
+            border-radius: 10px; width: 400px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        .close { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+        .close:hover { color: black; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group input, .form-group select {
+            width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;
+        }
+    </style>
 </head>
 <body>
 
     <!-- Sidebar -->
     <div class="sidebar">
         <div class="sidebar-header">
-            <i class="fas fa-building"></i> RUHUNA HMS
+            <i class="fas fa-building"></i> RUHUNA Hostel Management System
         </div>
         <ul class="sidebar-menu">
             <li class="active"><i class="fas fa-home"></i> My Dashboard</li>
-            <li><i class="fas fa-user"></i> My Profile</li>
             <li><i class="fas fa-bed"></i> Room Details</li>
             <li><i class="fas fa-file-invoice-dollar"></i> My Payments</li>
-            <li><i class="fas fa-tools"></i> Maintenance Request</li>
-            <li><i class="fas fa-sign-out-alt"></i> Logout</li>
         </ul>
+
+        <div style="position: absolute; bottom: 20px; width: 280px; text-align: center;">
+            <button class="btn btn-primary" style="background-color: #ff4757; color: white;" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
+        </div>
     </div>
 
     <!-- Main Content -->
@@ -30,8 +54,16 @@
         <div class="header">
             <h1>Student Dashboard</h1>
             <div class="user-profile">
-                <span>Kasun Perera</span>
-                <img src="https://ui-avatars.com/api/?name=Kasun+Perera&background=FFD700&color=121212" alt="Student">
+                <span id="student-name">Student</span>
+                <img src="https://ui-avatars.com/api/?name=Student&background=FFD700&color=121212" id="student-avatar" alt="Student">
+            </div>
+        </div>
+
+        <!-- Notice Board -->
+        <div id="notice-board" style="margin-bottom: 20px; background-color: var(--white); padding: 15px; border-radius: 8px; border-left: 5px solid #FFD700; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+            <h3 style="margin-top:0; color: #333;"><i class="fas fa-bullhorn"></i> Notice Board</h3>
+            <div id="notices-container" style="max-height: 150px; overflow-y: auto;">
+                <p style="color:#777; font-size:14px;">No new notices.</p>
             </div>
         </div>
 
@@ -39,19 +71,15 @@
         <div class="cards-container">
             <div class="card">
                 <h3>My Block</h3>
-                <div class="value">Block A</div>
+                <div class="value" id="my-block">-</div>
             </div>
             <div class="card">
                 <h3>My Room No</h3>
-                <div class="value">A-102</div>
+                <div class="value" id="my-room">-</div>
             </div>
             <div class="card">
-                <h3>Payment Status</h3>
-                <div class="value" style="color: #155724;">Up to date</div>
-            </div>
-            <div class="card">
-                <h3>Roommates</h3>
-                <div class="value">3</div>
+                <h3>Total Paid</h3>
+                <div class="value" id="total-paid">Rs. 0.00</div>
             </div>
         </div>
 
@@ -59,7 +87,7 @@
         <div class="table-container">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                 <h2>My Payment History</h2>
-                <button class="btn btn-primary"><i class="fas fa-plus"></i> Make a Payment</button>
+                <button class="btn btn-primary" onclick="openModal('paymentModal')"><i class="fas fa-plus"></i> Make a Payment</button>
             </div>
             <table>
                 <thead>
@@ -69,30 +97,118 @@
                         <th>Amount (Rs)</th>
                         <th>Date Paid</th>
                         <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="payments-table-body">
+                    <!-- Loaded dynamically -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Complaints Table -->
+        <div class="table-container" style="margin-top: 30px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h2>My Complaints / Maintenance</h2>
+                <button class="btn btn-primary" onclick="openModal('complaintModal')"><i class="fas fa-plus"></i> New Complaint</button>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Description</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="complaints-table-body">
+                    <!-- Loaded dynamically -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Gate Pass Table -->
+        <div class="table-container" style="margin-top: 30px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h2>My Gate Passes / Leaves</h2>
+                <button class="btn btn-primary" onclick="openModal('gatePassModal')"><i class="fas fa-plus"></i> Request Pass</button>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Reason</th>
+                        <th>From Date</th>
+                        <th>To Date</th>
+                        <th>Status</th>
                         <th>Action</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <tr>
-                        <td>INV-1001</td>
-                        <td>January 2026</td>
-                        <td>5,000.00</td>
-                        <td>2026-01-05</td>
-                        <td><span class="status paid">Paid</span></td>
-                        <td><button class="btn btn-dark"><i class="fas fa-download"></i> Receipt</button></td>
-                    </tr>
-                    <tr>
-                        <td>INV-1022</td>
-                        <td>February 2026</td>
-                        <td>5,000.00</td>
-                        <td>-</td>
-                        <td><span class="status pending">Pending</span></td>
-                        <td><button class="btn btn-primary"><i class="fas fa-credit-card"></i> Pay Now</button></td>
-                    </tr>
+                <tbody id="gatepass-table-body">
+                    <!-- Loaded dynamically -->
                 </tbody>
             </table>
         </div>
     </div>
 
+    <!-- Payment Modal -->
+    <div id="paymentModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('paymentModal')">&times;</span>
+            <h2>Make a Payment</h2>
+            <form id="paymentForm" onsubmit="submitPayment(event)">
+                <div class="form-group">
+                    <label>Amount (Rs)</label>
+                    <input type="number" id="amount" required>
+                </div>
+                <div class="form-group">
+                    <label>Month</label>
+                    <select id="month" required>
+                        <option value="January 2026">January 2026</option>
+                        <option value="February 2026">February 2026</option>
+                        <option value="March 2026">March 2026</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Pay Now</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Complaint Modal -->
+    <div id="complaintModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('complaintModal')">&times;</span>
+            <h2>Lodge a Complaint</h2>
+            <form id="complaintForm" onsubmit="submitComplaint(event)">
+                <div class="form-group">
+                    <label>Description (What's broken?)</label>
+                    <input type="text" id="complaintDesc" required placeholder="e.g. Fan is not working in room A-102">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Submit Complaint</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Gate Pass Modal -->
+    <div id="gatePassModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('gatePassModal')">&times;</span>
+            <h2>Request Gate Pass</h2>
+            <form id="gatePassForm" onsubmit="submitGatePass(event)">
+                <div class="form-group">
+                    <label>Reason for Leave</label>
+                    <input type="text" id="gpReason" required placeholder="e.g. Going Home for Weekend">
+                </div>
+                <div class="form-group">
+                    <label>From Date</label>
+                    <input type="date" id="gpFromDate" required>
+                </div>
+                <div class="form-group">
+                    <label>To Date</label>
+                    <input type="date" id="gpToDate" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Submit Request</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/student-script.js"></script>
 </body>
 </html>

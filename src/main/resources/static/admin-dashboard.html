@@ -3,105 +3,323 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard | Ruhuna HMS</title>
+    <title>Admin Dashboard | RUHUNA Hostel Management System</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏢</text></svg>">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/style.css">
+    <style>
+        /* Modal Styles */
+        .modal {
+            display: none; position: fixed; z-index: 1000; left: 0; top: 0;
+            width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);
+        }
+        .modal-content {
+            background-color: var(--white);
+            margin: 10% auto; padding: 20px;
+            border-radius: 10px; width: 400px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        .close { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+        .close:hover { color: black; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group input, .form-group select {
+            width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;
+        }
+    </style>
 </head>
 <body>
 
     <!-- Sidebar -->
     <div class="sidebar">
         <div class="sidebar-header">
-            <i class="fas fa-building"></i> RUHUNA HMS
+            <i class="fas fa-building"></i> RUHUNA Hostel Management System
         </div>
         <ul class="sidebar-menu">
-            <li class="active"><i class="fas fa-th-large"></i> Dashboard</li>
-            <li><i class="fas fa-users"></i> User Management</li>
-            <li><i class="fas fa-bed"></i> Room Allocation</li>
-            <li><i class="fas fa-money-bill-wave"></i> Payment Mgmt</li>
-            <li><i class="fas fa-boxes"></i> Inventory Mgmt</li>
-            <li><i class="fas fa-bullhorn"></i> Notices</li>
-            <li><i class="fas fa-cog"></i> Settings</li>
+            <li class="active" onclick="switchTab('dashboard')"><i class="fas fa-th-large"></i> Dashboard</li>
+            <li onclick="switchTab('users')"><i class="fas fa-users"></i> Users</li>
+            <li onclick="switchTab('rooms')"><i class="fas fa-bed"></i> Rooms</li>
+            <li onclick="switchTab('payments')"><i class="fas fa-money-bill-wave"></i> Payments</li>
+            <li onclick="switchTab('inventory')"><i class="fas fa-boxes"></i> Inventory</li>
+            <li onclick="switchTab('complaints')"><i class="fas fa-tools"></i> Complaints</li>
+            <li onclick="switchTab('gatepasses')"><i class="fas fa-id-card"></i> Gate Passes</li>
+            <li onclick="switchTab('notices')"><i class="fas fa-bullhorn"></i> Notices</li>
         </ul>
+        
+        <div style="position: absolute; bottom: 20px; width: 280px; text-align: center;">
+            <button class="btn btn-primary" style="background-color: #ff4757; color: white;" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
+        </div>
     </div>
 
     <!-- Main Content -->
     <div class="main-content">
         <div class="header">
-            <h1>Admin Dashboard</h1>
+            <h1 id="page-title">Admin Dashboard</h1>
             <div class="user-profile">
                 <span>Admin User</span>
                 <img src="https://ui-avatars.com/api/?name=Admin+User&background=FFD700&color=121212" alt="Admin">
             </div>
         </div>
 
-        <!-- Dashboard Cards -->
-        <div class="cards-container">
-            <div class="card">
-                <h3>Total Students</h3>
-                <div class="value">1,250</div>
-            </div>
-            <div class="card">
-                <h3>Available Rooms</h3>
-                <div class="value">45</div>
-            </div>
-            <div class="card">
-                <h3>Pending Payments</h3>
-                <div class="value">Rs. 150,000</div>
-            </div>
-            <div class="card">
-                <h3>Maintenance Requests</h3>
-                <div class="value">12</div>
+        <!-- Dashboard View -->
+        <div id="view-dashboard" class="view-section">
+            <div class="cards-container">
+                <div class="card">
+                    <h3>Total Users</h3>
+                    <div class="value" id="stat-users">0</div>
+                </div>
+                <div class="card">
+                    <h3>Total Rooms</h3>
+                    <div class="value" id="stat-rooms">0</div>
+                </div>
+                <div class="card">
+                    <h3>Total Payments</h3>
+                    <div class="value" id="stat-payments">0</div>
+                </div>
             </div>
         </div>
 
-        <!-- Recent Activity Table -->
-        <div class="table-container">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h2>Recent Room Allocations</h2>
-                <button class="btn btn-primary">Allocate New Room</button>
+        <!-- Users View -->
+        <div id="view-users" class="view-section" style="display: none;">
+            <div class="table-container">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h2>Manage Users</h2>
+                    <button class="btn btn-primary" onclick="openModal('userModal')"><i class="fas fa-plus"></i> Add User</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr><th>ID</th><th>Student ID</th><th>Name</th><th>Role</th><th>Room</th><th>Action</th></tr>
+                    </thead>
+                    <tbody id="users-table-body">
+                        <!-- Loaded dynamically -->
+                    </tbody>
+                </table>
             </div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Student ID</th>
-                        <th>Name</th>
-                        <th>Block</th>
-                        <th>Room No</th>
-                        <th>Status</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>RU/2023/101</td>
-                        <td>Kasun Perera</td>
-                        <td>Block A</td>
-                        <td>A-102</td>
-                        <td><span class="status allocated">Allocated</span></td>
-                        <td><button class="btn btn-dark"><i class="fas fa-edit"></i> Edit</button></td>
-                    </tr>
-                    <tr>
-                        <td>RU/2023/145</td>
-                        <td>Nimali Silva</td>
-                        <td>Block B</td>
-                        <td>B-205</td>
-                        <td><span class="status allocated">Allocated</span></td>
-                        <td><button class="btn btn-dark"><i class="fas fa-edit"></i> Edit</button></td>
-                    </tr>
-                    <tr>
-                        <td>RU/2023/201</td>
-                        <td>Saman Kumara</td>
-                        <td>Pending</td>
-                        <td>-</td>
-                        <td><span class="status pending">Pending</span></td>
-                        <td><button class="btn btn-primary"><i class="fas fa-check"></i> Assign</button></td>
-                    </tr>
-                </tbody>
-            </table>
+        </div>
+
+        <!-- Rooms View -->
+        <div id="view-rooms" class="view-section" style="display: none;">
+            <div class="table-container">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h2>Manage Rooms</h2>
+                    <button class="btn btn-primary" onclick="openModal('roomModal')"><i class="fas fa-plus"></i> Add Room</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr><th>ID</th><th>Room No</th><th>Block</th><th>Capacity</th></tr>
+                    </thead>
+                    <tbody id="rooms-table-body">
+                        <!-- Loaded dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Inventory View -->
+        <div id="view-inventory" class="view-section" style="display: none;">
+            <div class="table-container">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h2>Manage Inventory</h2>
+                    <button class="btn btn-primary" onclick="openModal('inventoryModal')"><i class="fas fa-plus"></i> Add Item</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr><th>ID</th><th>Item Name</th><th>Category</th><th>Total</th><th>Available</th><th>Broken</th></tr>
+                    </thead>
+                    <tbody id="inventory-table-body">
+                        <!-- Loaded dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Payments View -->
+        <div id="view-payments" class="view-section" style="display: none;">
+            <div class="table-container">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h2>Payment Records</h2>
+                    <button class="btn btn-primary" onclick="generateReport('payments')"><i class="fas fa-file-pdf"></i> Download Report</button>
+                </div>
+                <table id="paymentsTableToPrint">
+                    <thead>
+                        <tr><th>Invoice ID</th><th>Student Name</th><th>Month</th><th>Amount</th><th>Date</th><th>Status</th></tr>
+                    </thead>
+                    <tbody id="payments-table-body-admin">
+                        <!-- Loaded dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Complaints View -->
+        <div id="view-complaints" class="view-section" style="display: none;">
+            <div class="table-container">
+                <h2>Manage Complaints</h2>
+                <table>
+                    <thead>
+                        <tr><th>ID</th><th>Date</th><th>Student</th><th>Room</th><th>Description</th><th>Status</th><th>Action</th></tr>
+                    </thead>
+                    <tbody id="complaints-table-body-admin">
+                        <!-- Loaded dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Gate Passes View -->
+        <div id="view-gatepasses" class="view-section" style="display: none;">
+            <div class="table-container">
+                <h2>Manage Gate Passes</h2>
+                <table>
+                    <thead>
+                        <tr><th>ID</th><th>Student</th><th>Reason</th><th>From</th><th>To</th><th>Status</th><th>Action</th></tr>
+                    </thead>
+                    <tbody id="gatepasses-table-body-admin">
+                        <!-- Loaded dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Notices View -->
+        <div id="view-notices" class="view-section" style="display: none;">
+            <div class="table-container">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h2>Notice Board</h2>
+                    <button class="btn btn-primary" onclick="openModal('noticeModal')"><i class="fas fa-plus"></i> Post Notice</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr><th>ID</th><th>Date</th><th>Title</th><th>Content</th></tr>
+                    </thead>
+                    <tbody id="notices-table-body-admin">
+                        <!-- Loaded dynamically -->
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
+    <!-- Add User Modal -->
+    <div id="userModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('userModal')">&times;</span>
+            <h2>Add New User</h2>
+            <form id="userForm" onsubmit="submitUser(event)">
+                <div class="form-group">
+                    <label>Student ID (or Admin username)</label>
+                    <input type="text" id="studentId" required>
+                </div>
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" id="fullName" required>
+                </div>
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" id="email" required placeholder="For Payment Notifications">
+                </div>
+                <div class="form-group">
+                    <label>Role</label>
+                    <select id="role">
+                        <option value="STUDENT">Student</option>
+                        <option value="ADMIN">Admin</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Save User</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Room Modal -->
+    <div id="roomModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('roomModal')">&times;</span>
+            <h2>Add New Room</h2>
+            <form id="roomForm" onsubmit="submitRoom(event)">
+                <div class="form-group">
+                    <label>Room Number</label>
+                    <input type="text" id="roomNumber" required>
+                </div>
+                <div class="form-group">
+                    <label>Block Name</label>
+                    <input type="text" id="blockName" required>
+                </div>
+                <div class="form-group">
+                    <label>Capacity</label>
+                    <input type="number" id="capacity" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Save Room</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Allocate Room Modal -->
+    <div id="allocateModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('allocateModal')">&times;</span>
+            <h2>Allocate Room</h2>
+            <form id="allocateForm" onsubmit="submitAllocation(event)">
+                <input type="hidden" id="allocateUserId">
+                <div class="form-group">
+                    <label>Select Room</label>
+                    <select id="allocateRoomId" required>
+                        <!-- Loaded dynamically -->
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Allocate</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Inventory Modal -->
+    <div id="inventoryModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('inventoryModal')">&times;</span>
+            <h2>Add Inventory Item</h2>
+            <form id="inventoryForm" onsubmit="submitInventory(event)">
+                <div class="form-group">
+                    <label>Item Name</label>
+                    <input type="text" id="itemName" required>
+                </div>
+                <div class="form-group">
+                    <label>Category</label>
+                    <select id="category">
+                        <option value="Furniture">Furniture</option>
+                        <option value="Electronics">Electronics</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Total Quantity</label>
+                    <input type="number" id="totalQty" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Save Item</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Notice Modal -->
+    <div id="noticeModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('noticeModal')">&times;</span>
+            <h2>Post a New Notice</h2>
+            <form id="noticeForm" onsubmit="submitNotice(event)">
+                <div class="form-group">
+                    <label>Notice Title</label>
+                    <input type="text" id="noticeTitle" required>
+                </div>
+                <div class="form-group">
+                    <label>Content</label>
+                    <textarea id="noticeContent" required style="width:100%; height:80px; padding:10px;"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Post Notice</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/script.js"></script>
 </body>
 </html>

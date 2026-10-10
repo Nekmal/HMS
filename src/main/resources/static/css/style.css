@@ -22,7 +22,7 @@ body {
 
 /* Sidebar Styling */
 .sidebar {
-    width: 250px;
+    width: 280px;
     height: 100vh;
     background-color: var(--dark-black);
     color: var(--white);
@@ -34,8 +34,9 @@ body {
 }
 
 .sidebar-header {
-    padding: 20px;
-    font-size: 24px;
+    padding: 30px 20px;
+    font-size: 22px;
+    line-height: 1.4;
     font-weight: bold;
     text-align: center;
     border-bottom: 2px solid var(--light-black);
@@ -48,12 +49,15 @@ body {
 }
 
 .sidebar-menu li {
-    padding: 15px 20px;
+    padding: 24px 30px;
+    font-size: 20px;
+    font-weight: 500;
     cursor: pointer;
     transition: all 0.3s ease;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 20px;
+    border-bottom: 1px solid var(--light-black);
 }
 
 .sidebar-menu li:hover, .sidebar-menu li.active {
@@ -64,7 +68,7 @@ body {
 
 /* Main Content Styling */
 .main-content {
-    margin-left: 250px;
+    margin-left: 280px;
     padding: 30px;
 }
 
