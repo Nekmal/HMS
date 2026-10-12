@@ -8,83 +8,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800;900&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/style.css">
-    <style>
-        body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            /* Gradient background instead of solid color */
-            background: linear-gradient(135deg, #f5f5f5 0%, #FFD700 100%);
-        }
-        .login-box {
-            background-color: var(--white);
-            padding: 50px 60px;
-            border-radius: 20px;
-            box-shadow: 0 15px 45px rgba(0,0,0,0.18);
-            width: 100%;
-            max-width: 650px;
-            border-top: 8px solid var(--dark-black);
-            position: relative;
-        }
-        .login-brand-header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        .brand-icon-circle {
-            width: 68px;
-            height: 68px;
-            background: linear-gradient(135deg, #121212 0%, #252834 100%);
-            color: #FFD700;
-            font-size: 30px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 20px;
-            margin-bottom: 12px;
-            border: 2px solid #FFD700;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15), 0 0 15px rgba(255, 215, 0, 0.25);
-        }
-        .brand-title {
-            font-family: 'Outfit', sans-serif;
-            font-size: 42px;
-            font-weight: 900;
-            letter-spacing: 3px;
-            color: var(--dark-black);
-            margin: 0;
-            line-height: 1.1;
-        }
-        .brand-subtitle {
-            font-family: 'Outfit', sans-serif;
-            font-size: 22px;
-            font-weight: 700;
-            letter-spacing: 1px;
-            color: #2c2d30;
-            margin-top: 8px;
-        }
-        .brand-divider {
-            width: 50px;
-            height: 4px;
-            background: linear-gradient(90deg, #FFD700, #e6c200);
-            border-radius: 2px;
-            margin: 12px auto 0 auto;
-        }
-        .form-group { margin-bottom: 25px; }
-        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 16px; font-family: 'Outfit', sans-serif; }
-        .form-group input {
-            width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px;
-        }
-        .btn-primary { padding: 15px; font-size: 18px; border-radius: 8px; font-family: 'Outfit', sans-serif; letter-spacing: 0.5px; }
-        .error-msg {
-            color: red;
-            font-size: 14px;
-            margin-bottom: 10px;
-            text-align: center;
-            display: none;
-        }
-    </style>
+    <link rel="stylesheet" href="css/login.css">
 </head>
-<body>
+<body class="login-page">
     <div class="login-box">
         <div class="login-brand-header">
             <div class="brand-icon-circle">
@@ -95,7 +21,7 @@
             <div class="brand-divider"></div>
         </div>
         <div id="errorMsg" class="error-msg">Invalid Credentials!</div>
-        <form id="loginForm" onsubmit="handleLogin(event)">
+        <form id="loginForm" class="login-form" onsubmit="handleLogin(event)">
             <div class="form-group">
                 <label>Student ID / Username</label>
                 <input type="text" id="username" required placeholder="e.g. admin or RU/2023/101">
@@ -104,7 +30,7 @@
                 <label>Password</label>
                 <input type="password" id="password" required placeholder="Password">
             </div>
-            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">Login</button>
+            <button type="submit" class="btn btn-primary btn-login-submit">Login</button>
         </form>
     </div>
 
@@ -130,9 +56,9 @@
 
                     // Redirect based on role
                     if (user.role === 'ADMIN') {
-                        window.location.href = 'admin-dashboard.html';
+                        window.location.href = 'admin/dashboard.html';
                     } else {
-                        window.location.href = 'student-dashboard.html';
+                        window.location.href = 'student/dashboard.html';
                     }
                 } else {
                     document.getElementById('errorMsg').style.display = 'block';

@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard | RUHUNA Hostel Management System</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏢</text></svg>">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800;900&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/modal.css">
+</head>
+<body>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <div class="brand-icon-wrapper-small">
+                <i class="fas fa-hotel"></i>
+            </div>
+            <div class="brand-title-wrap">
+                <span class="brand-ruhuna">RUHUNA</span>
+                <span class="brand-hms">Hostel Management System</span>
+            </div>
+        </div>
+        <ul class="sidebar-menu">
+            <li class="active" onclick="showSection('dashboard-section', this)"><i class="fas fa-home"></i> My Dashboard</li>
+            <li onclick="showSection('room-section', this)"><i class="fas fa-bed"></i> Room & Maintenance</li>
+            <li onclick="showSection('payments-section', this)"><i class="fas fa-file-invoice-dollar"></i> My Payments</li>
+        </ul>
+
+        <div class="sidebar-logout-container">
+            <button class="btn btn-logout" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="header">
+            <h1>Student Dashboard</h1>
+            <div class="user-profile">
+                <span id="student-name">Student</span>
+                <img src="https://ui-avatars.com/api/?name=Student&background=FFD700&color=121212" id="student-avatar" alt="Student">
+            </div>
+        </div>
+
+        <!-- Dashboard Section -->
+        <div id="dashboard-section" class="content-section pop-up-animation">
+            <!-- Hero Banner with Hostel Room Background Image -->
+            <div class="dashboard-hero-banner" style="background-image: linear-gradient(90deg, rgba(18, 18, 18, 0.92) 0%, rgba(18, 18, 18, 0.75) 50%, rgba(18, 18, 18, 0.90) 100%), url('../images/hostel_room_bg.jpg');">
+                <div class="hero-content">
+                    <span class="hero-badge"><i class="fas fa-user-graduate"></i> STUDENT RESIDENCE PORTAL</span>
+                    <h2>Welcome, <span id="hero-student-name">Student</span>!</h2>
+                    <p>Access your allocated hostel accommodation details, view payment history, and submit maintenance complaints or gate pass requests.</p>
+                    <div class="hero-stats-row">
+                        <div class="hero-stat-pill"><i class="fas fa-bed"></i> Room: <strong id="hero-room-no">-</strong></div>
+                        <div class="hero-stat-pill"><i class="fas fa-building"></i> Block: <strong id="hero-block-name">-</strong></div>
+                        <div class="hero-stat-pill"><i class="fas fa-shield-halved"></i> Residency Status: <strong>Active Resident</strong></div>
+                        <div class="hero-stat-pill"><i class="fas fa-receipt"></i> Total Paid: <strong id="hero-total-paid">Rs. 0.00</strong></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notice Board -->
+            <div id="notice-board" class="notice-board-box">
+                <h3>
+                    <i class="fas fa-bullhorn" style="color:var(--primary-yellow);"></i> Notice Board & Announcements
+                </h3>
+                <div id="notices-container" class="notices-scroll-list">
+                    <p style="color:#777; font-size:14px;">No new notices.</p>
+                </div>
+            </div>
+
+            <!-- Dashboard Cards (4 KPI Cards) -->
+            <div class="cards-container">
+                <div class="card">
+                    <div class="card-header-flex">
+                        <h3>My Block</h3>
+                        <i class="fas fa-building card-icon-yellow"></i>
+                    </div>
+                    <div class="value" id="my-block">-</div>
+                </div>
+                <div class="card">
+                    <div class="card-header-flex">
+                        <h3>My Room No</h3>
+                        <i class="fas fa-bed card-icon-yellow"></i>
+                    </div>
+                    <div class="value" id="my-room">-</div>
+                </div>
+                <div class="card">
+                    <div class="card-header-flex">
+                        <h3>Total Paid</h3>
+                        <i class="fas fa-money-bill-wave card-icon-yellow"></i>
+                    </div>
+                    <div class="value" id="total-paid">Rs. 0.00</div>
+                </div>
+                <div class="card">
+                    <div class="card-header-flex">
+                        <h3>My Requests</h3>
+                        <i class="fas fa-clipboard-list card-icon-yellow"></i>
+                    </div>
+                    <div class="value" id="my-requests">0</div>
+                </div>
+            </div>
+
+            <!-- Charts Grid (Column Graph + Requests Breakdown) -->
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <div class="chart-card-header">
+                        <h3><i class="fas fa-chart-column" style="color:var(--primary-yellow);"></i> My Payment History (Column Graph)</h3>
+                        <span>Hostel Fee by Month</span>
+                    </div>
+                    <div class="chart-canvas-container">
+                        <canvas id="studentPaymentsBarChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-card-header">
+                        <h3><i class="fas fa-chart-pie" style="color:var(--primary-yellow);"></i> My Requests & Passes Status</h3>
+                        <span>Applications & Complaints</span>
+                    </div>
+                    <div class="chart-canvas-center">
+                        <canvas id="studentRequestsPieChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gate Pass Table Summary -->
+            <div class="table-container" style="margin-top: 25px;">
+                <div class="table-header-flex">
+                    <h2 style="font-family:'Outfit',sans-serif; font-size:18px;"><i class="fas fa-id-card" style="color:var(--primary-yellow); margin-right:8px;"></i>My Gate Passes / Leaves</h2>
+                    <button class="btn btn-primary" onclick="openModal('gatePassModal')"><i class="fas fa-plus"></i> Request Pass</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Reason</th>
+                            <th>From Date</th>
+                            <th>To Date</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="gatepass-table-body">
+                        <!-- Loaded dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Room & Maintenance Section -->
+        <div id="room-section" class="content-section" style="display: none;">
+            <!-- Complaints Table -->
+            <div class="table-container">
+                <div class="table-header-flex">
+                    <h2>My Complaints / Maintenance</h2>
+                    <button class="btn btn-primary" onclick="openModal('complaintModal')"><i class="fas fa-plus"></i> New Complaint</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Description</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="complaints-table-body">
+                        <!-- Loaded dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Payments Section -->
+        <div id="payments-section" class="content-section" style="display: none;">
+            <!-- Payment History Table -->
+            <div class="table-container">
+                <div class="table-header-flex">
+                    <h2>My Payment History</h2>
+                    <button class="btn btn-primary" onclick="openModal('paymentModal')"><i class="fas fa-plus"></i> Make a Payment</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Invoice ID</th>
+                            <th>Month</th>
+                            <th>Amount (Rs)</th>
+                            <th>Date Paid</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="payments-table-body">
+                        <!-- Loaded dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Modal (Enlarged & Spacious) -->
+    <div id="paymentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-file-invoice-dollar" style="color: var(--primary-yellow);"></i> Make Hostel Fee Payment</h2>
+                <span class="close" onclick="closeModal('paymentModal')">&times;</span>
+            </div>
+            <form id="paymentForm" onsubmit="submitPayment(event)">
+                <div class="form-group">
+                    <label>Payment Month</label>
+                    <select id="month" required>
+                        <option value="January 2026">January 2026</option>
+                        <option value="February 2026">February 2026</option>
+                        <option value="March 2026">March 2026</option>
+                        <option value="April 2026">April 2026</option>
+                        <option value="May 2026">May 2026</option>
+                        <option value="June 2026">June 2026</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Amount (LKR / Rs)</label>
+                    <input type="number" id="amount" required min="100" step="100" placeholder="e.g. 5000">
+                    <div class="form-hint">Standard monthly accommodation fee or custom maintenance installment.</div>
+                </div>
+                <div class="secure-note-box">
+                    <i class="fas fa-shield-alt" style="color: #2ed573;"></i> <strong>Secure Campus Transaction</strong>: Official receipt with unique Invoice ID will be generated upon confirmation.
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-dark btn-modal-cancel" onclick="closeModal('paymentModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-modal-submit">Pay Now</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Complaint Modal (Enlarged & Spacious) -->
+    <div id="complaintModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-tools" style="color: #ff4757;"></i> Lodge Maintenance Complaint</h2>
+                <span class="close" onclick="closeModal('complaintModal')">&times;</span>
+            </div>
+            <form id="complaintForm" onsubmit="submitComplaint(event)">
+                <div class="form-group">
+                    <label>Description (What's broken or needs repair?)</label>
+                    <textarea id="complaintDesc" required placeholder="Describe the issue in detail (e.g. Ceiling fan in Room A-102 stopped working and makes a buzzing sound, please send an electrician)..."></textarea>
+                    <div class="form-hint">Please provide specific details so hostel maintenance staff can resolve it as quickly as possible.</div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-dark btn-modal-cancel" onclick="closeModal('complaintModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-modal-submit">Submit Complaint</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Gate Pass Modal (Enlarged & Spacious) -->
+    <div id="gatePassModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-id-card" style="color: var(--primary-yellow);"></i> Request Gate Pass / Leave</h2>
+                <span class="close" onclick="closeModal('gatePassModal')">&times;</span>
+            </div>
+            <form id="gatePassForm" onsubmit="submitGatePass(event)">
+                <div class="form-group">
+                    <label>Reason for Leave / Exit</label>
+                    <input type="text" id="gpReason" required placeholder="e.g. Going Home for the Weekend / Medical Appointment">
+                </div>
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label>From Date</label>
+                        <input type="date" id="gpFromDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label>To Date</label>
+                        <input type="date" id="gpToDate" required>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-dark btn-modal-cancel" onclick="closeModal('gatePassModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-modal-submit">Submit Request</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function showSection(sectionId, element) {
+            // Hide all sections and remove active animation
+            const sections = document.querySelectorAll('.content-section');
+            sections.forEach(sec => {
+                sec.style.display = 'none';
+                sec.classList.remove('pop-up-animation');
+            });
+            
+            // Remove active class from all nav items
+            const navItems = document.querySelectorAll('.sidebar-menu li');
+            navItems.forEach(li => li.classList.remove('active'));
+            
+            // Show target section and trigger 1s pop-up animation
+            const target = document.getElementById(sectionId);
+            if (target) {
+                target.style.display = 'block';
+                void target.offsetWidth; // Force DOM reflow to replay CSS animation
+                target.classList.add('pop-up-animation');
+            }
+            if (element) {
+                element.classList.add('active');
+            }
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="js/student-script.js"></script>
+</body>
+</html>

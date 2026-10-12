@@ -7,112 +7,8 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏢</text></svg>">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800;900&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/style.css">
-    <style>
-        /* Premium Enlarged Modal Styles */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 2000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.65);
-            backdrop-filter: blur(6px);
-            overflow-y: auto;
-            padding: 40px 15px;
-        }
-        .modal-content {
-            background-color: var(--white);
-            margin: 2.5% auto;
-            padding: 40px 50px;
-            border-radius: 20px;
-            width: 92%;
-            max-width: 720px; /* Spacious enlarged modal box! */
-            box-shadow: 0 25px 70px rgba(0, 0, 0, 0.4);
-            border-top: 6px solid var(--primary-yellow);
-            animation: modalPopIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
-            position: relative;
-        }
-        @keyframes modalPopIn {
-            from {
-                opacity: 0;
-                transform: scale(0.92) translateY(-25px);
-            }
-            to {
-                opacity: 1;
-                transform: scale(1) translateY(0);
-            }
-        }
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 2px solid #f0f0f0;
-            padding-bottom: 15px;
-            margin-bottom: 25px;
-        }
-        .modal-header h2 {
-            font-family: 'Outfit', sans-serif;
-            font-size: 24px;
-            font-weight: 800;
-            color: var(--dark-black);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin: 0;
-        }
-        .close {
-            color: #888;
-            font-size: 32px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: color 0.2s ease, transform 0.2s ease;
-            line-height: 1;
-        }
-        .close:hover {
-            color: #ff4757;
-            transform: scale(1.15);
-        }
-        .form-group {
-            margin-bottom: 22px;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 700;
-            font-size: 15px;
-            color: #2d3436;
-            font-family: 'Outfit', sans-serif;
-        }
-        .form-group input, .form-group select, .form-group textarea {
-            width: 100%;
-            padding: 14px 16px;
-            border: 1.5px solid #e0e0e0;
-            border-radius: 10px;
-            font-size: 15px;
-            font-family: 'Inter', sans-serif;
-            background-color: #fafafa;
-            transition: border-color 0.25s, box-shadow 0.25s;
-        }
-        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
-            outline: none;
-            border-color: #FFD700;
-            background-color: #ffffff;
-            box-shadow: 0 0 0 4px rgba(255, 215, 0, 0.2);
-        }
-        .form-group textarea {
-            min-height: 130px;
-            resize: vertical;
-            line-height: 1.5;
-        }
-        .form-hint {
-            font-size: 13px;
-            color: #777;
-            margin-top: 6px;
-        }
-    </style>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/modal.css">
 </head>
 <body>
 
@@ -133,8 +29,8 @@
             <li onclick="showSection('payments-section', this)"><i class="fas fa-file-invoice-dollar"></i> My Payments</li>
         </ul>
 
-        <div style="position: absolute; bottom: 20px; width: 280px; text-align: center;">
-            <button class="btn btn-primary" style="background-color: #ff4757; color: white;" onclick="logout()">
+        <div class="sidebar-logout-container">
+            <button class="btn btn-logout" onclick="logout()">
                 <i class="fas fa-sign-out-alt"></i> Logout
             </button>
         </div>
@@ -153,7 +49,7 @@
         <!-- Dashboard Section -->
         <div id="dashboard-section" class="content-section pop-up-animation">
             <!-- Hero Banner with Hostel Room Background Image -->
-            <div class="dashboard-hero-banner" style="background-image: linear-gradient(90deg, rgba(18, 18, 18, 0.92) 0%, rgba(18, 18, 18, 0.75) 50%, rgba(18, 18, 18, 0.90) 100%), url('images/hostel_room_bg.jpg');">
+            <div class="dashboard-hero-banner" style="background-image: linear-gradient(90deg, rgba(18, 18, 18, 0.92) 0%, rgba(18, 18, 18, 0.75) 50%, rgba(18, 18, 18, 0.90) 100%), url('../images/hostel_room_bg.jpg');">
                 <div class="hero-content">
                     <span class="hero-badge"><i class="fas fa-user-graduate"></i> STUDENT RESIDENCE PORTAL</span>
                     <h2>Welcome, <span id="hero-student-name">Student</span>!</h2>
@@ -168,11 +64,11 @@
             </div>
 
             <!-- Notice Board -->
-            <div id="notice-board" style="margin-bottom: 25px; background-color: var(--white); padding: 18px 22px; border-radius: 12px; border-left: 5px solid #FFD700; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
-                <h3 style="margin-top:0; color: #121212; font-family:'Outfit',sans-serif; display:flex; align-items:center; gap:8px;">
+            <div id="notice-board" class="notice-board-box">
+                <h3>
                     <i class="fas fa-bullhorn" style="color:var(--primary-yellow);"></i> Notice Board & Announcements
                 </h3>
-                <div id="notices-container" style="max-height: 150px; overflow-y: auto;">
+                <div id="notices-container" class="notices-scroll-list">
                     <p style="color:#777; font-size:14px;">No new notices.</p>
                 </div>
             </div>
@@ -180,30 +76,30 @@
             <!-- Dashboard Cards (4 KPI Cards) -->
             <div class="cards-container">
                 <div class="card">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div class="card-header-flex">
                         <h3>My Block</h3>
-                        <i class="fas fa-building" style="color:var(--primary-yellow); font-size:22px;"></i>
+                        <i class="fas fa-building card-icon-yellow"></i>
                     </div>
                     <div class="value" id="my-block">-</div>
                 </div>
                 <div class="card">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div class="card-header-flex">
                         <h3>My Room No</h3>
-                        <i class="fas fa-bed" style="color:var(--primary-yellow); font-size:22px;"></i>
+                        <i class="fas fa-bed card-icon-yellow"></i>
                     </div>
                     <div class="value" id="my-room">-</div>
                 </div>
                 <div class="card">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div class="card-header-flex">
                         <h3>Total Paid</h3>
-                        <i class="fas fa-money-bill-wave" style="color:var(--primary-yellow); font-size:22px;"></i>
+                        <i class="fas fa-money-bill-wave card-icon-yellow"></i>
                     </div>
                     <div class="value" id="total-paid">Rs. 0.00</div>
                 </div>
                 <div class="card">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div class="card-header-flex">
                         <h3>My Requests</h3>
-                        <i class="fas fa-clipboard-list" style="color:var(--primary-yellow); font-size:22px;"></i>
+                        <i class="fas fa-clipboard-list card-icon-yellow"></i>
                     </div>
                     <div class="value" id="my-requests">0</div>
                 </div>
@@ -216,7 +112,7 @@
                         <h3><i class="fas fa-chart-column" style="color:var(--primary-yellow);"></i> My Payment History (Column Graph)</h3>
                         <span>Hostel Fee by Month</span>
                     </div>
-                    <div style="height: 280px; position: relative;">
+                    <div class="chart-canvas-container">
                         <canvas id="studentPaymentsBarChart"></canvas>
                     </div>
                 </div>
@@ -225,7 +121,7 @@
                         <h3><i class="fas fa-chart-pie" style="color:var(--primary-yellow);"></i> My Requests & Passes Status</h3>
                         <span>Applications & Complaints</span>
                     </div>
-                    <div style="height: 280px; position: relative; display: flex; justify-content: center;">
+                    <div class="chart-canvas-center">
                         <canvas id="studentRequestsPieChart"></canvas>
                     </div>
                 </div>
@@ -233,7 +129,7 @@
 
             <!-- Gate Pass Table Summary -->
             <div class="table-container" style="margin-top: 25px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <div class="table-header-flex">
                     <h2 style="font-family:'Outfit',sans-serif; font-size:18px;"><i class="fas fa-id-card" style="color:var(--primary-yellow); margin-right:8px;"></i>My Gate Passes / Leaves</h2>
                     <button class="btn btn-primary" onclick="openModal('gatePassModal')"><i class="fas fa-plus"></i> Request Pass</button>
                 </div>
@@ -258,7 +154,7 @@
         <div id="room-section" class="content-section" style="display: none;">
             <!-- Complaints Table -->
             <div class="table-container">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <div class="table-header-flex">
                     <h2>My Complaints / Maintenance</h2>
                     <button class="btn btn-primary" onclick="openModal('complaintModal')"><i class="fas fa-plus"></i> New Complaint</button>
                 </div>
@@ -281,7 +177,7 @@
         <div id="payments-section" class="content-section" style="display: none;">
             <!-- Payment History Table -->
             <div class="table-container">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <div class="table-header-flex">
                     <h2>My Payment History</h2>
                     <button class="btn btn-primary" onclick="openModal('paymentModal')"><i class="fas fa-plus"></i> Make a Payment</button>
                 </div>
@@ -327,14 +223,12 @@
                     <input type="number" id="amount" required min="100" step="100" placeholder="e.g. 5000">
                     <div class="form-hint">Standard monthly accommodation fee or custom maintenance installment.</div>
                 </div>
-                <div style="background-color: #f9f9f9; padding: 15px 18px; border-radius: 10px; margin-bottom: 22px; border-left: 4px solid var(--primary-yellow);">
-                    <div style="font-size: 13px; color: #444; line-height: 1.5;">
-                        <i class="fas fa-shield-alt" style="color: #2ed573;"></i> <strong>Secure Campus Transaction</strong>: Official receipt with unique Invoice ID will be generated upon confirmation.
-                    </div>
+                <div class="secure-note-box">
+                    <i class="fas fa-shield-alt" style="color: #2ed573;"></i> <strong>Secure Campus Transaction</strong>: Official receipt with unique Invoice ID will be generated upon confirmation.
                 </div>
-                <div style="display: flex; gap: 15px; margin-top: 10px;">
-                    <button type="button" class="btn btn-dark" style="flex: 1; padding: 14px;" onclick="closeModal('paymentModal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary" style="flex: 2; padding: 14px; margin-top: 0;">Pay Now</button>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-dark btn-modal-cancel" onclick="closeModal('paymentModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-modal-submit">Pay Now</button>
                 </div>
             </form>
         </div>
@@ -353,9 +247,9 @@
                     <textarea id="complaintDesc" required placeholder="Describe the issue in detail (e.g. Ceiling fan in Room A-102 stopped working and makes a buzzing sound, please send an electrician)..."></textarea>
                     <div class="form-hint">Please provide specific details so hostel maintenance staff can resolve it as quickly as possible.</div>
                 </div>
-                <div style="display: flex; gap: 15px; margin-top: 25px;">
-                    <button type="button" class="btn btn-dark" style="flex: 1; padding: 14px;" onclick="closeModal('complaintModal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary" style="flex: 2; padding: 14px; margin-top: 0;">Submit Complaint</button>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-dark btn-modal-cancel" onclick="closeModal('complaintModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-modal-submit">Submit Complaint</button>
                 </div>
             </form>
         </div>
@@ -373,7 +267,7 @@
                     <label>Reason for Leave / Exit</label>
                     <input type="text" id="gpReason" required placeholder="e.g. Going Home for the Weekend / Medical Appointment">
                 </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 18px;">
+                <div class="form-grid-2">
                     <div class="form-group">
                         <label>From Date</label>
                         <input type="date" id="gpFromDate" required>
@@ -383,9 +277,9 @@
                         <input type="date" id="gpToDate" required>
                     </div>
                 </div>
-                <div style="display: flex; gap: 15px; margin-top: 15px;">
-                    <button type="button" class="btn btn-dark" style="flex: 1; padding: 14px;" onclick="closeModal('gatePassModal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary" style="flex: 2; padding: 14px; margin-top: 0;">Submit Request</button>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-dark btn-modal-cancel" onclick="closeModal('gatePassModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-modal-submit">Submit Request</button>
                 </div>
             </form>
         </div>

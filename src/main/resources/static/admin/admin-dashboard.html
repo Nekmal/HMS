@@ -7,112 +7,8 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏢</text></svg>">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800;900&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/style.css">
-    <style>
-        /* Premium Enlarged Modal Styles */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 2000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.65);
-            backdrop-filter: blur(6px);
-            overflow-y: auto;
-            padding: 40px 15px;
-        }
-        .modal-content {
-            background-color: var(--white);
-            margin: 2.5% auto;
-            padding: 40px 50px;
-            border-radius: 20px;
-            width: 92%;
-            max-width: 720px; /* Fully enlarged and spacious box size for all sections! */
-            box-shadow: 0 25px 70px rgba(0, 0, 0, 0.4);
-            border-top: 6px solid var(--primary-yellow);
-            animation: modalPopIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
-            position: relative;
-        }
-        @keyframes modalPopIn {
-            from {
-                opacity: 0;
-                transform: scale(0.92) translateY(-25px);
-            }
-            to {
-                opacity: 1;
-                transform: scale(1) translateY(0);
-            }
-        }
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 2px solid #f0f0f0;
-            padding-bottom: 15px;
-            margin-bottom: 25px;
-        }
-        .modal-header h2 {
-            font-family: 'Outfit', sans-serif;
-            font-size: 24px;
-            font-weight: 800;
-            color: var(--dark-black);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin: 0;
-        }
-        .close {
-            color: #888;
-            font-size: 32px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: color 0.2s ease, transform 0.2s ease;
-            line-height: 1;
-        }
-        .close:hover {
-            color: #ff4757;
-            transform: scale(1.15);
-        }
-        .form-group {
-            margin-bottom: 22px;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 700;
-            font-size: 15px;
-            color: #2d3436;
-            font-family: 'Outfit', sans-serif;
-        }
-        .form-group input, .form-group select, .form-group textarea {
-            width: 100%;
-            padding: 14px 16px;
-            border: 1.5px solid #e0e0e0;
-            border-radius: 10px;
-            font-size: 15px;
-            font-family: 'Inter', sans-serif;
-            background-color: #fafafa;
-            transition: border-color 0.25s, box-shadow 0.25s;
-        }
-        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
-            outline: none;
-            border-color: #FFD700;
-            background-color: #ffffff;
-            box-shadow: 0 0 0 4px rgba(255, 215, 0, 0.2);
-        }
-        .form-group textarea {
-            min-height: 130px;
-            resize: vertical;
-            line-height: 1.5;
-        }
-        .form-hint {
-            font-size: 13px;
-            color: #777;
-            margin-top: 6px;
-        }
-    </style>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/modal.css">
 </head>
 <body>
 
@@ -138,8 +34,8 @@
             <li onclick="switchTab('notices')"><i class="fas fa-bullhorn"></i> Notices</li>
         </ul>
         
-        <div style="position: absolute; bottom: 20px; width: 280px; text-align: center;">
-            <button class="btn btn-primary" style="background-color: #ff4757; color: white;" onclick="logout()">
+        <div class="sidebar-logout-container">
+            <button class="btn btn-logout" onclick="logout()">
                 <i class="fas fa-sign-out-alt"></i> Logout
             </button>
         </div>
@@ -158,15 +54,16 @@
         <!-- Dashboard View -->
         <div id="view-dashboard" class="view-section pop-up-animation">
             <!-- Hero Banner with Hostel Room Background Image -->
-            <div class="dashboard-hero-banner" style="background-image: linear-gradient(90deg, rgba(18, 18, 18, 0.92) 0%, rgba(18, 18, 18, 0.75) 50%, rgba(18, 18, 18, 0.90) 100%), url('images/hostel_room_bg.jpg');">
+            <div class="dashboard-hero-banner" style="background-image: linear-gradient(90deg, rgba(18, 18, 18, 0.92) 0%, rgba(18, 18, 18, 0.75) 50%, rgba(18, 18, 18, 0.90) 100%), url('../images/hostel_room_bg.jpg');">
                 <div class="hero-content">
                     <span class="hero-badge"><i class="fas fa-university"></i> RUHUNA UNIVERSITY HOSTEL COMPLEX</span>
                     <h2>Hostel Operations & Management Center</h2>
                     <p>Real-time analytics for room allocations, student complaints, payments, and residential block occupancy.</p>
                     <div class="hero-stats-row">
-                        <div class="hero-stat-pill"><i class="fas fa-bed"></i> <strong>60</strong> Total Rooms</div>
+                        <div class="hero-stat-pill"><i class="fas fa-bed"></i> <strong id="hero-rooms-count">100</strong> Total Rooms</div>
                         <div class="hero-stat-pill"><i class="fas fa-user-graduate"></i> <strong id="hero-students-count">150</strong> Boarding Students</div>
-                        <div class="hero-stat-pill"><i class="fas fa-building"></i> <strong>3</strong> Residential Blocks</div>
+                        <div class="hero-stat-pill"><i class="fas fa-building"></i> <strong id="hero-blocks-count">4</strong> Residential Blocks (A, B, C, D)</div>
+                        <div class="hero-stat-pill"><i class="fas fa-users"></i> <strong>4</strong> Beds / Room</div>
                         <div class="hero-stat-pill"><i class="fas fa-circle-check"></i> System Status: Live</div>
                     </div>
                 </div>
@@ -175,30 +72,30 @@
             <!-- Cards Container (4 KPI Cards) -->
             <div class="cards-container">
                 <div class="card">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div class="card-header-flex">
                         <h3>Total Registered Students</h3>
-                        <i class="fas fa-users" style="color:var(--primary-yellow); font-size:22px;"></i>
+                        <i class="fas fa-users card-icon-yellow"></i>
                     </div>
                     <div class="value" id="stat-users">0</div>
                 </div>
                 <div class="card">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div class="card-header-flex">
                         <h3>Total Rooms & Capacity</h3>
-                        <i class="fas fa-bed" style="color:var(--primary-yellow); font-size:22px;"></i>
+                        <i class="fas fa-bed card-icon-yellow"></i>
                     </div>
                     <div class="value" id="stat-rooms">0</div>
                 </div>
                 <div class="card">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div class="card-header-flex">
                         <h3>Total Revenue Collected</h3>
-                        <i class="fas fa-money-bill-wave" style="color:var(--primary-yellow); font-size:22px;"></i>
+                        <i class="fas fa-money-bill-wave card-icon-yellow"></i>
                     </div>
                     <div class="value" id="stat-payments">Rs. 0.00</div>
                 </div>
                 <div class="card">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div class="card-header-flex">
                         <h3>Active Complaints</h3>
-                        <i class="fas fa-tools" style="color:#ff4757; font-size:22px;"></i>
+                        <i class="fas fa-tools card-icon-red"></i>
                     </div>
                     <div class="value" id="stat-complaints">0</div>
                 </div>
@@ -211,7 +108,7 @@
                         <h3><i class="fas fa-chart-column" style="color:var(--primary-yellow);"></i> Block Occupancy (Column Graph)</h3>
                         <span>Beds Occupied vs Available</span>
                     </div>
-                    <div style="height: 280px; position: relative;">
+                    <div class="chart-canvas-container">
                         <canvas id="occupancyBarChart"></canvas>
                     </div>
                 </div>
@@ -220,19 +117,19 @@
                         <h3><i class="fas fa-chart-pie" style="color:var(--primary-yellow);"></i> Complaints by Status</h3>
                         <span>Resolution Breakdown</span>
                     </div>
-                    <div style="height: 280px; position: relative; display: flex; justify-content: center;">
+                    <div class="chart-canvas-center">
                         <canvas id="complaintsPieChart"></canvas>
                     </div>
                 </div>
             </div>
 
             <!-- Tables Summary Row -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 25px; margin-bottom: 30px;">
+            <div class="summary-grid-2">
                 <!-- Summary Table 1: Block-Wise Room Summary -->
-                <div class="table-container" style="margin-top: 0;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <div class="table-container">
+                    <div class="table-header-flex">
                         <h2 style="font-size: 18px; font-family: 'Outfit', sans-serif;"><i class="fas fa-building" style="color:var(--primary-yellow); margin-right: 8px;"></i>Block Occupancy Summary</h2>
-                        <button class="btn btn-dark" style="padding: 6px 12px; font-size: 12px;" onclick="switchTab('rooms')">View All Rooms</button>
+                        <button class="btn btn-dark btn-sm" onclick="switchTab('rooms')">View All Rooms</button>
                     </div>
                     <table>
                         <thead>
@@ -251,10 +148,10 @@
                 </div>
 
                 <!-- Summary Table 2: Recent Complaints -->
-                <div class="table-container" style="margin-top: 0;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <div class="table-container">
+                    <div class="table-header-flex">
                         <h2 style="font-size: 18px; font-family: 'Outfit', sans-serif;"><i class="fas fa-exclamation-circle" style="color:#ff4757; margin-right: 8px;"></i>Recent Student Complaints</h2>
-                        <button class="btn btn-dark" style="padding: 6px 12px; font-size: 12px;" onclick="switchTab('complaints')">Manage All</button>
+                        <button class="btn btn-dark btn-sm" onclick="switchTab('complaints')">Manage All</button>
                     </div>
                     <table>
                         <thead>
@@ -276,7 +173,7 @@
         <!-- Users View -->
         <div id="view-users" class="view-section" style="display: none;">
             <div class="table-container">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <div class="table-header-flex">
                     <h2>Manage Users</h2>
                     <button class="btn btn-primary" onclick="openModal('userModal')"><i class="fas fa-plus"></i> Add User</button>
                 </div>
@@ -294,13 +191,13 @@
         <!-- Rooms View -->
         <div id="view-rooms" class="view-section" style="display: none;">
             <div class="table-container">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <div class="table-header-flex">
                     <h2>Manage Rooms</h2>
                     <button class="btn btn-primary" onclick="openModal('roomModal')"><i class="fas fa-plus"></i> Add Room</button>
                 </div>
                 <table>
                     <thead>
-                        <tr><th>ID</th><th>Room No</th><th>Block</th><th>Capacity</th></tr>
+                        <tr><th>ID</th><th>Room No</th><th>Block / Floor</th><th>Capacity (4 Students)</th><th>Current Status</th></tr>
                     </thead>
                     <tbody id="rooms-table-body">
                         <!-- Loaded dynamically -->
@@ -312,7 +209,7 @@
         <!-- Inventory View -->
         <div id="view-inventory" class="view-section" style="display: none;">
             <div class="table-container">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <div class="table-header-flex">
                     <h2>Manage Inventory</h2>
                     <button class="btn btn-primary" onclick="openModal('inventoryModal')"><i class="fas fa-plus"></i> Add Item</button>
                 </div>
@@ -330,7 +227,7 @@
         <!-- Payments View -->
         <div id="view-payments" class="view-section" style="display: none;">
             <div class="table-container">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <div class="table-header-flex">
                     <h2>Payment Records</h2>
                     <button class="btn btn-primary" onclick="generateReport('payments')"><i class="fas fa-file-pdf"></i> Download Report</button>
                 </div>
@@ -378,7 +275,7 @@
         <!-- Notices View -->
         <div id="view-notices" class="view-section" style="display: none;">
             <div class="table-container">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <div class="table-header-flex">
                     <h2>Notice Board</h2>
                     <button class="btn btn-primary" onclick="openModal('noticeModal')"><i class="fas fa-plus"></i> Post Notice</button>
                 </div>
@@ -402,7 +299,7 @@
                 <span class="close" onclick="closeModal('userModal')">&times;</span>
             </div>
             <form id="userForm" onsubmit="submitUser(event)">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 18px;">
+                <div class="form-grid-2">
                     <div class="form-group">
                         <label>Student ID (or Admin username)</label>
                         <input type="text" id="studentId" required placeholder="e.g. TG/2021/0151">
@@ -423,9 +320,9 @@
                     <label>Email Address</label>
                     <input type="email" id="email" required placeholder="student@ruhuna.ac.lk (For Payment Notifications)">
                 </div>
-                <div style="display: flex; gap: 15px; margin-top: 25px;">
-                    <button type="button" class="btn btn-dark" style="flex: 1; padding: 14px;" onclick="closeModal('userModal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary" style="flex: 2; padding: 14px; margin-top: 0;">Save User</button>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-dark btn-modal-cancel" onclick="closeModal('userModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-modal-submit">Save User</button>
                 </div>
             </form>
         </div>
@@ -435,27 +332,36 @@
     <div id="roomModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2><i class="fas fa-bed" style="color: var(--primary-yellow);"></i> Add New Hostel Room</h2>
+                <h2><i class="fas fa-bed" style="color: var(--primary-yellow);"></i> Add / Configure Hostel Room</h2>
                 <span class="close" onclick="closeModal('roomModal')">&times;</span>
             </div>
             <form id="roomForm" onsubmit="submitRoom(event)">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 18px;">
+                <div class="form-grid-2">
                     <div class="form-group">
-                        <label>Room Number</label>
-                        <input type="text" id="roomNumber" required placeholder="e.g. A-105">
+                        <label>Residential Block / Floor</label>
+                        <select id="blockName" onchange="onAddRoomBlockChange()" required>
+                            <option value="" disabled selected>-- Select Block / Floor --</option>
+                            <option value="Block A">Block A (Floor 1 - 25 Rooms)</option>
+                            <option value="Block B">Block B (Floor 2 - 25 Rooms)</option>
+                            <option value="Block C">Block C (Floor 3 - 25 Rooms)</option>
+                            <option value="Block D">Block D (Floor 4 - 25 Rooms)</option>
+                        </select>
                     </div>
                     <div class="form-group">
-                        <label>Block Name</label>
-                        <input type="text" id="blockName" required placeholder="e.g. Block A">
+                        <label>Room Number (25 Rooms / Block)</label>
+                        <select id="roomNumber" required disabled>
+                            <option value="" disabled selected>-- Select Block First --</option>
+                        </select>
                     </div>
                 </div>
                 <div class="form-group">
-                    <label>Bed Capacity</label>
-                    <input type="number" id="capacity" required min="1" max="10" placeholder="e.g. 4">
+                    <label>Bed Capacity (Fixed 4 Students per Room)</label>
+                    <input type="number" id="capacity" value="4" readonly style="background-color: #f1f2f6; font-weight: 700; color: #2f3542; cursor: not-allowed;">
+                    <div class="form-hint"><i class="fas fa-info-circle"></i> Standard Policy: Fixed capacity of 4 students per room across all blocks (A, B, C, D).</div>
                 </div>
-                <div style="display: flex; gap: 15px; margin-top: 25px;">
-                    <button type="button" class="btn btn-dark" style="flex: 1; padding: 14px;" onclick="closeModal('roomModal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary" style="flex: 2; padding: 14px; margin-top: 0;">Save Room</button>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-dark btn-modal-cancel" onclick="closeModal('roomModal')">Cancel</button>
+                    <button type="submit" id="roomSubmitBtn" class="btn btn-primary btn-modal-submit" disabled>Save Room</button>
                 </div>
             </form>
         </div>
@@ -470,16 +376,45 @@
             </div>
             <form id="allocateForm" onsubmit="submitAllocation(event)">
                 <input type="hidden" id="allocateUserId">
-                <div class="form-group">
-                    <label>Select Room</label>
-                    <select id="allocateRoomId" required>
-                        <!-- Loaded dynamically -->
-                    </select>
-                    <div class="form-hint">Rooms display current occupancy and total bed capacity.</div>
+
+                <!-- Student Information Card -->
+                <div class="modal-info-card">
+                    <div class="modal-info-card-avatar">
+                        <i class="fas fa-user-graduate"></i>
+                    </div>
+                    <div class="modal-info-card-details">
+                        <h4 id="allocateStudentName">Student Name</h4>
+                        <p id="allocateStudentDetails">ID: TG/2021/0000 | Current Room: Not Assigned</p>
+                    </div>
                 </div>
-                <div style="display: flex; gap: 15px; margin-top: 25px;">
-                    <button type="button" class="btn btn-dark" style="flex: 1; padding: 14px;" onclick="closeModal('allocateModal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary" style="flex: 2; padding: 14px; margin-top: 0;">Allocate Room</button>
+
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label>Select Residential Block / Floor</label>
+                        <select id="allocateBlockSelect" onchange="onAllocateBlockChange()" required>
+                            <option value="" disabled selected>-- Choose Block / Floor (A, B, C, D) --</option>
+                            <option value="Block A">Block A (Floor 1 - Rooms A-101 to A-125)</option>
+                            <option value="Block B">Block B (Floor 2 - Rooms B-101 to B-125)</option>
+                            <option value="Block C">Block C (Floor 3 - Rooms C-101 to C-125)</option>
+                            <option value="Block D">Block D (Floor 4 - Rooms D-101 to D-125)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Select Room Number (Capacity: 4)</label>
+                        <select id="allocateRoomId" onchange="onAllocateRoomChange()" required disabled>
+                            <option value="" disabled selected>-- Select Block First --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Live Room Occupancy Visualizer -->
+                <div id="allocateOccupancyCard" class="occupancy-preview-card" style="display: none;">
+                    <!-- Dynamically populated -->
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-dark btn-modal-cancel" onclick="closeModal('allocateModal')">Cancel</button>
+                    <button type="submit" id="allocateSubmitBtn" class="btn btn-primary btn-modal-submit" disabled>Allocate Student to Room</button>
                 </div>
             </form>
         </div>
@@ -497,7 +432,7 @@
                     <label>Item Name</label>
                     <input type="text" id="itemName" required placeholder="e.g. Study Table, Ceiling Fan, Mattress">
                 </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 18px;">
+                <div class="form-grid-2">
                     <div class="form-group">
                         <label>Category</label>
                         <select id="category">
@@ -511,9 +446,9 @@
                         <input type="number" id="totalQty" required min="1" placeholder="e.g. 50">
                     </div>
                 </div>
-                <div style="display: flex; gap: 15px; margin-top: 25px;">
-                    <button type="button" class="btn btn-dark" style="flex: 1; padding: 14px;" onclick="closeModal('inventoryModal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary" style="flex: 2; padding: 14px; margin-top: 0;">Save Item</button>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-dark btn-modal-cancel" onclick="closeModal('inventoryModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-modal-submit">Save Item</button>
                 </div>
             </form>
         </div>
@@ -535,9 +470,9 @@
                     <label>Notice Content & Full Announcement</label>
                     <textarea id="noticeContent" required placeholder="Write the announcement message to display on the Notice Board..."></textarea>
                 </div>
-                <div style="display: flex; gap: 15px; margin-top: 25px;">
-                    <button type="button" class="btn btn-dark" style="flex: 1; padding: 14px;" onclick="closeModal('noticeModal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary" style="flex: 2; padding: 14px; margin-top: 0;">Post Notice</button>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-dark btn-modal-cancel" onclick="closeModal('noticeModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-modal-submit">Post Notice</button>
                 </div>
             </form>
         </div>

@@ -55,6 +55,12 @@ public class UserServiceImpl implements UserService {
             throw new BadRequestException("Room is full");
         }
 
+        Room previousRoom = user.getRoom();
+        if (previousRoom != null && !previousRoom.getId().equals(room.getId())) {
+            previousRoom.setCurrentOccupancy(Math.max(0, previousRoom.getCurrentOccupancy() - 1));
+            roomRepository.save(previousRoom);
+        }
+
         user.setRoom(room);
         room.setCurrentOccupancy(room.getCurrentOccupancy() + 1);
 
