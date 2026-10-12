@@ -27,6 +27,7 @@
             <li class="active" onclick="showSection('dashboard-section', this)"><i class="fas fa-home"></i> My Dashboard</li>
             <li onclick="showSection('room-section', this)"><i class="fas fa-bed"></i> Room & Maintenance</li>
             <li onclick="showSection('payments-section', this)"><i class="fas fa-file-invoice-dollar"></i> My Payments</li>
+            <li onclick="showSection('leave-section', this)"><i class="fas fa-home-user"></i> Early Home Departure / Gate Pass</li>
         </ul>
 
         <div class="sidebar-logout-container">
@@ -197,6 +198,61 @@
                 </table>
             </div>
         </div>
+
+        <!-- Early Home Departure & Gate Pass Section -->
+        <div id="leave-section" class="content-section" style="display: none;">
+            <div class="table-container">
+                <div class="table-header-flex">
+                    <div>
+                        <h2><i class="fas fa-home-user" style="color: var(--primary-yellow);"></i> Early Home Departure & Weekend Leaves</h2>
+                        <p style="color: #7f8c8d; font-size: 13.5px; margin-top: 4px;">Submit early departure requests for weekend home visits or urgent leave. The <strong>Sub Warden</strong> approves requests, which are then authorized at the Security Gate.</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="openModal('gatePassModal')"><i class="fas fa-plus"></i> Request Early Home Departure</button>
+                </div>
+
+                <!-- Summary Cards -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 22px;">
+                    <div class="card" style="margin-bottom: 0; padding: 18px 20px;">
+                        <div class="card-header-flex">
+                            <h3 style="font-size: 13px;">Approved by Sub Warden</h3>
+                            <i class="fas fa-check-circle" style="color: #2ed573;"></i>
+                        </div>
+                        <div class="value" id="student-stat-approved-leaves" style="font-size: 26px; color: #2ed573;">0</div>
+                    </div>
+                    <div class="card" style="margin-bottom: 0; padding: 18px 20px;">
+                        <div class="card-header-flex">
+                            <h3 style="font-size: 13px;">Pending Sub Warden Review</h3>
+                            <i class="fas fa-hourglass-half" style="color: #ffa502;"></i>
+                        </div>
+                        <div class="value" id="student-stat-pending-leaves" style="font-size: 26px; color: #ffa502;">0</div>
+                    </div>
+                    <div class="card" style="margin-bottom: 0; padding: 18px 20px;">
+                        <div class="card-header-flex">
+                            <h3 style="font-size: 13px;">Completed / Departed</h3>
+                            <i class="fas fa-walking" style="color: #3742fa;"></i>
+                        </div>
+                        <div class="value" id="student-stat-departed-leaves" style="font-size: 26px; color: #3742fa;">0</div>
+                    </div>
+                </div>
+
+                <!-- Leaves Table -->
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Request ID</th>
+                            <th>Reason / Destination</th>
+                            <th>Departure Date</th>
+                            <th>Expected Return Date</th>
+                            <th>Sub Warden Approval Status</th>
+                            <th>Gate Clearance</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leave-table-body">
+                        <!-- Loaded dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
     <!-- Payment Modal (Enlarged & Spacious) -->
@@ -259,27 +315,37 @@
     <div id="gatePassModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2><i class="fas fa-id-card" style="color: var(--primary-yellow);"></i> Request Gate Pass / Leave</h2>
+                <h2><i class="fas fa-home-user" style="color: var(--primary-yellow);"></i> Request Early Home Departure / Gate Pass</h2>
                 <span class="close" onclick="closeModal('gatePassModal')">&times;</span>
             </div>
             <form id="gatePassForm" onsubmit="submitGatePass(event)">
                 <div class="form-group">
-                    <label>Reason for Leave / Exit</label>
-                    <input type="text" id="gpReason" required placeholder="e.g. Going Home for the Weekend / Medical Appointment">
+                    <label>Reason / Purpose of Leaving</label>
+                    <select id="gpReasonSelect" onchange="onReasonSelectChange()" style="margin-bottom: 10px;">
+                        <option value="Weekend Home Visit" selected>Weekend Home Visit</option>
+                        <option value="Medical Appointment / Sick Leave">Medical Appointment / Sick Leave</option>
+                        <option value="Family Function / Emergency">Family Function / Emergency</option>
+                        <option value="Academic Vacation / Study Leave">Academic Vacation / Study Leave</option>
+                        <option value="Other">Other</option>
+                    </select>
+                    <input type="text" id="gpReason" required placeholder="Specify destination or reason details (e.g. Home visit to Matara)...">
                 </div>
                 <div class="form-grid-2">
                     <div class="form-group">
-                        <label>From Date</label>
+                        <label>Departure Date</label>
                         <input type="date" id="gpFromDate" required>
                     </div>
                     <div class="form-group">
-                        <label>To Date</label>
+                        <label>Expected Return Date</label>
                         <input type="date" id="gpToDate" required>
                     </div>
                 </div>
+                <div style="background: #f8f9fa; border-left: 4px solid #1e3799; padding: 12px 16px; border-radius: 6px; margin-bottom: 18px; font-size: 13px; color: #2f3542;">
+                    <i class="fas fa-info-circle" style="color: #1e3799;"></i> <strong>Note:</strong> Once submitted, your request will be reviewed by the <strong>Sub Warden</strong>. Upon approval, Security will be authorized to verify your hostel gate exit.
+                </div>
                 <div class="modal-actions">
                     <button type="button" class="btn btn-dark btn-modal-cancel" onclick="closeModal('gatePassModal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary btn-modal-submit">Submit Request</button>
+                    <button type="submit" class="btn btn-primary btn-modal-submit" style="background: linear-gradient(135deg, #1e3799, #4a69bd); color: #fff; border: none;">Submit for Sub Warden Approval</button>
                 </div>
             </form>
         </div>

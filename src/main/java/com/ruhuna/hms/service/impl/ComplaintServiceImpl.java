@@ -10,6 +10,9 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.util.List;
 
+/**
+ * Service implementation for managing complaint workflow, persistence, and status updates.
+ */
 @Service
 public class ComplaintServiceImpl implements ComplaintService {
 
@@ -20,16 +23,19 @@ public class ComplaintServiceImpl implements ComplaintService {
         this.complaintRepository = complaintRepository;
     }
 
+    // Fetches all complaints submitted by hostel residents
     @Override
     public List<Complaint> getAllComplaints() {
         return complaintRepository.findAll();
     }
 
+    // Fetches complaints filed by a specific user
     @Override
     public List<Complaint> getComplaintsByUserId(Long userId) {
         return complaintRepository.findByUserId(userId);
     }
 
+    // Saves a new complaint with PENDING status and current date
     @Override
     public Complaint createComplaint(Complaint complaint) {
         if (complaint.getStatus() == null || complaint.getStatus().isEmpty()) {
@@ -41,6 +47,7 @@ public class ComplaintServiceImpl implements ComplaintService {
         return complaintRepository.save(complaint);
     }
 
+    // Marks a complaint as RESOLVED
     @Override
     public Complaint resolveComplaint(Long id) {
         Complaint complaint = complaintRepository.findById(id).orElse(null);

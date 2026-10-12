@@ -11,6 +11,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.List;
 
+/**
+ * Service implementation for managing hostel fee payments, transaction records,
+ * and automated email receipt notifications.
+ */
 @Service
 public class PaymentServiceImpl implements PaymentService {
 
@@ -23,16 +27,19 @@ public class PaymentServiceImpl implements PaymentService {
         this.emailService = emailService;
     }
 
+    // Fetches all payments received across the hostel
     @Override
     public List<Payment> getAllPayments() {
         return paymentRepository.findAll();
     }
 
+    // Fetches payment records for a specific student
     @Override
     public List<Payment> getPaymentsByUserId(Long userId) {
         return paymentRepository.findByUserId(userId);
     }
 
+    // Processes fee payment, marks as PAID, and sends email receipt
     @Override
     @Transactional
     public Payment processPayment(Payment payment) {

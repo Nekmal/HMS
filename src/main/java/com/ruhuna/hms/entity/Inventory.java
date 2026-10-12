@@ -2,6 +2,9 @@ package com.ruhuna.hms.entity;
 
 import jakarta.persistence.*;
 
+/**
+ * JPA entity representing master hostel inventory items and overall stock status.
+ */
 @Entity
 @Table(name = "inventory")
 public class Inventory {
@@ -10,11 +13,20 @@ public class Inventory {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // Item name (e.g. Bed Frame, Study Table, Ceiling Fan)
     private String itemName;
+
+    // Total purchased stock
     private int totalQuantity;
+
+    // Currently functional and in-use quantity
     private int availableQuantity;
+
+    // Currently damaged or broken quantity pending repair
     private int brokenQuantity;
-    private String category; // e.g. "Furniture", "Electronics"
+
+    // Category (e.g. Furniture, Electrical, Plumbing)
+    private String category;
 
     public Inventory() {}
 

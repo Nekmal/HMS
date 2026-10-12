@@ -3,6 +3,9 @@ package com.ruhuna.hms.entity;
 import jakarta.persistence.*;
 import java.time.LocalDate;
 
+/**
+ * JPA entity representing a hostel accommodation fee transaction and receipt.
+ */
 @Entity
 @Table(name = "payments")
 public class Payment {
@@ -11,16 +14,21 @@ public class Payment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // Unique invoice number (e.g. INV-2026-001)
     @Column(unique = true, nullable = false)
     private String invoiceNo;
 
+    // Student who made the payment
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     private double amount;
-    private String month; // e.g. "January 2026"
-    private String status; // "PAID", "PENDING"
+    private String month;
+    
+    // Status: PAID or PENDING
+    private String status;
+    
     private LocalDate paymentDate;
 
     public Payment() {}

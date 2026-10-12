@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard | RUHUNA Hostel Management System</title>
+    <title>Sub Warden Portal | RUHUNA Hostel Management System</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏢</text></svg>">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800;900&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -32,6 +32,7 @@
             <li onclick="switchTab('complaints')"><i class="fas fa-tools"></i> Complaints</li>
             <li onclick="switchTab('gatepasses')"><i class="fas fa-id-card"></i> Gate Passes</li>
             <li onclick="switchTab('notices')"><i class="fas fa-bullhorn"></i> Notices</li>
+            <li onclick="switchTab('staff')"><i class="fas fa-user-clock"></i> Staff & Attendance</li>
         </ul>
         
         <div class="sidebar-logout-container">
@@ -44,10 +45,10 @@
     <!-- Main Content -->
     <div class="main-content">
         <div class="header">
-            <h1 id="page-title">Admin Dashboard</h1>
+            <h1 id="page-title">Sub Warden Portal</h1>
             <div class="user-profile">
-                <span>Admin User</span>
-                <img src="https://ui-avatars.com/api/?name=Admin+User&background=FFD700&color=121212" alt="Admin">
+                <span>Sub Warden</span>
+                <img src="https://ui-avatars.com/api/?name=Sub+Warden&background=FFD700&color=121212" alt="Sub Warden">
             </div>
         </div>
 
@@ -56,9 +57,9 @@
             <!-- Hero Banner with Hostel Room Background Image -->
             <div class="dashboard-hero-banner" style="background-image: linear-gradient(90deg, rgba(18, 18, 18, 0.92) 0%, rgba(18, 18, 18, 0.75) 50%, rgba(18, 18, 18, 0.90) 100%), url('../images/hostel_room_bg.jpg');">
                 <div class="hero-content">
-                    <span class="hero-badge"><i class="fas fa-university"></i> RUHUNA UNIVERSITY HOSTEL COMPLEX</span>
-                    <h2>Hostel Operations & Management Center</h2>
-                    <p>Real-time analytics for room allocations, student complaints, payments, and residential block occupancy.</p>
+                    <span class="hero-badge"><i class="fas fa-university"></i> RUHUNA UNIVERSITY HOSTEL COMPLEX (SUB WARDEN OFFICE)</span>
+                    <h2>Sub Warden Operations & Management Center</h2>
+                    <p>Real-time oversight for student room allocations, early home departures, maintenance complaints, and staff duties.</p>
                     <div class="hero-stats-row">
                         <div class="hero-stat-pill"><i class="fas fa-bed"></i> <strong id="hero-rooms-count">100</strong> Total Rooms</div>
                         <div class="hero-stat-pill"><i class="fas fa-user-graduate"></i> <strong id="hero-students-count">150</strong> Boarding Students</div>
@@ -210,17 +211,52 @@
         <div id="view-inventory" class="view-section" style="display: none;">
             <div class="table-container">
                 <div class="table-header-flex">
-                    <h2>Manage Inventory</h2>
-                    <button class="btn btn-primary" onclick="openModal('inventoryModal')"><i class="fas fa-plus"></i> Add Item</button>
+                    <div>
+                        <h2><i class="fas fa-boxes" style="color: var(--primary-yellow);"></i> Inventory & Room Asset Management</h2>
+                        <p style="color: #7f8c8d; font-size: 13.5px; margin-top: 4px;">Track central warehouse inventory stock and monitor damaged/broken items across residential hostel rooms.</p>
+                    </div>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn btn-primary" onclick="openModal('inventoryModal')"><i class="fas fa-plus"></i> Add Master Item</button>
+                        <button class="btn btn-primary" onclick="openReportDamageModal()" style="background: linear-gradient(135deg, #ff4757, #ee5253); border: none; color: #fff; box-shadow: 0 4px 12px rgba(238, 82, 83, 0.3);"><i class="fas fa-tools"></i> Report Broken Item in Room</button>
+                    </div>
                 </div>
-                <table>
-                    <thead>
-                        <tr><th>ID</th><th>Item Name</th><th>Category</th><th>Total</th><th>Available</th><th>Broken</th></tr>
-                    </thead>
-                    <tbody id="inventory-table-body">
-                        <!-- Loaded dynamically -->
-                    </tbody>
-                </table>
+
+                <!-- Sub-Navigation Switcher -->
+                <div style="display: flex; gap: 12px; margin-bottom: 22px; border-bottom: 2px solid #f1f2f6; padding-bottom: 12px;">
+                    <button id="inventoryTabStockBtn" class="btn btn-primary btn-sm" onclick="switchInventorySubTab('stock')" style="font-weight: 700;">
+                        <i class="fas fa-warehouse"></i> Warehouse Stock (<span id="inv-total-stock-count">0</span> Items)
+                    </button>
+                    <button id="inventoryTabDamagesBtn" class="btn btn-secondary btn-sm" onclick="switchInventorySubTab('damages')" style="font-weight: 700;">
+                        <i class="fas fa-exclamation-triangle" style="color: #ff4757;"></i> Room Broken Items (<span id="inv-total-broken-count">0</span> Active Reports)
+                    </button>
+                </div>
+
+                <!-- Sub-Tab 1: Master Inventory Stock -->
+                <div id="inventory-subtab-stock">
+                    <table>
+                        <thead>
+                            <tr><th>ID</th><th>Item Name</th><th>Category</th><th>Total Stock</th><th>Available Stock</th><th>Total Broken Units</th></tr>
+                        </thead>
+                        <tbody id="inventory-table-body">
+                            <!-- Loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Sub-Tab 2: Room-Wise Broken Items Tracker -->
+                <div id="inventory-subtab-damages" style="display: none;">
+                    <div style="background: #fff8e7; border-left: 4px solid #f39c12; padding: 12px 18px; border-radius: 8px; margin-bottom: 16px; font-size: 13.5px; color: #7f6000;">
+                        <i class="fas fa-info-circle"></i> <strong>Room Damage Tracking:</strong> Shows real-time records of broken or damaged equipment linked directly to specific rooms and blocks. Mark as Repaired to automatically restore master stock!
+                    </div>
+                    <table>
+                        <thead>
+                            <tr><th>Report ID</th><th>Room & Block</th><th>Broken Item</th><th>Category</th><th>Broken Qty</th><th>Damage Description / Note</th><th>Reported Date</th><th>Status</th><th>Action</th></tr>
+                        </thead>
+                        <tbody id="room-damages-table-body">
+                            <!-- Loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
@@ -260,10 +296,15 @@
         <!-- Gate Passes View -->
         <div id="view-gatepasses" class="view-section" style="display: none;">
             <div class="table-container">
-                <h2>Manage Gate Passes</h2>
+                <div class="table-header-flex">
+                    <div>
+                        <h2><i class="fas fa-id-card" style="color: var(--primary-yellow);"></i> Student Early Home Departures & Gate Passes</h2>
+                        <p style="color: #7f8c8d; font-size: 13.5px; margin-top: 4px;">Review student requests for early departure / weekend home visits. Approvals are sent directly to the Security Gate for student exit verification.</p>
+                    </div>
+                </div>
                 <table>
                     <thead>
-                        <tr><th>ID</th><th>Student</th><th>Reason</th><th>From</th><th>To</th><th>Status</th><th>Action</th></tr>
+                        <tr><th>Pass ID</th><th>Student Name</th><th>Student ID</th><th>Room & Block</th><th>Reason / Destination</th><th>Departure Date</th><th>Expected Return</th><th>Status</th><th>Sub Warden Decision</th></tr>
                     </thead>
                     <tbody id="gatepasses-table-body-admin">
                         <!-- Loaded dynamically -->
@@ -284,6 +325,100 @@
                         <tr><th>ID</th><th>Date</th><th>Title</th><th>Content</th></tr>
                     </thead>
                     <tbody id="notices-table-body-admin">
+                        <!-- Loaded dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Staff & Attendance View -->
+        <div id="view-staff" class="view-section" style="display: none;">
+            <div class="table-container">
+                <div class="table-header-flex">
+                    <div>
+                        <h2><i class="fas fa-user-clock" style="color: var(--primary-yellow);"></i> Staff Attendance & Absence Management</h2>
+                        <p style="color: #7f8c8d; font-size: 13.5px; margin-top: 4px;">Monitor duty logs for Security, Maintenance, and Cleaning personnel. Record and manage official absences and leave.</p>
+                    </div>
+                    <div>
+                        <button class="btn btn-primary" onclick="openAdminMarkAbsenceModal()" style="background: linear-gradient(135deg, #ff4757, #ee5253); border: none; color: #fff; box-shadow: 0 4px 12px rgba(238, 82, 83, 0.3);">
+                            <i class="fas fa-calendar-times"></i> Mark Absence / Leave
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Staff Summary Cards -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 24px;">
+                    <div class="card" style="margin-bottom: 0; padding: 18px 20px;">
+                        <div class="card-header-flex">
+                            <h3 style="font-size: 13px;">Security Staff Present</h3>
+                            <i class="fas fa-shield-alt" style="color: #2ed573;"></i>
+                        </div>
+                        <div class="value" id="admin-stat-sec-present" style="font-size: 26px; color: #2ed573;">--</div>
+                    </div>
+                    <div class="card" style="margin-bottom: 0; padding: 18px 20px;">
+                        <div class="card-header-flex">
+                            <h3 style="font-size: 13px;">Maintenance Present</h3>
+                            <i class="fas fa-tools" style="color: #3742fa;"></i>
+                        </div>
+                        <div class="value" id="admin-stat-maint-present" style="font-size: 26px; color: #3742fa;">--</div>
+                    </div>
+                    <div class="card" style="margin-bottom: 0; padding: 18px 20px;">
+                        <div class="card-header-flex">
+                            <h3 style="font-size: 13px;">Cleaning Service Present</h3>
+                            <i class="fas fa-broom" style="color: #00cec9;"></i>
+                        </div>
+                        <div class="value" id="admin-stat-clean-present" style="font-size: 26px; color: #00cec9;">--</div>
+                    </div>
+                    <div class="card" style="margin-bottom: 0; padding: 18px 20px;">
+                        <div class="card-header-flex">
+                            <h3 style="font-size: 13px;">Admin-Marked Absences</h3>
+                            <i class="fas fa-user-times" style="color: #ff4757;"></i>
+                        </div>
+                        <div class="value" id="admin-stat-absent-count" style="font-size: 26px; color: #ff4757;">--</div>
+                    </div>
+                </div>
+
+                <!-- Filters & Controls Bar -->
+                <div style="display: flex; gap: 12px; margin-bottom: 18px; align-items: center; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <label style="font-size: 13px; font-weight: 600; color: #2f3542;"><i class="fas fa-filter"></i> Role:</label>
+                        <select id="adminStaffFilterRole" onchange="filterAdminStaffAttendance()" style="padding: 6px 12px; border-radius: 6px; border: 1px solid #ced6e0; font-size: 13px;">
+                            <option value="ALL">All Staff Personnel</option>
+                            <option value="SECURITY">Security Members</option>
+                            <option value="MAINTENANCE">Maintenance Team</option>
+                            <option value="CLEANING">Cleaning Service</option>
+                        </select>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <label style="font-size: 13px; font-weight: 600; color: #2f3542;">Status:</label>
+                        <select id="adminStaffFilterStatus" onchange="filterAdminStaffAttendance()" style="padding: 6px 12px; border-radius: 6px; border: 1px solid #ced6e0; font-size: 13px;">
+                            <option value="ALL">All Statuses</option>
+                            <option value="ABSENT">Absent (Marked)</option>
+                            <option value="ON_LEAVE">On Leave</option>
+                            <option value="PRESENT">Present</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-secondary btn-sm" onclick="loadStaffAttendanceManagement()" style="margin-left: auto;">
+                        <i class="fas fa-sync-alt"></i> Refresh Records
+                    </button>
+                </div>
+
+                <!-- Attendance Table -->
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Record ID</th>
+                            <th>Staff Member</th>
+                            <th>Role / Department</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th>Check-in</th>
+                            <th>Check-out</th>
+                            <th>Marked By</th>
+                            <th>Remarks / Absence Reason</th>
+                        </tr>
+                    </thead>
+                    <tbody id="staff-attendance-table-body-admin">
                         <!-- Loaded dynamically -->
                     </tbody>
                 </table>
@@ -477,6 +612,125 @@
             </form>
         </div>
     </div>
+
+    <!-- Report Broken Item in Room Modal -->
+    <div id="reportDamageModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-tools" style="color: #ff4757;"></i> Report Broken Item in Room</h2>
+                <span class="close" onclick="closeModal('reportDamageModal')">&times;</span>
+            </div>
+            <form id="reportDamageForm" onsubmit="submitRoomDamage(event)">
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label>Select Residential Block</label>
+                        <select id="damageBlockSelect" onchange="onDamageBlockChange()" required>
+                            <option value="" disabled selected>-- Select Block / Floor --</option>
+                            <option value="Block A">Block A (Floor 1)</option>
+                            <option value="Block B">Block B (Floor 2)</option>
+                            <option value="Block C">Block C (Floor 3)</option>
+                            <option value="Block D">Block D (Floor 4)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Select Room Number</label>
+                        <select id="damageRoomId" required disabled>
+                            <option value="" disabled selected>-- Select Block First --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label>Broken Inventory Item</label>
+                        <select id="damageInventoryId" required>
+                            <option value="" disabled selected>-- Select Item (e.g. Fan, Chair, Table) --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Damaged Quantity</label>
+                        <input type="number" id="damageQuantity" min="1" max="50" value="1" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Damage Description & Issue Details</label>
+                    <textarea id="damageDescription" required placeholder="Describe what is broken (e.g. Study table leg loose / Ceiling fan regulator burnt out / Bed frame cracked)..."></textarea>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-dark btn-modal-cancel" onclick="closeModal('reportDamageModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-modal-submit" style="background: linear-gradient(135deg, #ff4757, #ee5253); border: none;">Record Broken Item</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Admin Mark Absence Modal -->
+    <div id="adminMarkAbsenceModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-user-clock" style="color: #ff4757;"></i> Mark Staff Absence / Leave</h2>
+                <span class="close" onclick="closeModal('adminMarkAbsenceModal')">&times;</span>
+            </div>
+            <form id="adminMarkAbsenceForm" onsubmit="submitAdminMarkAbsence(event)">
+                <div class="form-group">
+                    <label>Select Staff Member</label>
+                    <select id="adminAbsenceStaffSelect" required>
+                        <option value="" disabled selected>-- Choose Staff Member --</option>
+                        <option value="152">Nimal Perera (Head of Security - ID: 152)</option>
+                        <option value="153">Sunil Rathnayake (Maintenance Specialist - ID: 153)</option>
+                        <option value="154">Kamala Silva (Cleaning Supervisor - ID: 154)</option>
+                    </select>
+                </div>
+
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label>Date</label>
+                        <input type="date" id="adminAbsenceDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Attendance Status</label>
+                        <select id="adminAbsenceStatus" required>
+                            <option value="ABSENT" selected>ABSENT (Unreported / Duty Missed)</option>
+                            <option value="ON_LEAVE">ON LEAVE (Authorized Leave)</option>
+                            <option value="PRESENT">PRESENT (Official Override)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Absence Reason / Admin Remarks</label>
+                    <textarea id="adminAbsenceRemarks" required placeholder="Explain reason for marking absence or leave (e.g. Unexcused gate absence / Sick leave certificate submitted / Off duty approved)..."></textarea>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-dark btn-modal-cancel" onclick="closeModal('adminMarkAbsenceModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-modal-submit" style="background: linear-gradient(135deg, #ff4757, #ee5253); border: none;">Save Absence Record</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Custom Confirmation Modal Dialog -->
+    <div id="confirmDialogModal" class="modal">
+        <div class="modal-content confirm-modal-box">
+            <div id="confirmDialogIcon" class="confirm-icon-circle">
+                <i class="fas fa-tools"></i>
+            </div>
+            <h3 id="confirmDialogTitle" class="confirm-modal-title">Confirm Repair</h3>
+            <p id="confirmDialogDesc" class="confirm-modal-desc">Are you sure this item has been repaired and restored to working condition?</p>
+            <div class="modal-actions" style="margin-top: 10px;">
+                <button type="button" class="btn btn-dark btn-modal-cancel" onclick="closeConfirmDialog(false)">Cancel</button>
+                <button type="button" id="confirmDialogActionBtn" class="btn btn-primary btn-modal-submit" style="background: #2ed573; color: #121212; font-weight: 700;" onclick="closeConfirmDialog(true)">
+                    <i class="fas fa-check"></i> Yes, Mark Repaired
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="toast-container"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="js/script.js"></script>

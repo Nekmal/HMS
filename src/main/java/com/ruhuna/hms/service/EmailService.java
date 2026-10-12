@@ -5,12 +5,16 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
+/**
+ * Service for sending transactional email alerts (e.g. payment confirmations).
+ */
 @Service
 public class EmailService {
 
     @Autowired
     private JavaMailSender mailSender;
 
+    // Dispatches a simple text email to the designated recipient
     public void sendEmail(String to, String subject, String body) {
         try {
             SimpleMailMessage message = new SimpleMailMessage();

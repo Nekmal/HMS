@@ -3,6 +3,9 @@ package com.ruhuna.hms.entity;
 import jakarta.persistence.*;
 import java.time.LocalDate;
 
+/**
+ * JPA entity representing an official hostel bulletin announcement.
+ */
 @Entity
 @Table(name = "notices")
 public class Notice {
@@ -11,11 +14,14 @@ public class Notice {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // Notice title or header
     private String title;
     
+    // Notice body text / announcement content
     @Column(columnDefinition = "TEXT")
     private String content;
     
+    // Date posted by Sub Warden
     private LocalDate datePosted;
 
     public Notice() {}

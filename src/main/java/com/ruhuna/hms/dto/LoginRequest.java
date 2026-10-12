@@ -1,5 +1,8 @@
 package com.ruhuna.hms.dto;
 
+/**
+ * DTO carrying user authentication credentials during login.
+ */
 public class LoginRequest {
     private String studentId;
     private String password;

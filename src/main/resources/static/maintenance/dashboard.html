@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maintenance Operations Portal | RUHUNA Hostel Management System</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔧</text></svg>">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800;900&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/modal.css">
+</head>
+<body>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <div class="brand-icon-wrapper-small" style="background: linear-gradient(135deg, #e67e22, #d35400);">
+                <i class="fas fa-tools" style="color: #ffffff;"></i>
+            </div>
+            <div class="brand-title-wrap">
+                <span class="brand-ruhuna">RUHUNA</span>
+                <span class="brand-hms">Maintenance Team</span>
+            </div>
+        </div>
+        <ul class="sidebar-menu">
+            <li class="active" onclick="switchMaintenanceTab('repairs')"><i class="fas fa-wrench"></i> Room Damage Repairs</li>
+            <li onclick="switchMaintenanceTab('complaints')"><i class="fas fa-tools"></i> Student Complaints</li>
+            <li onclick="switchMaintenanceTab('attendance')"><i class="fas fa-clock"></i> My Attendance</li>
+            <li onclick="switchMaintenanceTab('notices')"><i class="fas fa-bullhorn"></i> Campus Notices</li>
+        </ul>
+        
+        <div class="sidebar-logout-container">
+            <button class="btn btn-logout" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="header">
+            <h1 id="page-title">Room Equipment Damages & Repairs</h1>
+            <div class="user-profile">
+                <span id="header-user-name">Maintenance Staff</span>
+                <img src="https://ui-avatars.com/api/?name=Maintenance+Lead&background=e67e22&color=ffffff" alt="Maintenance">
+            </div>
+        </div>
+
+        <!-- Hero Banner -->
+        <div class="dashboard-hero-banner" style="background-image: linear-gradient(90deg, rgba(211, 84, 0, 0.94) 0%, rgba(230, 126, 34, 0.82) 100%), url('../images/hostel_room_bg.jpg');">
+            <div class="hero-content">
+                <span class="hero-badge" style="background: rgba(255, 255, 255, 0.2); color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.4);">
+                    <i class="fas fa-hard-hat"></i> FACILITY REPAIRS & ASSET RESTORATION
+                </span>
+                <h2>Hostel Maintenance & Repair Command</h2>
+                <p>Track reported damaged equipment per room, inspect room facilities, and mark repair tasks completed directly from the portal.</p>
+                <div class="hero-stats-row">
+                    <div class="hero-stat-pill"><i class="fas fa-tools"></i> <strong id="stat-active-repairs">0</strong> Pending Repairs</div>
+                    <div class="hero-stat-pill"><i class="fas fa-check-double"></i> <strong id="stat-completed-repairs">0</strong> Completed Fixes</div>
+                    <div class="hero-stat-pill"><i class="fas fa-building"></i> <strong>4 Blocks</strong> (A, B, C, D)</div>
+                    <div class="hero-stat-pill"><i class="fas fa-wrench" style="color: #FFD700;"></i> Service: Active</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 1: Room Damaged Items & Maintenance Tracker -->
+        <div id="view-repairs" class="view-section pop-up-animation">
+            <div class="table-container">
+                <div class="table-header-flex">
+                    <div>
+                        <h2><i class="fas fa-tools" style="color: #e67e22;"></i> Room Equipment Damages & Maintenance Tracker</h2>
+                        <p style="color: #7f8c8d; font-size: 13.5px; margin-top: 4px;">Inspect broken items linked to specific rooms. When work is finished, click 'Complete Maintenance' to mark repaired!</p>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <select id="repairBlockFilter" onchange="filterRepairsTable()" style="padding: 10px 14px; border-radius: 8px; border: 1.5px solid #ddd; font-size: 13.5px;">
+                            <option value="">All Residential Blocks</option>
+                            <option value="Block A">Block A</option>
+                            <option value="Block B">Block B</option>
+                            <option value="Block C">Block C</option>
+                            <option value="Block D">Block D</option>
+                        </select>
+                    </div>
+                </div>
+                <table>
+                    <thead>
+                        <tr><th>Report ID</th><th>Hostel Room & Block</th><th>Damaged Equipment</th><th>Category</th><th>Broken Qty</th><th>Damage Description / Note</th><th>Report Date</th><th>Status</th><th>Maintenance Action</th></tr>
+                    </thead>
+                    <tbody id="maintenance-repairs-tbody">
+                        <!-- Loaded dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tab 2: Student Complaints -->
+        <div id="view-complaints" class="view-section" style="display: none;">
+            <div class="table-container">
+                <div class="table-header-flex">
+                    <div>
+                        <h2><i class="fas fa-clipboard-list" style="color: #e67e22;"></i> Student Maintenance Complaints</h2>
+                        <p style="color: #7f8c8d; font-size: 13.5px; margin-top: 4px;">Issues reported by boarding students regarding fans, electricity, water, or plumbing.</p>
+                    </div>
+                </div>
+                <table>
+                    <thead>
+                        <tr><th>Complaint ID</th><th>Filed Date</th><th>Student Name</th><th>Student Room</th><th>Issue Description</th><th>Status</th><th>Action</th></tr>
+                    </thead>
+                    <tbody id="maintenance-complaints-tbody">
+                        <!-- Loaded dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tab 3: My Attendance -->
+        <div id="view-attendance" class="view-section" style="display: none;">
+            <div class="card" style="margin-bottom: 25px; padding: 25px 30px; background: #ffffff; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); border-left: 6px solid #e67e22;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+                    <div>
+                        <span style="font-size: 12px; font-weight: 800; color: #e67e22; text-transform: uppercase; letter-spacing: 1px;"><i class="fas fa-calendar-day"></i> DAILY DUTY ATTENDANCE</span>
+                        <h3 style="font-family: 'Outfit', sans-serif; font-size: 22px; margin: 6px 0 4px 0; color: #121212;">Today's Maintenance Duty Check</h3>
+                        <p id="today-date-str" style="color: #636e72; font-size: 14px; margin: 0;">Date: Loading...</p>
+                    </div>
+                    <div style="display: flex; gap: 14px; align-items: center;">
+                        <button id="btnCheckIn" class="btn btn-primary" onclick="markMyCheckIn()" style="background: #2ed573; border: none; color: #121212; font-weight: 700; padding: 12px 24px;">
+                            <i class="fas fa-sign-in-alt"></i> Mark Check-In
+                        </button>
+                        <button id="btnCheckOut" class="btn btn-primary" onclick="markMyCheckOut()" style="background: #e67e22; border: none; color: #fff; font-weight: 700; padding: 12px 24px;">
+                            <i class="fas fa-sign-out-alt"></i> Mark Check-Out
+                        </button>
+                    </div>
+                </div>
+                <div id="todayDutyStatusBadge" style="margin-top: 15px; padding: 10px 16px; background: #f1f2f6; border-radius: 8px; font-size: 13.5px; font-weight: 600; color: #2f3542;">
+                    Status: Checking duty status...
+                </div>
+            </div>
+
+            <div class="table-container">
+                <div class="table-header-flex">
+                    <div>
+                        <h2><i class="fas fa-calendar-check" style="color: var(--primary-yellow);"></i> My Duty Attendance & Admin Absence History</h2>
+                        <p style="color: #7f8c8d; font-size: 13.5px; margin-top: 4px;">Review your attendance log and absence records marked by the Administrator.</p>
+                    </div>
+                </div>
+                <table>
+                    <thead>
+                        <tr><th>Date</th><th>Status</th><th>Check-In</th><th>Check-Out</th><th>Marked By</th><th>Admin Remarks / Note</th></tr>
+                    </thead>
+                    <tbody id="maintenance-attendance-tbody">
+                        <!-- Loaded dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tab 4: Campus Notices -->
+        <div id="view-notices" class="view-section" style="display: none;">
+            <div class="table-container">
+                <h2><i class="fas fa-bullhorn" style="color: var(--primary-yellow);"></i> Campus Notices</h2>
+                <table>
+                    <thead>
+                        <tr><th>ID</th><th>Date</th><th>Title</th><th>Content</th></tr>
+                    </thead>
+                    <tbody id="maintenance-notices-tbody">
+                        <!-- Loaded dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom In-App Confirmation Modal Dialog -->
+    <div id="confirmDialogModal" class="modal">
+        <div class="modal-content confirm-modal-box">
+            <div id="confirmDialogIcon" class="confirm-icon-circle">
+                <i class="fas fa-check"></i>
+            </div>
+            <h3 id="confirmDialogTitle" class="confirm-modal-title">Complete Maintenance</h3>
+            <p id="confirmDialogDesc" class="confirm-modal-desc">Are you sure this maintenance repair task is completed?</p>
+            <div class="modal-actions" style="margin-top: 10px;">
+                <button type="button" class="btn btn-dark btn-modal-cancel" onclick="closeConfirmDialog(false)">Cancel</button>
+                <button type="button" id="confirmDialogActionBtn" class="btn btn-primary btn-modal-submit" style="background: #2ed573; color: #121212; font-weight: 700;" onclick="closeConfirmDialog(true)">
+                    <i class="fas fa-check-circle"></i> Yes, Task Done
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="maintenance-script.js"></script>
+</body>
+</html>

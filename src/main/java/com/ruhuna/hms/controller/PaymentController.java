@@ -7,6 +7,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * REST controller for student hostel fee payments and transactions.
+ */
 @RestController
 @RequestMapping("/api/payments")
 public class PaymentController {
@@ -18,16 +21,19 @@ public class PaymentController {
         this.paymentService = paymentService;
     }
 
+    // Retrieve all hostel fee payment transactions
     @GetMapping
     public List<Payment> getAllPayments() {
         return paymentService.getAllPayments();
     }
 
+    // Retrieve fee payment receipts for a specific student
     @GetMapping("/user/{userId}")
     public List<Payment> getUserPayments(@PathVariable Long userId) {
         return paymentService.getPaymentsByUserId(userId);
     }
 
+    // Process a student hostel fee payment
     @PostMapping
     public Payment createPayment(@RequestBody Payment payment) {
         return paymentService.processPayment(payment);

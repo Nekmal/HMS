@@ -13,6 +13,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+/**
+ * Service implementation for managing users, room assignment integrity, and credentials authentication.
+ */
 @Service
 public class UserServiceImpl implements UserService {
 
@@ -25,22 +28,26 @@ public class UserServiceImpl implements UserService {
         this.roomRepository = roomRepository;
     }
 
+    // Fetches all users from the database
     @Override
     public List<User> getAllUsers() {
         return userRepository.findAll();
     }
 
+    // Finds a user by primary key ID or throws exception
     @Override
     public User getUserById(Long id) {
         return userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
     }
 
+    // Saves a user entity
     @Override
     public User createUser(User user) {
         return userRepository.save(user);
     }
 
+    // Allocates a student to a room while ensuring capacity constraints (max 4 students per room)
     @Override
     @Transactional
     public User allocateRoom(Long userId, Long roomId) {
@@ -70,6 +77,7 @@ public class UserServiceImpl implements UserService {
         return user;
     }
 
+    // Authenticates user with credentials
     @Override
     public User authenticate(String studentId, String password) {
         User user = userRepository.findByStudentId(studentId);
@@ -79,6 +87,7 @@ public class UserServiceImpl implements UserService {
         return null;
     }
 
+    // Finds a user by their student/staff ID
     @Override
     public User findByStudentId(String studentId) {
         return userRepository.findByStudentId(studentId);

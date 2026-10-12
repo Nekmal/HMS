@@ -305,3 +305,149 @@
     margin-bottom: 5px;
 }
 
+/* ===================================================
+   Custom Toast & Modern In-App Popup Dialog Styles
+   (Eliminates browser native 'localhost says:' alert/confirm)
+   =================================================== */
+
+.toast-container {
+    position: fixed;
+    top: 25px;
+    right: 25px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    pointer-events: none;
+}
+
+.custom-toast {
+    pointer-events: auto;
+    min-width: 320px;
+    max-width: 450px;
+    padding: 16px 20px;
+    border-radius: 14px;
+    background: #ffffff;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.18), 0 3px 10px rgba(0, 0, 0, 0.08);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14.5px;
+    font-weight: 600;
+    animation: toastSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    transition: all 0.3s ease;
+    border-left: 5px solid #2ed573;
+}
+
+.custom-toast.success {
+    border-left-color: #2ed573;
+    color: #1b4332;
+}
+
+.custom-toast.error {
+    border-left-color: #ff4757;
+    color: #721c24;
+}
+
+.custom-toast.info {
+    border-left-color: #FFD700;
+    color: #121212;
+}
+
+.custom-toast-icon {
+    font-size: 24px;
+    flex-shrink: 0;
+}
+
+.custom-toast.success .custom-toast-icon { color: #2ed573; }
+.custom-toast.error .custom-toast-icon { color: #ff4757; }
+.custom-toast.info .custom-toast-icon { color: #f39c12; }
+
+.custom-toast-text {
+    flex: 1;
+    line-height: 1.45;
+}
+
+.custom-toast-close {
+    background: none;
+    border: none;
+    color: #999;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 0 4px;
+    line-height: 1;
+    transition: color 0.2s;
+}
+
+.custom-toast-close:hover {
+    color: #ff4757;
+}
+
+@keyframes toastSlideIn {
+    from {
+        opacity: 0;
+        transform: translateX(60px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+}
+
+@keyframes toastSlideOut {
+    to {
+        opacity: 0;
+        transform: translateX(80px) scale(0.9);
+    }
+}
+
+/* Custom Confirmation Modal Dialog Box */
+.confirm-modal-box {
+    text-align: center;
+    max-width: 520px !important;
+    padding: 38px 45px !important;
+}
+
+.confirm-icon-circle {
+    width: 74px;
+    height: 74px;
+    border-radius: 50%;
+    background: rgba(46, 213, 115, 0.15);
+    color: #2ed573;
+    font-size: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px auto;
+    box-shadow: 0 8px 20px rgba(46, 213, 115, 0.2);
+}
+
+.confirm-icon-circle.danger {
+    background: rgba(255, 71, 87, 0.15);
+    color: #ff4757;
+    box-shadow: 0 8px 20px rgba(255, 71, 87, 0.2);
+}
+
+.confirm-icon-circle.warning {
+    background: rgba(255, 215, 0, 0.2);
+    color: #f39c12;
+    box-shadow: 0 8px 20px rgba(255, 215, 0, 0.25);
+}
+
+.confirm-modal-title {
+    font-family: 'Outfit', sans-serif;
+    font-size: 23px;
+    font-weight: 800;
+    color: #121212;
+    margin-bottom: 12px;
+}
+
+.confirm-modal-desc {
+    font-size: 15px;
+    color: #555;
+    line-height: 1.55;
+    margin-bottom: 25px;
+}
+
+

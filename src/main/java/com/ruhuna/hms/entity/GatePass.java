@@ -3,6 +3,9 @@ package com.ruhuna.hms.entity;
 import jakarta.persistence.*;
 import java.time.LocalDate;
 
+/**
+ * JPA entity representing a student early departure gate pass request.
+ */
 @Entity
 @Table(name = "gate_passes")
 public class GatePass {
@@ -11,6 +14,7 @@ public class GatePass {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // Student requesting the gate pass
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
@@ -19,7 +23,8 @@ public class GatePass {
     private LocalDate fromDate;
     private LocalDate toDate;
     
-    private String status; // "PENDING", "APPROVED", "REJECTED"
+    // Status: PENDING, APPROVED, REJECTED, or DEPARTED
+    private String status;
 
     public GatePass() {}
 

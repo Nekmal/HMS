@@ -1,5 +1,8 @@
 package com.ruhuna.hms.dto;
 
+/**
+ * Generic API response envelope DTO for standardized REST endpoints.
+ */
 public class ApiResponse {
     private boolean success;
     private String message;

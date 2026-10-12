@@ -3,6 +3,9 @@ package com.ruhuna.hms.entity;
 import jakarta.persistence.*;
 import java.time.LocalDate;
 
+/**
+ * JPA entity representing a resident complaint or reported hostel issue.
+ */
 @Entity
 @Table(name = "complaints")
 public class Complaint {
@@ -11,13 +14,15 @@ public class Complaint {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // Student who filed the complaint
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     private String description;
     
-    private String status; // "PENDING", "RESOLVED"
+    // Status: PENDING or RESOLVED
+    private String status;
     
     private LocalDate createdAt;
 

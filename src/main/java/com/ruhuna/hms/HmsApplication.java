@@ -7,13 +7,18 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 
+/**
+ * Main Spring Boot entry point for University of Ruhuna Hostel Management System.
+ */
 @SpringBootApplication
 public class HmsApplication {
 
+	// Launches the Spring Boot application context
 	public static void main(String[] args) {
 		SpringApplication.run(HmsApplication.class, args);
 	}
 
+	// Seeds the default administrator account upon initial startup if absent
 	@Bean
 	public CommandLineRunner createDefaultAdmin(UserService userService) {
 		return args -> {

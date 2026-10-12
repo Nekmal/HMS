@@ -2,6 +2,9 @@ package com.ruhuna.hms.entity;
 
 import jakarta.persistence.*;
 
+/**
+ * JPA entity representing a system user (Student, Sub Warden Admin, Security, Cleaning, Maintenance).
+ */
 @Entity
 @Table(name = "users")
 public class User {
@@ -10,15 +13,19 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // Unique student registration number or staff username
     @Column(unique = true, nullable = false)
-    private String studentId; // Or Admin username
+    private String studentId;
 
     private String fullName;
     private String password;
     private String email;
     private String phone;
-    private String role; // "STUDENT" or "ADMIN"
+    
+    // User role: STUDENT, ADMIN, SECURITY, CLEANING, MAINTENANCE
+    private String role;
 
+    // Assigned hostel room (for students)
     @ManyToOne
     @JoinColumn(name = "room_id")
     private Room room;

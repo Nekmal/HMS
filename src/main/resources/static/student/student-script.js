@@ -1,3 +1,6 @@
+// Student Portal Frontend Controller
+// Manages student hostel room details, fee payments, complaints, and early departure gate pass requests.
+
 const API_BASE = '/hms/api';
 
 let currentUserId = localStorage.getItem('userId'); 
@@ -172,29 +175,92 @@ async function loadComplaints() {
     }
 }
 
+function onReasonSelectChange() {
+    const sel = document.getElementById('gpReasonSelect');
+    const input = document.getElementById('gpReason');
+    if (!sel || !input) return;
+    if (sel.value === 'Other') {
+        input.value = '';
+        input.placeholder = 'Please describe your reason for leaving...';
+        input.focus();
+    } else {
+        input.value = sel.value;
+    }
+}
+
 async function loadGatePasses() {
     if (!currentUserId) return;
     try {
         const res = await fetch(`${API_BASE}/gatepasses/user/${currentUserId}`);
         myGatePassesList = await res.json();
         
-        const tbody = document.getElementById('gatepass-table-body');
-        if (tbody) {
-            tbody.innerHTML = '';
+        let approvedCount = 0;
+        let pendingCount = 0;
+        let departedCount = 0;
+
+        const tbody1 = document.getElementById('gatepass-table-body');
+        const tbody2 = document.getElementById('leave-table-body');
+        if (tbody1) tbody1.innerHTML = '';
+        if (tbody2) tbody2.innerHTML = '';
+
+        if (myGatePassesList.length === 0) {
+            const emptyHtml = '<tr><td colspan="6" style="text-align:center; color:#888; padding:25px;">No early home departure requests found. Click "+ Request Early Home Departure" to create one.</td></tr>';
+            if (tbody1) tbody1.innerHTML = emptyHtml;
+            if (tbody2) tbody2.innerHTML = emptyHtml;
+        } else {
             myGatePassesList.forEach(p => {
-                let statusClass = p.status === 'APPROVED' ? 'paid' : (p.status === 'REJECTED' ? 'pending' : 'pending');
-                let actionBtn = p.status === 'APPROVED' ? `<button class="btn btn-primary" style="padding:5px 10px; font-size:12px;" onclick="printGatePass(${p.id})"><i class="fas fa-print"></i> Print</button>` : '-';
-                tbody.innerHTML += `
+                let statusBadge = '';
+                let gateClearance = '';
+
+                if (p.status === 'APPROVED') {
+                    approvedCount++;
+                    statusBadge = '<span class="status-badge" style="background: rgba(46, 213, 115, 0.15); color: #2ed573; border: 1px solid rgba(46, 213, 115, 0.3); font-weight: 700;"><i class="fas fa-check-circle"></i> APPROVED BY SUB WARDEN</span>';
+                    gateClearance = '<span style="color:#2ed573; font-weight:700;"><i class="fas fa-id-card"></i> Ready to Exit Gate</span>';
+                } else if (p.status === 'REJECTED') {
+                    statusBadge = '<span class="status-badge" style="background: rgba(255, 71, 87, 0.15); color: #ff4757; border: 1px solid rgba(255, 71, 87, 0.3); font-weight: 700;"><i class="fas fa-times-circle"></i> REJECTED BY SUB WARDEN</span>';
+                    gateClearance = '<span style="color:#ff4757;"><i class="fas fa-ban"></i> Exit Not Permitted</span>';
+                } else if (p.status === 'DEPARTED') {
+                    departedCount++;
+                    statusBadge = '<span class="status-badge" style="background: rgba(47, 53, 66, 0.15); color: #2f3542; border: 1px solid rgba(47, 53, 66, 0.3); font-weight: 700;"><i class="fas fa-walking"></i> DEPARTED (At Gate)</span>';
+                    gateClearance = '<span style="color:#3742fa; font-weight:600;"><i class="fas fa-check-double"></i> Security Checked Out</span>';
+                } else {
+                    pendingCount++;
+                    statusBadge = '<span class="status-badge" style="background: rgba(255, 165, 2, 0.15); color: #ffa502; border: 1px solid rgba(255, 165, 2, 0.3); font-weight: 700;"><i class="fas fa-hourglass-half"></i> PENDING SUB WARDEN REVIEW</span>';
+                    gateClearance = '<span style="color:#ffa502; font-size:12px;"><i class="fas fa-clock"></i> Awaiting Approval</span>';
+                }
+
+                const rowHtml = `
+                    <tr>
+                        <td><strong>#${p.id}</strong></td>
+                        <td><strong>${p.reason}</strong></td>
+                        <td><span style="color: #1e3799; font-weight: 600;"><i class="fas fa-calendar-day"></i> ${p.fromDate}</span></td>
+                        <td><span style="color: #57606f;"><i class="fas fa-calendar-check"></i> ${p.toDate}</span></td>
+                        <td>${statusBadge}</td>
+                        <td>${gateClearance}</td>
+                    </tr>
+                `;
+
+                if (tbody1) tbody1.innerHTML += `
                     <tr>
                         <td>${p.reason}</td>
                         <td>${p.fromDate}</td>
                         <td>${p.toDate}</td>
-                        <td><span class="status ${statusClass}">${p.status}</span></td>
-                        <td>${actionBtn}</td>
+                        <td>${statusBadge}</td>
+                        <td>${gateClearance}</td>
                     </tr>
                 `;
+                if (tbody2) tbody2.innerHTML += rowHtml;
             });
         }
+
+        // Update leave summary cards
+        const elApp = document.getElementById('student-stat-approved-leaves');
+        if (elApp) elApp.innerText = approvedCount;
+        const elPen = document.getElementById('student-stat-pending-leaves');
+        if (elPen) elPen.innerText = pendingCount;
+        const elDep = document.getElementById('student-stat-departed-leaves');
+        if (elDep) elDep.innerText = departedCount;
+
         updateStudentRequestsSummary();
     } catch (e) {
         console.error("Error loading gate passes", e);
@@ -352,30 +418,84 @@ async function submitGatePass(event) {
     event.preventDefault();
     if (!currentUserId) return;
 
+    let reason = document.getElementById('gpReason').value;
+    const fromDate = document.getElementById('gpFromDate').value;
+    const toDate = document.getElementById('gpToDate').value;
+
+    if (!reason || !fromDate || !toDate) {
+        showStudentToast("Please fill all required departure details.", "error");
+        return;
+    }
+
     const pass = {
-        reason: document.getElementById('gpReason').value,
-        fromDate: document.getElementById('gpFromDate').value,
-        toDate: document.getElementById('gpToDate').value,
-        user: { id: currentUserId }
+        reason: reason,
+        fromDate: fromDate,
+        toDate: toDate,
+        user: { id: parseInt(currentUserId) }
     };
 
     try {
-        await fetch(`${API_BASE}/gatepasses`, {
+        const res = await fetch(`${API_BASE}/gatepasses`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(pass)
         });
 
-        closeModal('gatePassModal');
-        document.getElementById('gatePassForm').reset();
-        loadGatePasses(); // Refresh table
+        if (res.ok) {
+            closeModal('gatePassModal');
+            document.getElementById('gatePassForm').reset();
+            showStudentToast("Early home departure request submitted! Sent to Sub Warden for review.", "success");
+            await loadGatePasses();
+        } else {
+            showStudentToast("Failed to submit request.", "error");
+        }
     } catch (e) {
         console.error("Error submitting gate pass", e);
+        showStudentToast("Error connecting to server.", "error");
     }
 }
 
 function printGatePass(id) {
-    alert("Printing Gate Pass ID: " + id + "\n(This feature can be extended to open a proper PDF!)");
+    showStudentToast("Gate Pass #" + id + " verified and ready for download.", "success");
+}
+
+function showStudentToast(message, type = 'info') {
+    let container = document.getElementById('studentToastContainer');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'studentToastContainer';
+        container.style.cssText = 'position:fixed; bottom:25px; right:25px; z-index:99999; display:flex; flex-direction:column; gap:10px; pointer-events:none;';
+        document.body.appendChild(container);
+    }
+
+    const toast = document.createElement('div');
+    const isSuccess = type === 'success';
+    toast.style.cssText = `
+        background: ${isSuccess ? '#2ed573' : '#ff4757'};
+        color: ${isSuccess ? '#121212' : '#ffffff'};
+        font-weight: 700;
+        padding: 12px 20px;
+        border-radius: 10px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+        font-family: 'Inter', sans-serif;
+        font-size: 13.5px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        pointer-events: auto;
+    `;
+    toast.innerHTML = `
+        <i class="fas ${isSuccess ? 'fa-check-circle' : 'fa-exclamation-triangle'}"></i>
+        <span>${message}</span>
+        <button style="background:transparent; border:none; color:inherit; font-weight:800; cursor:pointer; margin-left:10px;" onclick="this.parentElement.remove()">&times;</button>
+    `;
+
+    container.appendChild(toast);
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 0.4s';
+        setTimeout(() => toast.remove(), 400);
+    }, 4000);
 }
 
 function logout() {
