@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800;900&family=Poppins:wght@600;700;800&display=swap');
+
 :root {
     --primary-yellow: #FFD700;
     --primary-yellow-hover: #e6c200;
@@ -34,13 +36,54 @@ body {
 }
 
 .sidebar-header {
-    padding: 30px 20px;
-    font-size: 22px;
-    line-height: 1.4;
-    font-weight: bold;
+    padding: 24px 18px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(180deg, rgba(255, 215, 0, 0.08) 0%, transparent 100%);
     text-align: center;
-    border-bottom: 2px solid var(--light-black);
+}
+
+.brand-icon-wrapper-small {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: rgba(255, 215, 0, 0.12);
     color: var(--primary-yellow);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    border: 1px solid rgba(255, 215, 0, 0.35);
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.15);
+}
+
+.brand-title-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.brand-ruhuna {
+    font-family: 'Outfit', sans-serif;
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: 2.5px;
+    color: var(--primary-yellow);
+    text-shadow: 0 2px 10px rgba(255, 215, 0, 0.3);
+    line-height: 1.2;
+}
+
+.brand-hms {
+    font-family: 'Outfit', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #c5c5c5;
+    margin-top: 3px;
 }
 
 .sidebar-menu {
@@ -72,34 +115,62 @@ body {
     padding: 30px;
 }
 
+/* Customized Header Line with Luxury Gradient and Outfit Font */
 .header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 30px;
-    background: var(--white);
-    padding: 15px 20px;
-    border-radius: 10px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    background: linear-gradient(135deg, #13141a 0%, #1f222c 100%);
+    padding: 18px 26px;
+    border-radius: 14px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+    border-left: 5px solid var(--primary-yellow);
+    border-top: 1px solid rgba(255, 215, 0, 0.2);
 }
 
 .header h1 {
-    font-size: 24px;
-    color: var(--dark-black);
+    font-family: 'Outfit', sans-serif;
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: 0.6px;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.header h1::before {
+    content: '';
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    background-color: var(--primary-yellow);
+    border-radius: 50%;
+    box-shadow: 0 0 10px var(--primary-yellow);
 }
 
 .user-profile {
     display: flex;
     align-items: center;
-    gap: 10px;
-    font-weight: bold;
+    gap: 14px;
+    font-weight: 600;
+    color: #ffffff;
+    font-family: 'Outfit', sans-serif;
+}
+
+.user-profile span {
+    color: #ffffff;
+    font-size: 15px;
+    letter-spacing: 0.3px;
 }
 
 .user-profile img {
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
     border: 2px solid var(--primary-yellow);
+    box-shadow: 0 2px 10px rgba(255, 215, 0, 0.3);
 }
 
 /* Dashboard Cards */
@@ -200,3 +271,201 @@ tr:hover {
 .status.paid { background-color: #d4edda; color: #155724; }
 .status.pending { background-color: #fff3cd; color: #856404; }
 .status.allocated { background-color: #cce5ff; color: #004085; }
+
+/* Pop-up Section Animation (Runs smoothly within 1 second ~ 0.75s) */
+@keyframes popUpSection {
+    0% {
+        opacity: 0;
+        transform: scale(0.92) translateY(28px);
+    }
+    60% {
+        opacity: 0.98;
+        transform: scale(1.02) translateY(-4px);
+    }
+    82% {
+        transform: scale(0.995) translateY(2px);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+@keyframes popUpCard {
+    0% {
+        opacity: 0;
+        transform: scale(0.92) translateY(20px);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.content-section, .view-section {
+    will-change: transform, opacity;
+}
+
+.pop-up-animation {
+    animation: popUpSection 0.75s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.pop-up-animation .card {
+    animation: popUpCard 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.pop-up-animation .table-container {
+    animation: popUpCard 0.75s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.pop-up-animation #notice-board {
+    animation: popUpCard 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Stagger card animations */
+.pop-up-animation .cards-container .card:nth-child(1) { animation-delay: 0.05s; }
+.pop-up-animation .cards-container .card:nth-child(2) { animation-delay: 0.12s; }
+.pop-up-animation .cards-container .card:nth-child(3) { animation-delay: 0.19s; }
+
+/* Interactive Sidebar Click Feel */
+.sidebar-menu li {
+    user-select: none;
+    position: relative;
+    overflow: hidden;
+    transition: background-color 0.25s ease, color 0.25s ease, transform 0.15s ease;
+}
+
+.sidebar-menu li:active {
+    transform: scale(0.96);
+}
+
+/* Dashboard Hero Banner */
+.dashboard-hero-banner {
+    background-size: cover;
+    background-position: center;
+    border-radius: 16px;
+    padding: 35px 40px;
+    margin-bottom: 30px;
+    color: #ffffff;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(255, 215, 0, 0.25);
+    position: relative;
+    overflow: hidden;
+}
+
+.hero-badge {
+    display: inline-block;
+    padding: 6px 14px;
+    background: rgba(255, 215, 0, 0.2);
+    color: var(--primary-yellow);
+    border: 1px solid rgba(255, 215, 0, 0.4);
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    margin-bottom: 12px;
+    font-family: 'Outfit', sans-serif;
+}
+
+.dashboard-hero-banner h2 {
+    font-family: 'Outfit', sans-serif;
+    font-size: 32px;
+    font-weight: 800;
+    margin-bottom: 10px;
+    letter-spacing: 0.5px;
+    color: #ffffff;
+}
+
+.dashboard-hero-banner p {
+    color: #e0e0e0;
+    font-size: 15px;
+    max-width: 700px;
+    line-height: 1.6;
+    margin-bottom: 22px;
+}
+
+.hero-stats-row {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.hero-stat-pill {
+    background: rgba(18, 18, 18, 0.65);
+    backdrop-filter: blur(8px);
+    padding: 10px 20px;
+    border-radius: 25px;
+    font-size: 14px;
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #ffffff;
+}
+
+.hero-stat-pill i {
+    color: var(--primary-yellow);
+}
+
+/* Charts Grid */
+.charts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 25px;
+    margin-bottom: 30px;
+}
+
+@media (max-width: 1024px) {
+    .charts-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.chart-card {
+    background: var(--white);
+    padding: 24px;
+    border-radius: 14px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    border-top: 4px solid var(--dark-black);
+}
+
+.chart-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.chart-card-header h3 {
+    font-family: 'Outfit', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--dark-black);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.chart-card-header span {
+    font-size: 13px;
+    color: var(--gray-text);
+    font-weight: 500;
+}
+
+/* Occupancy Progress Bar */
+.progress-bar-bg {
+    width: 100%;
+    height: 8px;
+    background-color: #eee;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 4px;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #FFD700, #e6c200);
+    border-radius: 4px;
+}
+
+

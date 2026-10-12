@@ -4,8 +4,25 @@ const API_BASE = '/hms/api';
 function switchTab(tabId) {
     document.querySelectorAll('.view-section').forEach(section => {
         section.style.display = 'none';
+        section.classList.remove('pop-up-animation');
     });
-    document.getElementById('view-' + tabId).style.display = 'block';
+
+    const target = document.getElementById('view-' + tabId);
+    if (target) {
+        target.style.display = 'block';
+        void target.offsetWidth; // Force reflow to replay animation
+        target.classList.add('pop-up-animation');
+    }
+
+    // Sync active menu state
+    const navItems = document.querySelectorAll('.sidebar-menu li');
+    navItems.forEach(li => {
+        if (li.getAttribute('onclick') && li.getAttribute('onclick').includes(`'${tabId}'`)) {
+            li.classList.add('active');
+        } else {
+            li.classList.remove('active');
+        }
+    });
 
     if (tabId === 'dashboard') {
         document.getElementById('page-title').innerText = 'Admin Dashboard';
@@ -43,22 +60,214 @@ function closeModal(modalId) {
     document.getElementById(modalId).style.display = 'none';
 }
 
-// Fetch API Data
+// Global chart holders to prevent duplicate instances
+let occupancyChartInstance = null;
+let complaintsChartInstance = null;
+
+// Fetch API Data & Render Dynamic Dashboard Analytics
 async function loadDashboardStats() {
     try {
-        const usersRes = await fetch(`${API_BASE}/users`);
+        const [usersRes, roomsRes, paymentsRes, complaintsRes] = await Promise.all([
+            fetch(`${API_BASE}/users`),
+            fetch(`${API_BASE}/rooms`),
+            fetch(`${API_BASE}/payments`),
+            fetch(`${API_BASE}/complaints`)
+        ]);
+
         const users = await usersRes.json();
-        document.getElementById('stat-users').innerText = users.length;
-
-        const roomsRes = await fetch(`${API_BASE}/rooms`);
         const rooms = await roomsRes.json();
-        document.getElementById('stat-rooms').innerText = rooms.length;
-
-        const paymentsRes = await fetch(`${API_BASE}/payments`);
         const payments = await paymentsRes.json();
-        document.getElementById('stat-payments').innerText = payments.length;
+        const complaints = await complaintsRes.json();
+
+        // 1. KPI Cards
+        const students = users.filter(u => u.role === 'STUDENT');
+        const studentCount = students.length || users.length;
+        document.getElementById('stat-users').innerText = studentCount;
+        const heroStudentEl = document.getElementById('hero-students-count');
+        if (heroStudentEl) heroStudentEl.innerText = studentCount;
+
+        let totalCapacity = 0;
+        let totalOccupied = 0;
+        const blockMap = {};
+
+        rooms.forEach(room => {
+            const block = room.blockName || 'General';
+            const cap = room.capacity || 0;
+            const occ = room.currentOccupancy || 0;
+
+            totalCapacity += cap;
+            totalOccupied += occ;
+
+            if (!blockMap[block]) {
+                blockMap[block] = { count: 0, capacity: 0, occupied: 0 };
+            }
+            blockMap[block].count += 1;
+            blockMap[block].capacity += cap;
+            blockMap[block].occupied += occ;
+        });
+
+        document.getElementById('stat-rooms').innerText = `${rooms.length} Rooms (${totalOccupied}/${totalCapacity} Beds)`;
+
+        let totalRevenue = 0;
+        payments.forEach(p => {
+            if (p.amount) totalRevenue += Number(p.amount);
+        });
+        document.getElementById('stat-payments').innerText = `Rs. ${totalRevenue.toLocaleString()}`;
+
+        const activeComplaints = complaints.filter(c => c.status !== 'RESOLVED');
+        document.getElementById('stat-complaints').innerText = activeComplaints.length;
+
+        // 2. Summary Table 1: Block Occupancy Summary
+        const blockTbody = document.getElementById('block-summary-tbody');
+        if (blockTbody) {
+            blockTbody.innerHTML = '';
+            const blockNames = Object.keys(blockMap).sort();
+            blockNames.forEach(bName => {
+                const b = blockMap[bName];
+                const rate = b.capacity > 0 ? Math.min(100, Math.round((b.occupied / b.capacity) * 100)) : 0;
+                blockTbody.innerHTML += `
+                    <tr>
+                        <td><strong>${bName}</strong></td>
+                        <td>${b.count}</td>
+                        <td>${b.capacity}</td>
+                        <td>${b.occupied}</td>
+                        <td style="min-width: 140px;">
+                            <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:bold; margin-bottom:2px;">
+                                <span>${rate}%</span>
+                                <span style="color:#777;">${b.capacity - b.occupied} free</span>
+                            </div>
+                            <div class="progress-bar-bg">
+                                <div class="progress-bar-fill" style="width: ${rate}%;"></div>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        // 3. Summary Table 2: Recent Complaints
+        const recentComplaintsTbody = document.getElementById('recent-complaints-tbody');
+        if (recentComplaintsTbody) {
+            recentComplaintsTbody.innerHTML = '';
+            const recent5 = complaints.slice(-5).reverse();
+            if (recent5.length === 0) {
+                recentComplaintsTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#888;">No complaints filed yet.</td></tr>';
+            } else {
+                recent5.forEach(c => {
+                    let statusClass = 'pending';
+                    if (c.status === 'RESOLVED') statusClass = 'paid';
+                    else if (c.status === 'IN_PROGRESS') statusClass = 'allocated';
+
+                    const sName = c.user ? (c.user.fullName || c.user.studentId) : 'Student';
+                    const rNum = c.room ? c.room.roomNumber : (c.user && c.user.room ? c.user.room.roomNumber : '-');
+                    recentComplaintsTbody.innerHTML += `
+                        <tr>
+                            <td><strong>${sName}</strong></td>
+                            <td><span style="font-weight:600;">${rNum}</span></td>
+                            <td style="max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${c.description}">${c.description}</td>
+                            <td><span class="status ${statusClass}">${c.status}</span></td>
+                        </tr>
+                    `;
+                });
+            }
+        }
+
+        // 4. Chart 1: Column Graph for Block Occupancy (Chart.js)
+        const barCanvas = document.getElementById('occupancyBarChart');
+        if (barCanvas && typeof Chart !== 'undefined') {
+            const blocks = Object.keys(blockMap).sort();
+            const occupiedData = blocks.map(b => blockMap[b].occupied);
+            const availableData = blocks.map(b => Math.max(0, blockMap[b].capacity - blockMap[b].occupied));
+
+            if (occupancyChartInstance) {
+                occupancyChartInstance.destroy();
+            }
+
+            occupancyChartInstance = new Chart(barCanvas.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: blocks,
+                    datasets: [
+                        {
+                            label: 'Occupied Beds',
+                            data: occupiedData,
+                            backgroundColor: '#FFD700',
+                            borderRadius: 6
+                        },
+                        {
+                            label: 'Available Beds',
+                            data: availableData,
+                            backgroundColor: '#1e1e1e',
+                            borderRadius: 6
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                font: { family: 'Outfit', weight: '600' }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(0,0,0,0.05)' }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { font: { family: 'Outfit', weight: '600' } }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 5. Chart 2: Complaints Status Breakdown (Pie/Doughnut)
+        const pieCanvas = document.getElementById('complaintsPieChart');
+        if (pieCanvas && typeof Chart !== 'undefined') {
+            const pendingCount = complaints.filter(c => c.status === 'PENDING').length;
+            const inProgressCount = complaints.filter(c => c.status === 'IN_PROGRESS').length;
+            const resolvedCount = complaints.filter(c => c.status === 'RESOLVED').length;
+
+            if (complaintsChartInstance) {
+                complaintsChartInstance.destroy();
+            }
+
+            complaintsChartInstance = new Chart(pieCanvas.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Pending', 'In Progress', 'Resolved'],
+                    datasets: [{
+                        data: [pendingCount, inProgressCount, resolvedCount],
+                        backgroundColor: ['#ff4757', '#ffa502', '#2ed573'],
+                        borderWidth: 2,
+                        hoverOffset: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: { family: 'Outfit', weight: '600' },
+                                boxWidth: 14
+                            }
+                        }
+                    },
+                    cutout: '65%'
+                }
+            });
+        }
+
     } catch (e) {
-        console.error("Failed to load stats", e);
+        console.error("Failed to load dashboard statistics", e);
     }
 }
 

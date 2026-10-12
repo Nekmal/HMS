@@ -2,6 +2,12 @@ const API_BASE = '/hms/api';
 
 let currentUserId = localStorage.getItem('userId'); 
 
+// Chart instances for Student Dashboard
+let studentPaymentsChart = null;
+let studentRequestsChart = null;
+let myComplaintsList = [];
+let myGatePassesList = [];
+
 async function initDashboard() {
     if (!currentUserId || localStorage.getItem('userRole') !== 'STUDENT') {
         window.location.href = '/hms/'; // redirect to login
@@ -17,12 +23,24 @@ async function initDashboard() {
             document.getElementById('student-name').innerText = student.fullName;
             document.getElementById('student-avatar').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(student.fullName)}&background=FFD700&color=121212`;
             
+            const heroNameEl = document.getElementById('hero-student-name');
+            if (heroNameEl) heroNameEl.innerText = student.fullName;
+
             if (student.room) {
                 document.getElementById('my-block').innerText = student.room.blockName;
                 document.getElementById('my-room').innerText = student.room.roomNumber;
+                
+                const heroRoomEl = document.getElementById('hero-room-no');
+                if (heroRoomEl) heroRoomEl.innerText = student.room.roomNumber;
+                const heroBlockEl = document.getElementById('hero-block-name');
+                if (heroBlockEl) heroBlockEl.innerText = student.room.blockName;
             } else {
                 document.getElementById('my-block').innerText = 'Not Allocated';
                 document.getElementById('my-room').innerText = 'Not Allocated';
+                const heroRoomEl = document.getElementById('hero-room-no');
+                if (heroRoomEl) heroRoomEl.innerText = 'Not Allocated';
+                const heroBlockEl = document.getElementById('hero-block-name');
+                if (heroBlockEl) heroBlockEl.innerText = 'Not Allocated';
             }
 
             loadPayments();
@@ -42,31 +60,89 @@ async function loadPayments() {
         const res = await fetch(`${API_BASE}/payments`);
         const allPayments = await res.json();
         
-        // Filter payments for this user (Ideally done via a dedicated backend endpoint)
-        const myPayments = allPayments.filter(p => p.user && p.user.id === currentUserId);
+        // Filter payments for this user
+        const myPayments = allPayments.filter(p => p.user && p.user.id == currentUserId);
         
         let totalPaid = 0;
         const tbody = document.getElementById('payments-table-body');
-        tbody.innerHTML = '';
+        if (tbody) tbody.innerHTML = '';
         
         myPayments.forEach(payment => {
             totalPaid += payment.amount;
-            tbody.innerHTML += `
-                <tr>
-                    <td>${payment.invoiceNo}</td>
-                    <td>${payment.month}</td>
-                    <td>Rs. ${payment.amount.toFixed(2)}</td>
-                    <td>${payment.paymentDate || new Date().toISOString().split('T')[0]}</td>
-                    <td><span class="status paid">${payment.status}</span></td>
-                </tr>
-            `;
+            if (tbody) {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${payment.invoiceNo}</td>
+                        <td>${payment.month}</td>
+                        <td>Rs. ${payment.amount.toFixed(2)}</td>
+                        <td>${payment.paymentDate || new Date().toISOString().split('T')[0]}</td>
+                        <td><span class="status paid">${payment.status}</span></td>
+                    </tr>
+                `;
+            }
         });
         
-        document.getElementById('total-paid').innerText = `Rs. ${totalPaid.toFixed(2)}`;
+        const totalPaidStr = `Rs. ${totalPaid.toFixed(2)}`;
+        document.getElementById('total-paid').innerText = totalPaidStr;
+        const heroPaidEl = document.getElementById('hero-total-paid');
+        if (heroPaidEl) heroPaidEl.innerText = totalPaidStr;
+
+        // Render Payments Column Graph
+        renderStudentPaymentsChart(myPayments);
 
     } catch (e) {
         console.error("Error loading payments", e);
     }
+}
+
+function renderStudentPaymentsChart(myPayments) {
+    const canvas = document.getElementById('studentPaymentsBarChart');
+    if (!canvas || typeof Chart === 'undefined') return;
+
+    if (studentPaymentsChart) {
+        studentPaymentsChart.destroy();
+    }
+
+    let labels = myPayments.map(p => p.month || 'Fee');
+    let data = myPayments.map(p => p.amount);
+
+    if (labels.length === 0) {
+        labels = ['January', 'February', 'March'];
+        data = [0, 0, 0];
+    }
+
+    studentPaymentsChart = new Chart(canvas.getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Paid Amount (Rs)',
+                data: data,
+                backgroundColor: '#FFD700',
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: { font: { family: 'Outfit', weight: '600' } }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(0,0,0,0.05)' }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: { font: { family: 'Outfit', weight: '600' } }
+                }
+            }
+        }
+    });
 }
 
 async function loadComplaints() {
@@ -74,21 +150,23 @@ async function loadComplaints() {
     
     try {
         const res = await fetch(`${API_BASE}/complaints/user/${currentUserId}`);
-        const myComplaints = await res.json();
+        myComplaintsList = await res.json();
         
         const tbody = document.getElementById('complaints-table-body');
-        tbody.innerHTML = '';
-        
-        myComplaints.forEach(c => {
-            let statusClass = c.status === 'RESOLVED' ? 'paid' : 'pending';
-            tbody.innerHTML += `
-                <tr>
-                    <td>${c.createdAt}</td>
-                    <td>${c.description}</td>
-                    <td><span class="status ${statusClass}">${c.status}</span></td>
-                </tr>
-            `;
-        });
+        if (tbody) {
+            tbody.innerHTML = '';
+            myComplaintsList.forEach(c => {
+                let statusClass = c.status === 'RESOLVED' ? 'paid' : (c.status === 'IN_PROGRESS' ? 'allocated' : 'pending');
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${c.createdAt}</td>
+                        <td>${c.description}</td>
+                        <td><span class="status ${statusClass}">${c.status}</span></td>
+                    </tr>
+                `;
+            });
+        }
+        updateStudentRequestsSummary();
     } catch (e) {
         console.error("Error loading complaints", e);
     }
@@ -98,27 +176,83 @@ async function loadGatePasses() {
     if (!currentUserId) return;
     try {
         const res = await fetch(`${API_BASE}/gatepasses/user/${currentUserId}`);
-        const passes = await res.json();
+        myGatePassesList = await res.json();
         
         const tbody = document.getElementById('gatepass-table-body');
-        tbody.innerHTML = '';
-        
-        passes.forEach(p => {
-            let statusClass = p.status === 'APPROVED' ? 'paid' : (p.status === 'REJECTED' ? 'pending' : 'pending');
-            let actionBtn = p.status === 'APPROVED' ? `<button class="btn btn-primary" style="padding:5px 10px; font-size:12px;" onclick="printGatePass(${p.id})"><i class="fas fa-print"></i> Print</button>` : '-';
-            tbody.innerHTML += `
-                <tr>
-                    <td>${p.reason}</td>
-                    <td>${p.fromDate}</td>
-                    <td>${p.toDate}</td>
-                    <td><span class="status ${statusClass}">${p.status}</span></td>
-                    <td>${actionBtn}</td>
-                </tr>
-            `;
-        });
+        if (tbody) {
+            tbody.innerHTML = '';
+            myGatePassesList.forEach(p => {
+                let statusClass = p.status === 'APPROVED' ? 'paid' : (p.status === 'REJECTED' ? 'pending' : 'pending');
+                let actionBtn = p.status === 'APPROVED' ? `<button class="btn btn-primary" style="padding:5px 10px; font-size:12px;" onclick="printGatePass(${p.id})"><i class="fas fa-print"></i> Print</button>` : '-';
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${p.reason}</td>
+                        <td>${p.fromDate}</td>
+                        <td>${p.toDate}</td>
+                        <td><span class="status ${statusClass}">${p.status}</span></td>
+                        <td>${actionBtn}</td>
+                    </tr>
+                `;
+            });
+        }
+        updateStudentRequestsSummary();
     } catch (e) {
         console.error("Error loading gate passes", e);
     }
+}
+
+function updateStudentRequestsSummary() {
+    const totalRequests = myComplaintsList.length + myGatePassesList.length;
+    const reqEl = document.getElementById('my-requests');
+    if (reqEl) reqEl.innerText = totalRequests;
+
+    const canvas = document.getElementById('studentRequestsPieChart');
+    if (!canvas || typeof Chart === 'undefined') return;
+
+    if (studentRequestsChart) {
+        studentRequestsChart.destroy();
+    }
+
+    let approvedCount = 0;
+    let pendingCount = 0;
+
+    myComplaintsList.forEach(c => {
+        if (c.status === 'RESOLVED') approvedCount++;
+        else pendingCount++;
+    });
+
+    myGatePassesList.forEach(p => {
+        if (p.status === 'APPROVED') approvedCount++;
+        else pendingCount++;
+    });
+
+    if (approvedCount === 0 && pendingCount === 0) {
+        approvedCount = 1; // default showcase slice
+    }
+
+    studentRequestsChart = new Chart(canvas.getContext('2d'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Approved / Resolved', 'Pending / In Progress'],
+            datasets: [{
+                data: [approvedCount, pendingCount],
+                backgroundColor: ['#2ed573', '#ffa502'],
+                borderWidth: 2,
+                hoverOffset: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { font: { family: 'Outfit', weight: '600' }, boxWidth: 14 }
+                }
+            },
+            cutout: '65%'
+        }
+    });
 }
 
 async function loadNotices() {

@@ -1,7 +1,7 @@
 package com.ruhuna.hms.controller;
 
 import com.ruhuna.hms.entity.GatePass;
-import com.ruhuna.hms.repository.GatePassRepository;
+import com.ruhuna.hms.service.GatePassService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -12,33 +12,31 @@ import java.util.List;
 @RequestMapping("/api/gatepasses")
 public class GatePassController {
 
+    private final GatePassService gatePassService;
+
     @Autowired
-    private GatePassRepository gatePassRepository;
+    public GatePassController(GatePassService gatePassService) {
+        this.gatePassService = gatePassService;
+    }
 
     @GetMapping
     public List<GatePass> getAllGatePasses() {
-        return gatePassRepository.findAll();
+        return gatePassService.getAllGatePasses();
     }
 
     @GetMapping("/user/{userId}")
     public List<GatePass> getUserGatePasses(@PathVariable Long userId) {
-        return gatePassRepository.findByUserId(userId);
+        return gatePassService.getGatePassesByUserId(userId);
     }
 
     @PostMapping
     public GatePass createGatePass(@RequestBody GatePass gatePass) {
-        gatePass.setStatus("PENDING");
-        return gatePassRepository.save(gatePass);
+        return gatePassService.createGatePass(gatePass);
     }
 
     @PutMapping("/{id}/approve")
     public ResponseEntity<?> approveGatePass(@PathVariable Long id) {
-        GatePass gatePass = gatePassRepository.findById(id).orElse(null);
-        if (gatePass == null) {
-            return ResponseEntity.badRequest().body("Gate pass not found");
-        }
-        gatePass.setStatus("APPROVED");
-        gatePassRepository.save(gatePass);
-        return ResponseEntity.ok(gatePass);
+        GatePass approved = gatePassService.approveGatePass(id);
+        return ResponseEntity.ok(approved);
     }
 }

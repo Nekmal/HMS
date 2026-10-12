@@ -1,60 +1,45 @@
 package com.ruhuna.hms.controller;
 
+import com.ruhuna.hms.dto.LoginRequest;
 import com.ruhuna.hms.entity.User;
-import com.ruhuna.hms.repository.UserRepository;
+import com.ruhuna.hms.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
-import com.ruhuna.hms.entity.Room;
-import com.ruhuna.hms.repository.RoomRepository;
 
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserService userService;
 
     @Autowired
-    private RoomRepository roomRepository;
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
 
     @GetMapping
     public List<User> getAllUsers() {
-        return userRepository.findAll();
+        return userService.getAllUsers();
     }
 
     @PostMapping
     public User createUser(@RequestBody User user) {
-        return userRepository.save(user);
+        return userService.createUser(user);
     }
 
     @PutMapping("/{userId}/allocate/{roomId}")
     public ResponseEntity<?> allocateRoom(@PathVariable Long userId, @PathVariable Long roomId) {
-        User user = userRepository.findById(userId).orElse(null);
-        Room room = roomRepository.findById(roomId).orElse(null);
-
-        if (user == null || room == null) {
-            return ResponseEntity.badRequest().body("User or Room not found");
-        }
-
-        if (room.getCurrentOccupancy() >= room.getCapacity()) {
-            return ResponseEntity.badRequest().body("Room is full");
-        }
-
-        user.setRoom(room);
-        room.setCurrentOccupancy(room.getCurrentOccupancy() + 1);
-
-        userRepository.save(user);
-        roomRepository.save(room);
-
-        return ResponseEntity.ok(user);
+        User allocated = userService.allocateRoom(userId, roomId);
+        return ResponseEntity.ok(allocated);
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody User loginDetails) {
-        User user = userRepository.findByStudentId(loginDetails.getStudentId());
-        if (user != null && user.getPassword().equals(loginDetails.getPassword())) {
+    public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
+        User user = userService.authenticate(loginRequest.getStudentId(), loginRequest.getPassword());
+        if (user != null) {
             return ResponseEntity.ok(user);
         }
         return ResponseEntity.status(401).body("Invalid credentials");

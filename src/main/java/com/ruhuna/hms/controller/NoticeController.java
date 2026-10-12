@@ -1,28 +1,30 @@
 package com.ruhuna.hms.controller;
 
 import com.ruhuna.hms.entity.Notice;
-import com.ruhuna.hms.repository.NoticeRepository;
+import com.ruhuna.hms.service.NoticeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/notices")
 public class NoticeController {
 
+    private final NoticeService noticeService;
+
     @Autowired
-    private NoticeRepository noticeRepository;
+    public NoticeController(NoticeService noticeService) {
+        this.noticeService = noticeService;
+    }
 
     @GetMapping
     public List<Notice> getAllNotices() {
-        return noticeRepository.findAllByOrderByDatePostedDesc();
+        return noticeService.getAllNotices();
     }
 
     @PostMapping
     public Notice createNotice(@RequestBody Notice notice) {
-        notice.setDatePosted(LocalDate.now());
-        return noticeRepository.save(notice);
+        return noticeService.createNotice(notice);
     }
 }
