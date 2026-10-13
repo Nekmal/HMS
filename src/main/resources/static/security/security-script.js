@@ -81,9 +81,14 @@ let pendingConfirmCallback = null;
 // 1. Gate Passes
 async function loadGatePasses() {
     try {
-        const res = await fetch(`${API_BASE}/gatepasses`);
-        allGatePasses = await res.json();
-        
+        const [gpRes, usersRes] = await Promise.all([
+            fetch(`${API_BASE}/gatepasses`),
+            fetch(`${API_BASE}/users`).catch(() => ({ json: () => [] }))
+        ]);
+        allGatePasses = await gpRes.json();
+        const users = await (usersRes.json ? usersRes.json() : []);
+        allStudents = users.filter(u => u.role === 'STUDENT');
+
         const approvedCount = allGatePasses.filter(p => p.status === 'APPROVED').length;
         const departedCount = allGatePasses.filter(p => p.status === 'DEPARTED').length;
         const pendingCount = allGatePasses.filter(p => p.status === 'PENDING').length;
@@ -99,6 +104,85 @@ async function loadGatePasses() {
 
         const activeEl = document.getElementById('stat-active-gatepasses');
         if (activeEl) activeEl.innerText = approvedCount;
+
+        // KPI Summary Cards
+        const kpiTot = document.getElementById('kpi-total-gatepasses');
+        if (kpiTot) kpiTot.innerText = allGatePasses.length;
+        const kpiApp = document.getElementById('kpi-approved-gatepasses');
+        if (kpiApp) kpiApp.innerText = approvedCount;
+        const kpiDep = document.getElementById('kpi-departed-gatepasses');
+        if (kpiDep) kpiDep.innerText = departedCount;
+        const kpiOnc = document.getElementById('kpi-oncampus-students');
+        const onCampus = Math.max(0, allStudents.length - departedCount);
+        if (kpiOnc) kpiOnc.innerText = `${onCampus} / ${allStudents.length}`;
+
+        // Summary Table 1: Recent Gate Exit Clearances
+        const clrTbody = document.getElementById('security-clearance-summary-tbody');
+        if (clrTbody) {
+            clrTbody.innerHTML = '';
+            const recentGP = allGatePasses.slice(-5).reverse();
+            if (recentGP.length === 0) {
+                clrTbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#888;">No student leaves recorded today.</td></tr>';
+            } else {
+                recentGP.forEach(p => {
+                    const sName = p.user ? (p.user.fullName || p.user.studentId) : 'Student';
+                    const rNum = p.user && p.user.room ? p.user.room.roomNumber : '-';
+                    let stBadge = p.status === 'DEPARTED' ? 'paid' : (p.status === 'APPROVED' ? 'allocated' : 'pending');
+                    clrTbody.innerHTML += `
+                        <tr>
+                            <td><strong>${sName}</strong></td>
+                            <td><span style="font-weight:600;">${rNum}</span></td>
+                            <td style="max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${p.reason || ''}">${p.reason || 'Leave'}</td>
+                            <td>${p.fromDate || '-'}</td>
+                            <td><span class="status ${stBadge}">${p.status}</span></td>
+                        </tr>
+                    `;
+                });
+            }
+        }
+
+        // Summary Table 2: Block-Wise Resident Presence Summary
+        const blkTbody = document.getElementById('security-block-resident-summary-tbody');
+        if (blkTbody) {
+            blkTbody.innerHTML = '';
+            const blocks = ['Block A', 'Block B', 'Block C', 'Block D'];
+            const blockStats = {};
+            blocks.forEach(b => blockStats[b] = { total: 0, away: 0 });
+
+            allStudents.forEach(s => {
+                const b = s.room ? s.room.blockName : 'Block A';
+                if (!blockStats[b]) blockStats[b] = { total: 0, away: 0 };
+                blockStats[b].total++;
+            });
+
+            allGatePasses.filter(p => p.status === 'DEPARTED').forEach(p => {
+                const b = p.user && p.user.room ? p.user.room.blockName : 'Block A';
+                if (blockStats[b]) blockStats[b].away++;
+            });
+
+            blocks.forEach(b => {
+                const s = blockStats[b];
+                const onCampusCount = Math.max(0, s.total - s.away);
+                const rate = s.total > 0 ? Math.round((onCampusCount / s.total) * 100) : 100;
+                blkTbody.innerHTML += `
+                    <tr>
+                        <td><strong>${b}</strong></td>
+                        <td>${s.total} students</td>
+                        <td><strong style="color:#2ed573;">${onCampusCount}</strong></td>
+                        <td><strong style="color:${s.away > 0 ? '#3742fa' : '#888'};">${s.away}</strong></td>
+                        <td style="min-width:110px;">
+                            <div style="font-size:11px; font-weight:700; margin-bottom:2px; display:flex; justify-content:space-between;">
+                                <span>${rate}%</span>
+                                <span style="color:#888;">${s.away} out</span>
+                            </div>
+                            <div style="background:#eee; height:6px; border-radius:3px; overflow:hidden;">
+                                <div style="background:#1e3799; width:${rate}%; height:100%;"></div>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
 
         filterAndRenderGatePasses();
     } catch (e) {
