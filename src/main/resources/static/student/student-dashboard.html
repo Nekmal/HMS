@@ -74,7 +74,7 @@
                 </div>
             </div>
 
-            <!-- Dashboard Cards (4 KPI Cards) -->
+            <!-- Dashboard Cards (6 KPI Cards) -->
             <div class="cards-container">
                 <div class="card">
                     <div class="card-header-flex">
@@ -104,6 +104,20 @@
                     </div>
                     <div class="value" id="my-requests">0</div>
                 </div>
+                <div class="card">
+                    <div class="card-header-flex">
+                        <h3>Active Complaints</h3>
+                        <i class="fas fa-tools card-icon-red"></i>
+                    </div>
+                    <div class="value" id="student-stat-complaints">0</div>
+                </div>
+                <div class="card">
+                    <div class="card-header-flex">
+                        <h3>Active Gate Passes</h3>
+                        <i class="fas fa-id-card card-icon-yellow"></i>
+                    </div>
+                    <div class="value" id="student-stat-passes">0</div>
+                </div>
             </div>
 
             <!-- Charts Grid (Column Graph + Requests Breakdown) -->
@@ -128,10 +142,54 @@
                 </div>
             </div>
 
+            <!-- Student Summary Row: Roommates & Complaints -->
+            <div class="summary-grid-2">
+                <!-- Summary Table 1: Room & Roommates Summary -->
+                <div class="table-container">
+                    <div class="table-header-flex">
+                        <h2 style="font-family:'Outfit',sans-serif; font-size:18px;"><i class="fas fa-users" style="color:var(--primary-yellow); margin-right:8px;"></i>My Room & Roommates Summary</h2>
+                        <span id="roommate-room-badge" style="font-size:12px; background:#f1f2f6; padding:4px 10px; border-radius:6px; font-weight:700; color:#2f3542;">Room: Checking...</span>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Roommate Name</th>
+                                <th>Student ID</th>
+                                <th>Phone</th>
+                                <th>Residency</th>
+                            </tr>
+                        </thead>
+                        <tbody id="student-roommates-summary-tbody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Summary Table 2: Recent Complaints -->
+                <div class="table-container">
+                    <div class="table-header-flex">
+                        <h2 style="font-family:'Outfit',sans-serif; font-size:18px;"><i class="fas fa-tools" style="color:#ff4757; margin-right:8px;"></i>My Recent Complaints & Repairs</h2>
+                        <button class="btn btn-dark btn-sm" onclick="openModal('complaintModal')"><i class="fas fa-plus"></i> New Issue</button>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date Filed</th>
+                                <th>Issue Description</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="student-complaints-summary-tbody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
             <!-- Gate Pass Table Summary -->
             <div class="table-container" style="margin-top: 25px;">
                 <div class="table-header-flex">
-                    <h2 style="font-family:'Outfit',sans-serif; font-size:18px;"><i class="fas fa-id-card" style="color:var(--primary-yellow); margin-right:8px;"></i>My Gate Passes / Leaves</h2>
+                    <h2 style="font-family:'Outfit',sans-serif; font-size:18px;"><i class="fas fa-id-card" style="color:var(--primary-yellow); margin-right:8px;"></i>My Gate Passes / Early Departures Summary</h2>
                     <button class="btn btn-primary" onclick="openModal('gatePassModal')"><i class="fas fa-plus"></i> Request Pass</button>
                 </div>
                 <table>
