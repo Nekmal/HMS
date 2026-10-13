@@ -106,16 +106,106 @@ function showToast(message, type = 'success') {
 // 1. Room Damages & Repairs
 async function loadRoomDamages() {
     try {
-        const res = await fetch(`${API_BASE}/room-inventory`);
-        allDamages = await res.json();
+        const [damRes, compRes] = await Promise.all([
+            fetch(`${API_BASE}/room-inventory`),
+            fetch(`${API_BASE}/complaints`).catch(() => ({ json: () => [] }))
+        ]);
+        allDamages = await damRes.json();
+        const complaints = await (compRes.json ? compRes.json() : []);
 
         const pending = allDamages.filter(d => d.status !== 'REPAIRED').length;
         const completed = allDamages.filter(d => d.status === 'REPAIRED').length;
+        const openComplaints = complaints.filter(c => c.status !== 'RESOLVED').length;
 
         const pEl = document.getElementById('stat-active-repairs');
         const cEl = document.getElementById('stat-completed-repairs');
         if (pEl) pEl.innerText = pending;
         if (cEl) cEl.innerText = completed;
+
+        // KPI Summary Cards
+        const kpiPend = document.getElementById('kpi-pending-repairs');
+        if (kpiPend) kpiPend.innerText = pending;
+        const kpiComp = document.getElementById('kpi-completed-repairs');
+        if (kpiComp) kpiComp.innerText = completed;
+        const kpiOpen = document.getElementById('kpi-open-complaints');
+        if (kpiOpen) kpiOpen.innerText = openComplaints;
+        const kpiHlt = document.getElementById('kpi-facility-health');
+        const healthPercent = allDamages.length > 0 ? Math.round((completed / allDamages.length) * 100) : 100;
+        if (kpiHlt) kpiHlt.innerText = `${healthPercent}%`;
+
+        // Block-wise and Category-wise calculations
+        const blocks = ['Block A', 'Block B', 'Block C', 'Block D'];
+        const blockMap = {};
+        blocks.forEach(b => blockMap[b] = { total: 0, pending: 0, fixed: 0 });
+
+        const catMap = {};
+
+        allDamages.forEach(d => {
+            const b = (d.room && d.room.blockName) ? d.room.blockName : 'Block A';
+            if (!blockMap[b]) blockMap[b] = { total: 0, pending: 0, fixed: 0 };
+            blockMap[b].total += (d.brokenQuantity || 1);
+            if (d.status === 'REPAIRED') {
+                blockMap[b].fixed += (d.brokenQuantity || 1);
+            } else {
+                blockMap[b].pending += (d.brokenQuantity || 1);
+            }
+
+            const cat = (d.inventory && d.inventory.category) ? d.inventory.category : 'General Equipment';
+            if (!catMap[cat]) catMap[cat] = { total: 0, pending: 0, fixed: 0 };
+            catMap[cat].total += (d.brokenQuantity || 1);
+            if (d.status === 'REPAIRED') catMap[cat].fixed += (d.brokenQuantity || 1);
+            else catMap[cat].pending += (d.brokenQuantity || 1);
+        });
+
+        // Populate #maintenance-block-summary-tbody
+        const bTbody = document.getElementById('maintenance-block-summary-tbody');
+        if (bTbody) {
+            bTbody.innerHTML = '';
+            blocks.forEach(b => {
+                const s = blockMap[b] || { total: 0, pending: 0, fixed: 0 };
+                const healthPct = s.total > 0 ? Math.round((s.fixed / s.total) * 100) : 100;
+                bTbody.innerHTML += `
+                    <tr>
+                        <td><strong>${b}</strong></td>
+                        <td>${s.total} items</td>
+                        <td><strong style="color:${s.pending > 0 ? '#d63031' : '#2ed573'};">${s.pending}</strong></td>
+                        <td><strong style="color:#2ed573;">${s.fixed}</strong></td>
+                        <td style="min-width:120px;">
+                            <div style="font-size:11px; font-weight:700; margin-bottom:2px; display:flex; justify-content:space-between;">
+                                <span>${healthPct}%</span>
+                                <span style="color:#888;">${s.pending} bad</span>
+                            </div>
+                            <div style="background:#eee; height:6px; border-radius:3px; overflow:hidden;">
+                                <div style="background:#e67e22; width:${healthPct}%; height:100%;"></div>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        // Populate #maintenance-category-summary-tbody
+        const cTbody = document.getElementById('maintenance-category-summary-tbody');
+        if (cTbody) {
+            cTbody.innerHTML = '';
+            const cats = Object.keys(catMap);
+            if (cats.length === 0) {
+                cTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#888;">No asset damage reported. All good!</td></tr>';
+            } else {
+                cats.forEach(c => {
+                    const s = catMap[c];
+                    const rate = s.total > 0 ? Math.round((s.fixed / s.total) * 100) : 100;
+                    cTbody.innerHTML += `
+                        <tr>
+                            <td><strong>${c}</strong></td>
+                            <td>${s.total} units</td>
+                            <td><strong style="color:${s.pending > 0 ? '#d63031' : '#2ed573'};">${s.pending} pending</strong></td>
+                            <td><span class="status ${s.pending === 0 ? 'paid' : 'pending'}">${rate}% Restored</span></td>
+                        </tr>
+                    `;
+                });
+            }
+        }
 
         renderRepairsTable(allDamages);
     } catch (e) {
