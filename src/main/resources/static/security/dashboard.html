@@ -66,6 +66,85 @@
 
         <!-- Tab 1: Gate Passes View -->
         <div id="view-gatepasses" class="view-section pop-up-animation">
+            <!-- Security Operations KPI Cards -->
+            <div class="cards-container">
+                <div class="card">
+                    <div class="card-header-flex">
+                        <h3>Total Gate Passes</h3>
+                        <i class="fas fa-id-card card-icon-yellow"></i>
+                    </div>
+                    <div class="value" id="kpi-total-gatepasses">0</div>
+                </div>
+                <div class="card">
+                    <div class="card-header-flex">
+                        <h3>Sub Warden Approved</h3>
+                        <i class="fas fa-check-circle" style="color:#2ed573; font-size:24px;"></i>
+                    </div>
+                    <div class="value" id="kpi-approved-gatepasses" style="color:#2ed573;">0</div>
+                </div>
+                <div class="card">
+                    <div class="card-header-flex">
+                        <h3>Departed at Gate</h3>
+                        <i class="fas fa-walking" style="color:#3742fa; font-size:24px;"></i>
+                    </div>
+                    <div class="value" id="kpi-departed-gatepasses" style="color:#3742fa;">0</div>
+                </div>
+                <div class="card">
+                    <div class="card-header-flex">
+                        <h3>On-Campus Residents</h3>
+                        <i class="fas fa-users" style="color:#10ac84; font-size:24px;"></i>
+                    </div>
+                    <div class="value" id="kpi-oncampus-students">0</div>
+                </div>
+            </div>
+
+            <!-- Security Summary Grid -->
+            <div class="summary-grid-2">
+                <!-- Summary Table 1: Today's Gate Exit Clearances -->
+                <div class="table-container">
+                    <div class="table-header-flex">
+                        <h2 style="font-size: 18px; font-family: 'Outfit', sans-serif;"><i class="fas fa-door-open" style="color:var(--primary-yellow); margin-right: 8px;"></i>Recent Gate Clearance Summary</h2>
+                        <span style="font-size:12px; font-weight:700; color:#10ac84; background:rgba(16,172,132,0.1); padding:4px 8px; border-radius:6px;">Main Gate Post</span>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Student</th>
+                                <th>Room</th>
+                                <th>Destination</th>
+                                <th>Departure</th>
+                                <th>Gate Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="security-clearance-summary-tbody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Summary Table 2: Block-Wise Resident Presence Summary -->
+                <div class="table-container">
+                    <div class="table-header-flex">
+                        <h2 style="font-size: 18px; font-family: 'Outfit', sans-serif;"><i class="fas fa-building-shield" style="color:#3742fa; margin-right: 8px;"></i>Block Resident Presence</h2>
+                        <button class="btn btn-dark btn-sm" onclick="switchSecurityTab('students')">View Directory</button>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Block</th>
+                                <th>Residents</th>
+                                <th>On Campus</th>
+                                <th>On Leave</th>
+                                <th>Presence Rate</th>
+                            </tr>
+                        </thead>
+                        <tbody id="security-block-resident-summary-tbody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
             <div class="table-container">
                 <div class="table-header-flex">
                     <div>
