@@ -50,9 +50,44 @@ async function initDashboard() {
             loadComplaints();
             loadGatePasses();
             loadNotices();
+            loadRoommates(users, student);
         }
     } catch (e) {
         console.error("Error initializing dashboard", e);
+    }
+}
+
+function loadRoommates(users, student) {
+    const tbody = document.getElementById('student-roommates-summary-tbody');
+    const badge = document.getElementById('roommate-room-badge');
+    if (!tbody) return;
+
+    if (!student.room) {
+        if (badge) badge.innerText = 'Not Allocated';
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#888;">You are not allocated to a hostel room yet.</td></tr>';
+        return;
+    }
+
+    if (badge) badge.innerText = `Room ${student.room.roomNumber} (${student.room.blockName})`;
+
+    const roommates = users.filter(u => u.role === 'STUDENT' && u.room && u.room.id === student.room.id);
+    tbody.innerHTML = '';
+    if (roommates.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#888;">No roommates registered in this room.</td></tr>';
+    } else {
+        roommates.forEach(rm => {
+            const isMe = rm.id == student.id;
+            tbody.innerHTML += `
+                <tr style="${isMe ? 'background: rgba(255, 215, 0, 0.08);' : ''}">
+                    <td>
+                        <strong>${rm.fullName}</strong> ${isMe ? '<span style="font-size:11px; background:#FFD700; color:#121212; padding:2px 6px; border-radius:4px; margin-left:4px; font-weight:700;">You</span>' : ''}
+                    </td>
+                    <td><code>${rm.studentId}</code></td>
+                    <td>${rm.phone || '-'}</td>
+                    <td><span class="status allocated">Active Resident</span></td>
+                </tr>
+            `;
+        });
     }
 }
 
@@ -156,10 +191,21 @@ async function loadComplaints() {
         myComplaintsList = await res.json();
         
         const tbody = document.getElementById('complaints-table-body');
-        if (tbody) {
-            tbody.innerHTML = '';
-            myComplaintsList.forEach(c => {
-                let statusClass = c.status === 'RESOLVED' ? 'paid' : (c.status === 'IN_PROGRESS' ? 'allocated' : 'pending');
+        const summaryTbody = document.getElementById('student-complaints-summary-tbody');
+        if (tbody) tbody.innerHTML = '';
+        if (summaryTbody) summaryTbody.innerHTML = '';
+
+        const statCompEl = document.getElementById('student-stat-complaints');
+        const activeComplaints = myComplaintsList.filter(c => c.status !== 'RESOLVED');
+        if (statCompEl) statCompEl.innerText = activeComplaints.length;
+
+        if (myComplaintsList.length === 0) {
+            if (summaryTbody) summaryTbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:#888;">No complaints filed. Everything is in order!</td></tr>';
+        }
+
+        myComplaintsList.forEach(c => {
+            let statusClass = c.status === 'RESOLVED' ? 'paid' : (c.status === 'IN_PROGRESS' ? 'allocated' : 'pending');
+            if (tbody) {
                 tbody.innerHTML += `
                     <tr>
                         <td>${c.createdAt}</td>
@@ -167,8 +213,22 @@ async function loadComplaints() {
                         <td><span class="status ${statusClass}">${c.status}</span></td>
                     </tr>
                 `;
-            });
-        }
+            }
+        });
+
+        myComplaintsList.slice(-5).reverse().forEach(c => {
+            let statusClass = c.status === 'RESOLVED' ? 'paid' : (c.status === 'IN_PROGRESS' ? 'allocated' : 'pending');
+            if (summaryTbody) {
+                summaryTbody.innerHTML += `
+                    <tr>
+                        <td>${c.createdAt || 'Recent'}</td>
+                        <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${c.description}">${c.description}</td>
+                        <td><span class="status ${statusClass}">${c.status}</span></td>
+                    </tr>
+                `;
+            }
+        });
+
         updateStudentRequestsSummary();
     } catch (e) {
         console.error("Error loading complaints", e);
@@ -260,6 +320,9 @@ async function loadGatePasses() {
         if (elPen) elPen.innerText = pendingCount;
         const elDep = document.getElementById('student-stat-departed-leaves');
         if (elDep) elDep.innerText = departedCount;
+
+        const elPasses = document.getElementById('student-stat-passes');
+        if (elPasses) elPasses.innerText = `${approvedCount + pendingCount} (${departedCount} Away)`;
 
         updateStudentRequestsSummary();
     } catch (e) {
