@@ -207,6 +207,135 @@ async function loadDashboardStats() {
             }
         }
 
+        // Supplementary Summary Data (Gate Passes, Staff Attendance, Room Damages)
+        let gatepasses = [];
+        let attendance = [];
+        let damages = [];
+        try {
+            const [gpRes, attRes, damRes] = await Promise.all([
+                fetch(`${API_BASE}/gatepasses`),
+                fetch(`${API_BASE}/staff-attendance`),
+                fetch(`${API_BASE}/room-inventory`)
+            ]);
+            if (gpRes.ok) gatepasses = await gpRes.json();
+            if (attRes.ok) attendance = await attRes.json();
+            if (damRes.ok) damages = await damRes.json();
+        } catch (e) {
+            console.warn("Could not load supplementary summary data", e);
+        }
+
+        // Active Gate Passes & Broken Items KPI
+        const activeGatePasses = gatepasses.filter(p => p.status === 'APPROVED' || p.status === 'PENDING');
+        const statGpEl = document.getElementById('stat-gatepasses');
+        if (statGpEl) statGpEl.innerText = `${activeGatePasses.length} (${gatepasses.filter(p => p.status === 'DEPARTED').length} Away)`;
+
+        const brokenDamages = damages.filter(d => d.status !== 'REPAIRED');
+        const statDamEl = document.getElementById('stat-damages');
+        if (statDamEl) statDamEl.innerText = `${brokenDamages.length} Items`;
+
+        // Summary Table 3: Student Gate Passes & Leaves Summary
+        const gpTbody = document.getElementById('admin-gatepass-summary-tbody');
+        if (gpTbody) {
+            gpTbody.innerHTML = '';
+            const recentGP = gatepasses.slice(-5).reverse();
+            if (recentGP.length === 0) {
+                gpTbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#888;">No student gate passes recorded.</td></tr>';
+            } else {
+                recentGP.forEach(gp => {
+                    let stBadge = 'pending';
+                    if (gp.status === 'APPROVED') stBadge = 'allocated';
+                    else if (gp.status === 'DEPARTED') stBadge = 'paid';
+                    else if (gp.status === 'REJECTED') stBadge = 'maintenance';
+
+                    const sName = gp.user ? (gp.user.fullName || gp.user.studentId) : 'Student';
+                    const rNum = gp.user && gp.user.room ? gp.user.room.roomNumber : '-';
+                    gpTbody.innerHTML += `
+                        <tr>
+                            <td><strong>${sName}</strong></td>
+                            <td><span style="font-weight:600;">${rNum}</span></td>
+                            <td style="max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${gp.reason || ''}">${gp.reason || 'Leave'}</td>
+                            <td>${gp.departureDate || '-'}</td>
+                            <td><span class="status ${stBadge}">${gp.status}</span></td>
+                        </tr>
+                    `;
+                });
+            }
+        }
+
+        // Summary Table 4: Staff Duty & Attendance Today
+        const staffTbody = document.getElementById('admin-staff-summary-tbody');
+        if (staffTbody) {
+            staffTbody.innerHTML = '';
+            const recentAtt = attendance.slice(-5).reverse();
+            if (recentAtt.length === 0) {
+                staffTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#888;">No staff attendance logs recorded today.</td></tr>';
+            } else {
+                recentAtt.forEach(att => {
+                    let stBadge = 'paid';
+                    if (att.status === 'ABSENT') stBadge = 'maintenance';
+                    else if (att.status === 'LEAVE') stBadge = 'pending';
+
+                    const staffName = att.staff ? (att.staff.fullName || att.staff.studentId) : 'Staff Member';
+                    const dept = att.staff ? att.staff.role : 'Service';
+                    staffTbody.innerHTML += `
+                        <tr>
+                            <td><strong>${staffName}</strong></td>
+                            <td><span style="font-size:12px; font-weight:600;">${dept}</span></td>
+                            <td>${att.checkInTime ? att.checkInTime.substring(11, 16) : '-'}</td>
+                            <td><span class="status ${stBadge}">${att.status || 'PRESENT'}</span></td>
+                        </tr>
+                    `;
+                });
+            }
+        }
+
+        // Summary Table 5: Room Equipment Damages Summary
+        const damTbody = document.getElementById('admin-damage-summary-tbody');
+        if (damTbody) {
+            damTbody.innerHTML = '';
+            const recentDam = damages.slice(-5).reverse();
+            if (recentDam.length === 0) {
+                damTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#888;">No equipment damages reported. All facilities intact!</td></tr>';
+            } else {
+                recentDam.forEach(d => {
+                    const rNum = d.room ? d.room.roomNumber : 'Room';
+                    const iName = d.inventory ? d.inventory.itemName : 'Asset';
+                    const st = d.status || 'PENDING';
+                    const stBadge = st === 'REPAIRED' ? 'paid' : (st === 'IN_PROGRESS' ? 'allocated' : 'pending');
+                    damTbody.innerHTML += `
+                        <tr>
+                            <td><strong>${rNum}</strong></td>
+                            <td>${iName}</td>
+                            <td><span style="color:#d63031; font-weight:700;">${d.brokenQuantity || 1}x</span></td>
+                            <td><span class="status ${stBadge}">${st}</span></td>
+                        </tr>
+                    `;
+                });
+            }
+        }
+
+        // Summary Table 6: Recent Financial Invoices & Payments
+        const payTbody = document.getElementById('admin-payment-summary-tbody');
+        if (payTbody) {
+            payTbody.innerHTML = '';
+            const recentPay = payments.slice(-5).reverse();
+            if (recentPay.length === 0) {
+                payTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#888;">No fee payments recorded yet.</td></tr>';
+            } else {
+                recentPay.forEach(p => {
+                    const sName = p.user ? (p.user.fullName || p.user.studentId) : 'Student';
+                    payTbody.innerHTML += `
+                        <tr>
+                            <td><strong>${sName}</strong></td>
+                            <td><code>${p.invoiceNo || '-'}</code></td>
+                            <td>${p.month || '-'}</td>
+                            <td><strong style="color:#10ac84;">Rs. ${(p.amount || 0).toLocaleString()}</strong></td>
+                        </tr>
+                    `;
+                });
+            }
+        }
+
         // 4. Chart 1: Column Graph for Block Occupancy (Chart.js)
         const barCanvas = document.getElementById('occupancyBarChart');
         if (barCanvas && typeof Chart !== 'undefined') {
