@@ -1,523 +1,338 @@
-// cleaning-script.js - Cleaning Service Portal Logic
+// Cleaning Service Portal Controller
+// Manages daily room sanitation checklists, shift duty check-in/out, and block sanitation progress summaries.
 
 const API_BASE = '/hms/api';
-let currentUser = null;
 
-// Initialize on page load
+let currentStaffId = localStorage.getItem('userId') || 154;
+let cleaningDataStore = JSON.parse(localStorage.getItem('hms_cleaning_status') || '{}');
+
 document.addEventListener('DOMContentLoaded', () => {
-    initAuth();
-    setupClock();
-    setupEventListeners();
-    loadDashboardData();
+    initCleaningPortal();
 });
 
-// Setup active user session
-function initAuth() {
-    const userStr = localStorage.getItem('hms_user');
-    if (!userStr) {
-        window.location.href = '/hms/index.html';
-        return;
+async function initCleaningPortal() {
+    setupDateTime();
+    loadCleaningSummary();
+    loadAttendanceRecords();
+    renderCleaningChecklist();
+    loadNotices();
+}
+
+function setupDateTime() {
+    const today = new Date();
+    const dateStrEl = document.getElementById('today-date-str');
+    if (dateStrEl) {
+        dateStrEl.innerText = `Date: ${today.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`;
     }
+}
+
+// Tab Switching
+function switchCleaningTab(tabId) {
+    document.querySelectorAll('.view-section').forEach(sec => {
+        sec.style.display = 'none';
+        sec.classList.remove('pop-up-animation');
+    });
+
+    let targetId = 'view-' + tabId;
+    if (tabId === 'schedule') targetId = 'view-schedule';
     
-    try {
-        currentUser = JSON.parse(userStr);
-        if (currentUser.role && currentUser.role.toUpperCase() !== 'CLEANING') {
-            console.warn('User is not CLEANING staff, but allowed in portal mode:', currentUser.role);
+    const target = document.getElementById(targetId);
+    if (target) {
+        target.style.display = 'block';
+        void target.offsetWidth;
+        target.classList.add('pop-up-animation');
+    }
+
+    document.querySelectorAll('.sidebar-menu li').forEach(li => {
+        if (li.getAttribute('onclick') && li.getAttribute('onclick').includes(`'${tabId}'`)) {
+            li.classList.add('active');
+        } else {
+            li.classList.remove('active');
         }
+    });
+
+    const pageTitle = document.getElementById('page-title');
+    if (pageTitle) {
+        if (tabId === 'attendance') pageTitle.innerText = 'Cleaning Duty Attendance & Absence Tracker';
+        else if (tabId === 'schedule') pageTitle.innerText = 'Daily Hostel Room Sanitation Checklist';
+        else if (tabId === 'notices') pageTitle.innerText = 'Campus Housekeeping Notices';
+    }
+}
+
+// 1. Cleaning Summary & Block Progress
+async function loadCleaningSummary() {
+    let rooms = [];
+    try {
+        const res = await fetch(`${API_BASE}/rooms`);
+        if (res.ok) rooms = await res.json();
     } catch(e) {
-        currentUser = { id: 154, username: 'cleaning', role: 'CLEANING' };
+        console.warn("Could not fetch rooms from server", e);
     }
-    
-    const nameEl = document.getElementById('cleaningStaffName');
-    if (nameEl) nameEl.textContent = (currentUser.username || 'Cleaning Staff').toUpperCase();
-    
-    const roleBadge = document.getElementById('cleaningStaffRoleBadge');
-    if (roleBadge) roleBadge.textContent = currentUser.role || 'CLEANING';
-}
 
-function logout() {
-    localStorage.removeItem('hms_user');
-    showToast('Logged out successfully', 'info');
-    setTimeout(() => {
-        window.location.href = '/hms/index.html';
-    }, 800);
-}
+    const blocks = ['Block A', 'Block B', 'Block C', 'Block D'];
+    const blockStats = {};
 
-// Live Clock
-function setupClock() {
-    const updateTime = () => {
-        const now = new Date();
-        const clockEl = document.getElementById('liveClock');
-        if (clockEl) {
-            clockEl.textContent = now.toLocaleTimeString('en-US', { hour12: true });
-        }
-        const dateEl = document.getElementById('liveDate');
-        if (dateEl) {
-            dateEl.textContent = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-        }
-    };
-    updateTime();
-    setInterval(updateTime, 1000);
-}
-
-// Navigation and Event Listeners
-function setupEventListeners() {
-    // Navigation Tabs
-    const navItems = document.querySelectorAll('.nav-item[data-view]');
-    navItems.forEach(item => {
-        item.addEventListener('click', (e) => {
-            e.preventDefault();
-            const viewName = item.getAttribute('data-view');
-            switchView(viewName);
-        });
+    blocks.forEach(b => {
+        blockStats[b] = { total: 25, cleaned: 0 };
     });
-    
-    // Check-in & Check-out Buttons
-    const btnCheckIn = document.getElementById('btnSelfCheckIn');
-    if (btnCheckIn) {
-        btnCheckIn.addEventListener('click', handleCheckIn);
-    }
-    
-    const btnCheckOut = document.getElementById('btnSelfCheckOut');
-    if (btnCheckOut) {
-        btnCheckOut.addEventListener('click', handleCheckOut);
-    }
-    
-    // Block Filter buttons for cleaning tasks
-    const blockFilters = document.querySelectorAll('.block-filter-btn');
-    blockFilters.forEach(btn => {
-        btn.addEventListener('click', () => {
-            blockFilters.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            filterCleaningTasks(btn.getAttribute('data-block'));
-        });
+
+    // Check localStorage status for all 100 rooms
+    blocks.forEach((block, bIdx) => {
+        const letter = block.split(' ')[1];
+        for (let i = 1; i <= 25; i++) {
+            const rNum = `${letter}-${100 + i}`;
+            const isCleaned = cleaningDataStore[rNum] !== undefined ? cleaningDataStore[rNum] : (i <= 20); // default realistic demo
+            if (isCleaned) blockStats[block].cleaned++;
+        }
     });
-}
 
-function switchView(viewName) {
-    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-    document.querySelectorAll('.view-section').forEach(s => s.classList.add('d-none'));
-    
-    const activeNav = document.querySelector(`.nav-item[data-view="${viewName}"]`);
-    if (activeNav) activeNav.classList.add('active');
-    
-    const activeSection = document.getElementById(`view-${viewName}`);
-    if (activeSection) {
-        activeSection.classList.remove('d-none');
-        activeSection.classList.add('fade-in');
-    }
-    
-    // Page Title
-    const titleEl = document.getElementById('pageTitle');
-    if (titleEl) {
-        const titles = {
-            'dashboard': 'Cleaning Dashboard Overview',
-            'checklist': 'Daily Hostel Sanitation Checklist',
-            'attendance': 'My Attendance & Absence History',
-            'notices': 'Duty Notices & Maintenance Alerts'
-        };
-        titleEl.textContent = titles[viewName] || 'Cleaning Portal';
-    }
-    
-    if (viewName === 'attendance') {
-        loadMyAttendanceHistory();
-    } else if (viewName === 'checklist') {
-        loadCleaningChecklist();
-    } else if (viewName === 'notices') {
-        loadNotices();
-    }
-}
+    let grandTotal = 100;
+    let grandCleaned = 0;
+    blocks.forEach(b => grandCleaned += blockStats[b].cleaned);
+    let grandPending = grandTotal - grandCleaned;
+    let compRate = Math.round((grandCleaned / grandTotal) * 100);
 
-// Load All Dashboard Overview Data
-async function loadDashboardData() {
-    await Promise.all([
-        loadTodayAttendanceStatus(),
-        loadCleaningSummaryCards(),
-        loadRecentDamagesFeed()
-    ]);
-}
+    const statTot = document.getElementById('stat-total-rooms');
+    if (statTot) statTot.innerText = grandTotal;
+    const statCln = document.getElementById('stat-cleaned-rooms');
+    if (statCln) statCln.innerText = grandCleaned;
+    const statPnd = document.getElementById('stat-pending-rooms');
+    if (statPnd) statPnd.innerText = grandPending;
+    const statRate = document.getElementById('stat-sanitation-rate');
+    if (statRate) statRate.innerText = `${compRate}%`;
 
-// Attendance Logic
-async function loadTodayAttendanceStatus() {
-    const staffId = currentUser?.id || 154;
-    try {
-        const res = await fetch(`${API_BASE}/staff-attendance/staff/${staffId}/summary`);
-        if (!res.ok) throw new Error('Failed to fetch summary');
-        const summary = await res.json();
-        
-        // Update summary cards
-        const daysPresentEl = document.getElementById('statDaysPresent');
-        if (daysPresentEl) daysPresentEl.textContent = summary.daysPresent || 0;
-        
-        const daysAbsentEl = document.getElementById('statDaysAbsent');
-        if (daysAbsentEl) daysAbsentEl.textContent = summary.daysAbsent || 0;
-        
-        const daysLeaveEl = document.getElementById('statDaysLeave');
-        if (daysLeaveEl) daysLeaveEl.textContent = summary.daysLeave || 0;
-        
-        // Update today's button state
-        const statusBadge = document.getElementById('todayAttendanceBadge');
-        const checkInTimeEl = document.getElementById('todayCheckInTime');
-        const checkOutTimeEl = document.getElementById('todayCheckOutTime');
-        const btnCheckIn = document.getElementById('btnSelfCheckIn');
-        const btnCheckOut = document.getElementById('btnSelfCheckOut');
-        
-        if (summary.todayAttendance) {
-            const today = summary.todayAttendance;
-            if (statusBadge) {
-                statusBadge.textContent = today.status;
-                statusBadge.className = `badge bg-${today.status === 'PRESENT' ? 'success' : today.status === 'ABSENT' ? 'danger' : 'warning'}`;
-            }
-            if (checkInTimeEl) checkInTimeEl.textContent = today.checkInTime ? formatTime(today.checkInTime) : '--:--';
-            if (checkOutTimeEl) checkOutTimeEl.textContent = today.checkOutTime ? formatTime(today.checkOutTime) : '--:--';
-            
-            if (btnCheckIn) btnCheckIn.disabled = !!today.checkInTime;
-            if (btnCheckOut) btnCheckOut.disabled = !today.checkInTime || !!today.checkOutTime;
-        } else {
-            if (statusBadge) {
-                statusBadge.textContent = 'NOT MARKED';
-                statusBadge.className = 'badge bg-secondary';
-            }
-            if (checkInTimeEl) checkInTimeEl.textContent = '--:--';
-            if (checkOutTimeEl) checkOutTimeEl.textContent = '--:--';
-            if (btnCheckIn) btnCheckIn.disabled = false;
-            if (btnCheckOut) btnCheckOut.disabled = true;
-        }
-    } catch (e) {
-        console.error('Error fetching attendance summary:', e);
-    }
-}
-
-async function handleCheckIn() {
-    const staffId = currentUser?.id || 154;
-    try {
-        const res = await fetch(`${API_BASE}/staff-attendance/checkin/${staffId}`, {
-            method: 'POST'
-        });
-        const data = await res.json();
-        if (res.ok) {
-            showToast('Check-in marked successfully! Have a productive shift.', 'success');
-            loadTodayAttendanceStatus();
-            loadMyAttendanceHistory();
-        } else {
-            showToast(data.message || 'Check-in failed', 'warning');
-        }
-    } catch (e) {
-        showToast('Error during check-in: ' + e.message, 'danger');
-    }
-}
-
-async function handleCheckOut() {
-    const staffId = currentUser?.id || 154;
-    try {
-        const res = await fetch(`${API_BASE}/staff-attendance/checkout/${staffId}`, {
-            method: 'POST'
-        });
-        const data = await res.json();
-        if (res.ok) {
-            showToast('Check-out marked successfully! Shift completed.', 'success');
-            loadTodayAttendanceStatus();
-            loadMyAttendanceHistory();
-        } else {
-            showToast(data.message || 'Check-out failed', 'warning');
-        }
-    } catch (e) {
-        showToast('Error during check-out: ' + e.message, 'danger');
-    }
-}
-
-// Attendance History & Admin Absence Tracking
-async function loadMyAttendanceHistory() {
-    const staffId = currentUser?.id || 154;
-    const tableBody = document.getElementById('myAttendanceTableBody');
-    if (!tableBody) return;
-    
-    tableBody.innerHTML = `<tr><td colspan="7" class="text-center py-4"><div class="spinner-border text-primary spinner-border-sm me-2"></div>Loading attendance records...</td></tr>`;
-    
-    try {
-        const res = await fetch(`${API_BASE}/staff-attendance/staff/${staffId}`);
-        if (!res.ok) throw new Error('Failed to load records');
-        const records = await res.json();
-        
-        if (!records || records.length === 0) {
-            tableBody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted"><i class="fas fa-calendar-times fa-2x mb-2 d-block"></i>No attendance records found yet.</td></tr>`;
-            return;
-        }
-        
-        let html = '';
-        records.forEach((rec, idx) => {
-            const statusClass = rec.status === 'PRESENT' ? 'success' : rec.status === 'ABSENT' ? 'danger' : 'warning';
-            const markedByBadge = rec.markedBy === 'ADMIN' 
-                ? '<span class="badge bg-danger text-white"><i class="fas fa-user-shield me-1"></i>ADMIN MARKED</span>' 
-                : '<span class="badge bg-info text-dark"><i class="fas fa-user-check me-1"></i>SELF</span>';
-            
-            html += `
-                <tr class="${rec.status === 'ABSENT' ? 'table-danger-light' : ''}">
-                    <td>${idx + 1}</td>
-                    <td><strong>${rec.date}</strong></td>
-                    <td><span class="badge bg-${statusClass} px-2 py-1">${rec.status}</span></td>
-                    <td>${rec.checkInTime ? formatTime(rec.checkInTime) : '--'}</td>
-                    <td>${rec.checkOutTime ? formatTime(rec.checkOutTime) : '--'}</td>
-                    <td>${markedByBadge}</td>
-                    <td><span class="small ${rec.remarks ? 'text-dark' : 'text-muted'}">${rec.remarks || 'Standard duty schedule'}</span></td>
+    // Render Block Sanitation Summary Table
+    const tbody = document.getElementById('cleaning-block-summary-tbody');
+    if (tbody) {
+        tbody.innerHTML = '';
+        blocks.forEach(b => {
+            const s = blockStats[b];
+            const pct = Math.round((s.cleaned / s.total) * 100);
+            tbody.innerHTML += `
+                <tr>
+                    <td><strong>${b}</strong></td>
+                    <td>${s.total} Rooms</td>
+                    <td><strong style="color:#10ac84;">${s.cleaned}</strong> / ${s.total}</td>
+                    <td style="min-width: 140px;">
+                        <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:bold; margin-bottom:2px;">
+                            <span>${pct}% Done</span>
+                            <span style="color:#888;">${s.total - s.cleaned} left</span>
+                        </div>
+                        <div class="progress-bar-bg" style="background:#eee; height:8px; border-radius:4px; overflow:hidden;">
+                            <div class="progress-bar-fill" style="width: ${pct}%; background:#10ac84; height:100%; border-radius:4px;"></div>
+                        </div>
+                    </td>
                 </tr>
             `;
         });
-        tableBody.innerHTML = html;
-        
-        // Summary count inside attendance tab
-        const absentCount = records.filter(r => r.status === 'ABSENT').length;
-        const leaveCount = records.filter(r => r.status === 'ON_LEAVE').length;
-        const presentCount = records.filter(r => r.status === 'PRESENT').length;
-        
-        const countAbsentEl = document.getElementById('tabCountAbsent');
-        if (countAbsentEl) countAbsentEl.textContent = absentCount;
-        const countLeaveEl = document.getElementById('tabCountLeave');
-        if (countLeaveEl) countLeaveEl.textContent = leaveCount;
-        const countPresentEl = document.getElementById('tabCountPresent');
-        if (countPresentEl) countPresentEl.textContent = presentCount;
-        
-    } catch (e) {
-        console.error('Error loading history:', e);
-        tableBody.innerHTML = `<tr><td colspan="7" class="text-center py-3 text-danger"><i class="fas fa-exclamation-triangle me-1"></i>Failed to load records: ${e.message}</td></tr>`;
     }
 }
 
-// Cleaning Checklist & Room Sanitation
-let cleaningTasks = [];
-function loadCleaningSummaryCards() {
-    // Generate initial dummy/session cleaning tasks if empty
-    if (!localStorage.getItem('hms_cleaning_tasks')) {
-        const sampleTasks = [];
-        const blocks = ['A', 'B', 'C', 'D'];
-        blocks.forEach(block => {
-            // First 5 rooms of each block as sample checklist
-            for (let i = 1; i <= 5; i++) {
-                const roomNum = `${block}-${i.toString().padStart(3, '0')}`;
-                sampleTasks.push({
-                    id: `${block}_${i}`,
-                    block: block,
-                    room: roomNum,
-                    type: i % 2 === 0 ? 'Deep Clean & Sanitize' : 'Daily Floor & Waste Disposal',
-                    status: i === 1 ? 'COMPLETED' : 'PENDING',
-                    assignedTo: 'Cleaning Staff',
-                    completedAt: i === 1 ? '09:30 AM' : null,
-                    notes: i % 2 === 0 ? 'Window mirrors & restroom disinfection' : 'Standard sweep, mop, dust'
-                });
-            }
-        });
-        localStorage.setItem('hms_cleaning_tasks', JSON.stringify(sampleTasks));
-    }
-    
+// 2. Attendance & Check-in/out
+async function loadAttendanceRecords() {
+    const tbody = document.getElementById('cleaning-attendance-tbody');
+    const badge = document.getElementById('todayDutyStatusBadge');
+    const btnIn = document.getElementById('btnCheckIn');
+    const btnOut = document.getElementById('btnCheckOut');
+
     try {
-        cleaningTasks = JSON.parse(localStorage.getItem('hms_cleaning_tasks')) || [];
-    } catch(e) {
-        cleaningTasks = [];
-    }
-    
-    const completed = cleaningTasks.filter(t => t.status === 'COMPLETED').length;
-    const pending = cleaningTasks.filter(t => t.status === 'PENDING').length;
-    
-    const statCleanCompEl = document.getElementById('statCleanCompleted');
-    if (statCleanCompEl) statCleanCompEl.textContent = completed;
-    
-    const statCleanPendEl = document.getElementById('statCleanPending');
-    if (statCleanPendEl) statCleanPendEl.textContent = pending;
-}
+        const res = await fetch(`${API_BASE}/staff-attendance/staff/${currentStaffId}`);
+        if (!res.ok) throw new Error("Could not fetch attendance");
+        const list = await res.json();
 
-function loadCleaningChecklist(filterBlock = 'ALL') {
-    loadCleaningSummaryCards();
-    const container = document.getElementById('cleaningTasksGrid');
-    if (!container) return;
-    
-    let filtered = cleaningTasks;
-    if (filterBlock !== 'ALL') {
-        filtered = cleaningTasks.filter(t => t.block === filterBlock);
-    }
-    
-    if (filtered.length === 0) {
-        container.innerHTML = `
-            <div class="col-12 text-center py-5">
-                <i class="fas fa-broom fa-3x text-muted mb-3 d-block"></i>
-                <h5 class="text-secondary">No cleaning tasks found for Block ${filterBlock}</h5>
-            </div>
-        `;
-        return;
-    }
-    
-    let html = '';
-    filtered.forEach(task => {
-        const isDone = task.status === 'COMPLETED';
-        html += `
-            <div class="col-md-6 col-lg-4 mb-3">
-                <div class="card h-100 border-${isDone ? 'success' : 'primary'} shadow-sm task-card ${isDone ? 'bg-light-success' : ''}">
-                    <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
-                        <span class="badge bg-dark fs-6"><i class="fas fa-door-closed me-1"></i>Room ${task.room}</span>
-                        <span class="badge bg-${isDone ? 'success' : 'warning text-dark'}">
-                            <i class="fas fa-${isDone ? 'check-circle' : 'hourglass-half'} me-1"></i>${task.status}
-                        </span>
-                    </div>
-                    <div class="card-body">
-                        <h6 class="card-title fw-bold text-primary">${task.type}</h6>
-                        <p class="card-text small text-muted mb-2">${task.notes}</p>
-                        <div class="small text-secondary mb-3">
-                            <i class="fas fa-layer-group me-1"></i>Block: <strong>${task.block}</strong>
-                            ${isDone ? `<br><i class="fas fa-check-double text-success me-1"></i>Completed: ${task.completedAt}` : ''}
-                        </div>
-                        ${!isDone ? `
-                            <button class="btn btn-sm btn-outline-success w-100" onclick="markTaskDone('${task.id}')">
-                                <i class="fas fa-check me-1"></i>Mark As Cleaned
-                            </button>
-                        ` : `
-                            <button class="btn btn-sm btn-light text-muted w-100" disabled>
-                                <i class="fas fa-check-circle text-success me-1"></i>Cleaned & Inspected
-                            </button>
-                        `}
-                    </div>
-                </div>
-            </div>
-        `;
-    });
-    container.innerHTML = html;
-}
+        let presentDays = 0;
+        let absentDays = 0;
+        let leaveDays = 0;
+        let todayLog = null;
+        const todayStr = new Date().toISOString().split('T')[0];
 
-function filterCleaningTasks(block) {
-    loadCleaningChecklist(block);
-}
+        if (tbody) tbody.innerHTML = '';
 
-window.markTaskDone = function(taskId) {
-    const taskIndex = cleaningTasks.findIndex(t => t.id === taskId);
-    if (taskIndex > -1) {
-        cleaningTasks[taskIndex].status = 'COMPLETED';
-        const now = new Date();
-        cleaningTasks[taskIndex].completedAt = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        localStorage.setItem('hms_cleaning_tasks', JSON.stringify(cleaningTasks));
-        showToast(`Room ${cleaningTasks[taskIndex].room} marked as sanitized!`, 'success');
-        
-        // Refresh active view
-        const activeBlock = document.querySelector('.block-filter-btn.active')?.getAttribute('data-block') || 'ALL';
-        loadCleaningChecklist(activeBlock);
-        loadCleaningSummaryCards();
-    }
-};
+        if (!list || list.length === 0) {
+            if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#888;">No attendance records found. Mark your first check-in above!</td></tr>';
+        } else {
+            list.forEach(a => {
+                if (a.status === 'PRESENT') presentDays++;
+                else if (a.status === 'ABSENT') absentDays++;
+                else if (a.status === 'LEAVE') leaveDays++;
 
-// Recent Damages Feed (to alert cleaning staff about hazardous or broken items in rooms)
-async function loadRecentDamagesFeed() {
-    const listEl = document.getElementById('cleaningDamagesFeed');
-    if (!listEl) return;
-    
-    try {
-        const res = await fetch(`${API_BASE}/room-inventory/damaged`);
-        if (!res.ok) throw new Error('Failed to fetch damaged items');
-        const damaged = await res.json();
-        
-        if (!damaged || damaged.length === 0) {
-            listEl.innerHTML = `<li class="list-group-item text-center py-3 text-muted"><i class="fas fa-check-circle text-success me-1"></i>All hostel rooms are clean and in good order.</li>`;
-            return;
+                if (a.date === todayStr) {
+                    todayLog = a;
+                }
+
+                let stClass = a.status === 'PRESENT' ? 'paid' : (a.status === 'ABSENT' ? 'maintenance' : 'pending');
+                let markedByBadge = a.markedBy === 'ADMIN' 
+                    ? '<span style="font-size:11px; background:#fff0f3; color:#d63031; border:1px solid #ff7675; padding:2px 6px; border-radius:4px; font-weight:700;"><i class="fas fa-user-shield"></i> Sub Warden</span>'
+                    : '<span style="font-size:11px; background:#f1f2f6; color:#2f3542; padding:2px 6px; border-radius:4px; font-weight:600;"><i class="fas fa-fingerprint"></i> Self</span>';
+
+                if (tbody) {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td><strong>${a.date}</strong></td>
+                            <td><span class="status ${stClass}">${a.status}</span></td>
+                            <td>${a.checkInTime ? a.checkInTime.substring(11, 16) : '-'}</td>
+                            <td>${a.checkOutTime ? a.checkOutTime.substring(11, 16) : '-'}</td>
+                            <td>${markedByBadge}</td>
+                            <td>${a.remarks || '-'}</td>
+                        </tr>
+                    `;
+                }
+            });
         }
-        
-        let html = '';
-        damaged.slice(0, 5).forEach(item => {
-            html += `
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                    <div>
-                        <span class="badge bg-danger me-2"><i class="fas fa-exclamation-triangle me-1"></i>Room ${item.roomNumber || 'General'}</span>
-                        <strong class="text-dark">${item.itemName}</strong>
-                        <span class="text-muted small d-block">Damaged count: ${item.brokenQuantity} unit(s)</span>
-                    </div>
-                    <span class="badge bg-warning text-dark"><i class="fas fa-tools me-1"></i>Under Maintenance</span>
-                </li>
+
+        // Hero pills
+        const elPres = document.getElementById('kpi-present-count');
+        if (elPres) elPres.innerText = presentDays;
+        const elAbs = document.getElementById('kpi-absent-count');
+        if (elAbs) elAbs.innerText = absentDays;
+        const elLeave = document.getElementById('kpi-leave-count');
+        if (elLeave) elLeave.innerText = leaveDays;
+
+        // Today's status badge
+        if (todayLog) {
+            if (todayLog.checkOutTime) {
+                if (badge) badge.innerHTML = `<span style="color:#10ac84;"><i class="fas fa-check-double"></i> Shift Completed: Checked in at ${todayLog.checkInTime.substring(11, 16)}, Checked out at ${todayLog.checkOutTime.substring(11, 16)}.</span>`;
+                if (btnIn) btnIn.disabled = true;
+                if (btnOut) btnOut.disabled = true;
+            } else {
+                if (badge) badge.innerHTML = `<span style="color:#2ed573;"><i class="fas fa-circle-check"></i> On Duty: Checked in at ${todayLog.checkInTime ? todayLog.checkInTime.substring(11, 16) : 'Shift Start'}. Active cleaning shift.</span>`;
+                if (btnIn) btnIn.disabled = true;
+                if (btnOut) btnOut.disabled = false;
+            }
+        } else {
+            if (badge) badge.innerHTML = `<span><i class="fas fa-clock"></i> Not Checked-In Yet for Today's Shift. Click 'Mark Check-In' to log duty start.</span>`;
+            if (btnIn) btnIn.disabled = false;
+            if (btnOut) btnOut.disabled = true;
+        }
+
+    } catch(e) {
+        console.error("Error loading cleaning attendance", e);
+    }
+}
+
+async function markMyCheckIn() {
+    try {
+        const res = await fetch(`${API_BASE}/staff-attendance/checkin/${currentStaffId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ remarks: 'Cleaning Team: Daily Hostel Sanitation Shift' })
+        });
+        if (res.ok) {
+            showToast("Duty Check-In recorded successfully! Have a great shift.", "success");
+            loadAttendanceRecords();
+        } else {
+            showToast("Failed to record check-in.", "error");
+        }
+    } catch(e) {
+        showToast("Error connecting to server.", "error");
+    }
+}
+
+async function markMyCheckOut() {
+    try {
+        const res = await fetch(`${API_BASE}/staff-attendance/checkout/${currentStaffId}`, { method: 'POST' });
+        if (res.ok) {
+            showToast("Duty Check-Out recorded successfully! Shift concluded.", "success");
+            loadAttendanceRecords();
+        } else {
+            showToast("Failed to record check-out.", "error");
+        }
+    } catch(e) {
+        showToast("Error connecting to server.", "error");
+    }
+}
+
+// 3. Room Sanitation Checklist
+function renderCleaningChecklist() {
+    const sel = document.getElementById('cleaningBlockSelect');
+    const block = sel ? sel.value : 'Block A';
+    const letter = block.split(' ')[1] || 'A';
+    const tbody = document.getElementById('cleaning-checklist-tbody');
+    if (!tbody) return;
+
+    tbody.innerHTML = '';
+    for (let i = 1; i <= 25; i++) {
+        const rNum = `${letter}-${100 + i}`;
+        const isCleaned = cleaningDataStore[rNum] !== undefined ? cleaningDataStore[rNum] : (i <= 20);
+
+        tbody.innerHTML += `
+            <tr>
+                <td><strong>${rNum}</strong></td>
+                <td><span style="font-weight:600;">${block}</span></td>
+                <td><i class="fas fa-check" style="color:${isCleaned ? '#2ed573' : '#a4b0be'};"></i> ${isCleaned ? 'Swept & Mopped' : 'Pending'}</td>
+                <td><i class="fas fa-check" style="color:${isCleaned ? '#2ed573' : '#a4b0be'};"></i> ${isCleaned ? 'Bins Cleared' : 'Pending'}</td>
+                <td>
+                    <span class="status ${isCleaned ? 'paid' : 'pending'}">${isCleaned ? 'Sanitized' : 'Pending'}</span>
+                </td>
+                <td>
+                    <button class="btn ${isCleaned ? 'btn-dark' : 'btn-primary'} btn-sm" onclick="toggleSanitation('${rNum}')">
+                        <i class="fas ${isCleaned ? 'fa-rotate-left' : 'fa-check'}"></i> ${isCleaned ? 'Reset' : 'Mark Done'}
+                    </button>
+                </td>
+            </tr>
+        `;
+    }
+}
+
+function toggleSanitation(roomNum) {
+    const current = cleaningDataStore[roomNum] !== undefined ? cleaningDataStore[roomNum] : true;
+    cleaningDataStore[roomNum] = !current;
+    localStorage.setItem('hms_cleaning_status', JSON.stringify(cleaningDataStore));
+    showToast(`Room ${roomNum} status updated!`, 'success');
+    renderCleaningChecklist();
+    loadCleaningSummary();
+}
+
+// 4. Campus Notices
+async function loadNotices() {
+    try {
+        const res = await fetch(`${API_BASE}/notices`);
+        if (!res.ok) return;
+        const notices = await res.json();
+        const tbody = document.getElementById('cleaning-notices-tbody');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        notices.forEach(n => {
+            tbody.innerHTML += `
+                <tr>
+                    <td>${n.id}</td>
+                    <td>${n.datePosted}</td>
+                    <td><strong>${n.title}</strong></td>
+                    <td>${n.content}</td>
+                </tr>
             `;
         });
-        listEl.innerHTML = html;
     } catch(e) {
-        listEl.innerHTML = `<li class="list-group-item text-muted">No hazard alerts currently available.</li>`;
+        console.error("Error loading notices", e);
     }
 }
 
-// Duty Notices
-function loadNotices() {
-    const container = document.getElementById('cleaningNoticesContainer');
-    if (!container) return;
-    
-    const notices = [
-        {
-            title: 'Weekly Deep Sanitation Schedule - Block C & D',
-            date: 'Today',
-            urgent: true,
-            desc: 'Please prioritize deep disinfection of restrooms and corridor common areas in Blocks C & D before 2:00 PM.'
-        },
-        {
-            title: 'Attendance Policy & Absence Logging',
-            date: 'Official',
-            urgent: false,
-            desc: 'Staff members must mark Check-in upon shift arrival and Check-out before departure. Unnotified leaves are recorded as ABSENT by the Administration Office.'
-        },
-        {
-            title: 'Broken Furniture / Hazard Reporting',
-            date: 'Maintenance Notice',
-            urgent: false,
-            desc: 'If any broken chair, bed frame, or electrical issue is found during morning cleaning, please report directly to the Maintenance team or Housekeeping desk.'
-        }
-    ];
-    
-    let html = '';
-    notices.forEach(n => {
-        html += `
-            <div class="card mb-3 border-${n.urgent ? 'warning' : 'info'} shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <h6 class="card-title fw-bold mb-0 ${n.urgent ? 'text-warning' : 'text-primary'}">
-                            <i class="fas fa-${n.urgent ? 'bell' : 'info-circle'} me-2"></i>${n.title}
-                        </h6>
-                        <span class="badge bg-${n.urgent ? 'danger' : 'secondary'}">${n.date}</span>
-                    </div>
-                    <p class="card-text text-muted mb-0">${n.desc}</p>
-                </div>
-            </div>
-        `;
-    });
-    container.innerHTML = html;
-}
-
-// Utility: Format ISO time
-function formatTime(isoStr) {
-    if (!isoStr) return '--:--';
-    try {
-        const d = new Date(isoStr);
-        if (isNaN(d.getTime())) return isoStr;
-        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    } catch (e) {
-        return isoStr;
+function showToast(message, type = 'success') {
+    let container = document.getElementById('toastContainer');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toastContainer';
+        container.className = 'toast-container';
+        document.body.appendChild(container);
     }
-}
 
-// In-App Toast Notification (Zero browser native alerts)
-function showToast(message, type = 'info') {
-    let toastContainer = document.getElementById('hmsToastContainer');
-    if (!toastContainer) {
-        toastContainer = document.createElement('div');
-        toastContainer.id = 'hmsToastContainer';
-        toastContainer.style.cssText = 'position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:10px;pointer-events:none;';
-        document.body.appendChild(toastContainer);
-    }
-    
     const toast = document.createElement('div');
-    toast.className = `alert alert-${type} shadow-lg py-2 px-3 m-0 d-flex align-items-center animate__animated animate__fadeInUp`;
-    toast.style.cssText = 'min-width:280px;max-width:380px;pointer-events:auto;border-radius:10px;font-size:0.9rem;border:none;box-shadow:0 10px 25px rgba(0,0,0,0.15)!important;';
-    
-    const iconClass = type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-circle' : type === 'warning' ? 'exclamation-triangle' : 'info-circle';
+    toast.className = `custom-toast ${type}`;
+    let iconClass = type === 'error' ? 'fa-exclamation-circle' : 'fa-check-circle';
+
     toast.innerHTML = `
-        <i class="fas fa-${iconClass} me-2 fs-5"></i>
-        <div class="flex-grow-1">${message}</div>
-        <button type="button" class="btn-close btn-close-sm ms-2" onclick="this.parentElement.remove()"></button>
+        <i class="fas ${iconClass} custom-toast-icon"></i>
+        <div class="custom-toast-text">${message}</div>
+        <button class="custom-toast-close" onclick="this.parentElement.remove()">&times;</button>
     `;
-    
-    toastContainer.appendChild(toast);
-    
+    container.appendChild(toast);
     setTimeout(() => {
         toast.style.opacity = '0';
-        toast.style.transition = 'opacity 0.4s ease';
         setTimeout(() => toast.remove(), 400);
-    }, 4000);
+    }, 3500);
+}
+
+function logout() {
+    localStorage.clear();
+    window.location.href = '/hms/';
 }
