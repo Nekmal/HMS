@@ -66,6 +66,84 @@
 
         <!-- Tab 1: Room Damaged Items & Maintenance Tracker -->
         <div id="view-repairs" class="view-section pop-up-animation">
+            <!-- Maintenance KPI Cards -->
+            <div class="cards-container">
+                <div class="card">
+                    <div class="card-header-flex">
+                        <h3>Pending Repairs</h3>
+                        <i class="fas fa-tools card-icon-red"></i>
+                    </div>
+                    <div class="value" id="kpi-pending-repairs">0</div>
+                </div>
+                <div class="card">
+                    <div class="card-header-flex">
+                        <h3>Completed Fixes</h3>
+                        <i class="fas fa-check-circle" style="color:#2ed573; font-size:24px;"></i>
+                    </div>
+                    <div class="value" id="kpi-completed-repairs" style="color:#2ed573;">0</div>
+                </div>
+                <div class="card">
+                    <div class="card-header-flex">
+                        <h3>Student Complaints</h3>
+                        <i class="fas fa-clipboard-list card-icon-yellow"></i>
+                    </div>
+                    <div class="value" id="kpi-open-complaints">0</div>
+                </div>
+                <div class="card">
+                    <div class="card-header-flex">
+                        <h3>Facility Health Rate</h3>
+                        <i class="fas fa-shield-halved" style="color:#3742fa; font-size:24px;"></i>
+                    </div>
+                    <div class="value" id="kpi-facility-health">100%</div>
+                </div>
+            </div>
+
+            <!-- Maintenance Summary Grid -->
+            <div class="summary-grid-2">
+                <!-- Summary Table 1: Block-wise Damage Summary -->
+                <div class="table-container">
+                    <div class="table-header-flex">
+                        <h2 style="font-size: 18px; font-family: 'Outfit', sans-serif;"><i class="fas fa-building" style="color:#e67e22; margin-right: 8px;"></i>Block-Wise Maintenance Summary</h2>
+                        <span style="font-size:12px; font-weight:700; color:#57606f; background:#f1f2f6; padding:4px 8px; border-radius:6px;">4 Blocks</span>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Block</th>
+                                <th>Total Damages</th>
+                                <th>Pending</th>
+                                <th>Fixed</th>
+                                <th>Health</th>
+                            </tr>
+                        </thead>
+                        <tbody id="maintenance-block-summary-tbody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Summary Table 2: Equipment Category Breakdown -->
+                <div class="table-container">
+                    <div class="table-header-flex">
+                        <h2 style="font-size: 18px; font-family: 'Outfit', sans-serif;"><i class="fas fa-boxes-stacked" style="color:var(--primary-yellow); margin-right: 8px;"></i>Asset Category Breakdown</h2>
+                        <button class="btn btn-dark btn-sm" onclick="switchMaintenanceTab('complaints')">View Complaints</button>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Category</th>
+                                <th>Reported</th>
+                                <th>Pending Repair</th>
+                                <th>Restoration</th>
+                            </tr>
+                        </thead>
+                        <tbody id="maintenance-category-summary-tbody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
             <div class="table-container">
                 <div class="table-header-flex">
                     <div>
