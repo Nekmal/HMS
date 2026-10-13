@@ -65,6 +65,88 @@
 
         <!-- Tab 1: My Attendance & Duty Check-in/out -->
         <div id="view-attendance" class="view-section pop-up-animation">
+            <!-- Housekeeping KPI Cards (4 Cards) -->
+            <div class="cards-container">
+                <div class="card">
+                    <div class="card-header-flex">
+                        <h3>Total Hostel Rooms</h3>
+                        <i class="fas fa-bed card-icon-yellow"></i>
+                    </div>
+                    <div class="value" id="stat-total-rooms">100</div>
+                </div>
+                <div class="card">
+                    <div class="card-header-flex">
+                        <h3>Sanitized Today</h3>
+                        <i class="fas fa-check-circle" style="color:#2ed573; font-size:24px;"></i>
+                    </div>
+                    <div class="value" id="stat-cleaned-rooms" style="color:#2ed573;">82</div>
+                </div>
+                <div class="card">
+                    <div class="card-header-flex">
+                        <h3>Pending Cleaning</h3>
+                        <i class="fas fa-broom" style="color:#ffa502; font-size:24px;"></i>
+                    </div>
+                    <div class="value" id="stat-pending-rooms" style="color:#ffa502;">18</div>
+                </div>
+                <div class="card">
+                    <div class="card-header-flex">
+                        <h3>Hygiene Compliance</h3>
+                        <i class="fas fa-shield-virus" style="color:#10ac84; font-size:24px;"></i>
+                    </div>
+                    <div class="value" id="stat-sanitation-rate">82%</div>
+                </div>
+            </div>
+
+            <!-- Block Sanitation & Duty Summary Grid -->
+            <div class="summary-grid-2">
+                <!-- Summary Table 1: Block Sanitation Status -->
+                <div class="table-container">
+                    <div class="table-header-flex">
+                        <h2 style="font-size: 18px; font-family: 'Outfit', sans-serif;"><i class="fas fa-building" style="color:#10ac84; margin-right: 8px;"></i>Block Sanitation Summary</h2>
+                        <button class="btn btn-dark btn-sm" onclick="switchCleaningTab('schedule')">Checklist View</button>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Block</th>
+                                <th>Rooms</th>
+                                <th>Cleaned</th>
+                                <th>Status Progress</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cleaning-block-summary-tbody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Summary Table 2: Daily Housekeeping Protocol & Shift Duty -->
+                <div class="table-container">
+                    <div class="table-header-flex">
+                        <h2 style="font-size: 18px; font-family: 'Outfit', sans-serif;"><i class="fas fa-clipboard-check" style="color:var(--primary-yellow); margin-right: 8px;"></i>Today's Shift Duty Protocol</h2>
+                        <span style="font-size:12px; font-weight:700; color:#10ac84; background:rgba(16,172,132,0.1); padding:4px 10px; border-radius:6px;">Shift: 08:00 AM - 04:30 PM</span>
+                    </div>
+                    <div style="padding: 10px 0;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid #eee;">
+                            <div><strong><i class="fas fa-broom" style="color:#10ac84; margin-right:6px;"></i> Common Corridors & Floors</strong><div style="color:#777; font-size:12px;">Swept & disinfected with floor cleanser</div></div>
+                            <span class="status paid">Completed</span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid #eee;">
+                            <div><strong><i class="fas fa-trash-can" style="color:#ffa502; margin-right:6px;"></i> Daily Waste Disposal</strong><div style="color:#777; font-size:12px;">Bins emptied across Block A, B, C, D</div></div>
+                            <span class="status paid">Completed</span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid #eee;">
+                            <div><strong><i class="fas fa-toilet" style="color:#3742fa; margin-right:6px;"></i> Restroom Sanitization</strong><div style="color:#777; font-size:12px;">Deep chemical disinfection & wash</div></div>
+                            <span class="status allocated">In Progress</span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0;">
+                            <div><strong><i class="fas fa-spray-can-sparkles" style="color:#e67e22; margin-right:6px;"></i> Student Study Rooms & Lobby</strong><div style="color:#777; font-size:12px;">Evening dust and hygiene inspection</div></div>
+                            <span class="status pending">Scheduled</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="card" style="margin-bottom: 25px; padding: 25px 30px; background: #ffffff; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); border-left: 6px solid #10ac84;">
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
                     <div>
