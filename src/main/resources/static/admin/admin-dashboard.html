@@ -70,7 +70,7 @@
                 </div>
             </div>
 
-            <!-- Cards Container (4 KPI Cards) -->
+            <!-- Cards Container (6 KPI Cards) -->
             <div class="cards-container">
                 <div class="card">
                     <div class="card-header-flex">
@@ -100,6 +100,20 @@
                     </div>
                     <div class="value" id="stat-complaints">0</div>
                 </div>
+                <div class="card">
+                    <div class="card-header-flex">
+                        <h3>Active Gate Passes</h3>
+                        <i class="fas fa-id-card card-icon-yellow"></i>
+                    </div>
+                    <div class="value" id="stat-gatepasses">0</div>
+                </div>
+                <div class="card">
+                    <div class="card-header-flex">
+                        <h3>Broken Room Items</h3>
+                        <i class="fas fa-screwdriver-wrench card-icon-red"></i>
+                    </div>
+                    <div class="value" id="stat-damages">0</div>
+                </div>
             </div>
 
             <!-- Charts Grid (Column Graph + Complaints Breakdown) -->
@@ -124,7 +138,7 @@
                 </div>
             </div>
 
-            <!-- Tables Summary Row -->
+            <!-- Tables Summary Row 1: Block Occupancy & Complaints -->
             <div class="summary-grid-2">
                 <!-- Summary Table 1: Block-Wise Room Summary -->
                 <div class="table-container">
@@ -164,6 +178,97 @@
                             </tr>
                         </thead>
                         <tbody id="recent-complaints-tbody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Tables Summary Row 2: Gate Passes & Staff Duty Attendance -->
+            <div class="summary-grid-2">
+                <!-- Summary Table 3: Student Gate Passes & Leaves -->
+                <div class="table-container">
+                    <div class="table-header-flex">
+                        <h2 style="font-size: 18px; font-family: 'Outfit', sans-serif;"><i class="fas fa-id-card" style="color:var(--primary-yellow); margin-right: 8px;"></i>Gate Passes & Departures Summary</h2>
+                        <button class="btn btn-dark btn-sm" onclick="switchTab('gatepasses')">Manage Passes</button>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Student</th>
+                                <th>Room</th>
+                                <th>Reason</th>
+                                <th>Departure Date</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-gatepass-summary-tbody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Summary Table 4: Daily Staff Attendance -->
+                <div class="table-container">
+                    <div class="table-header-flex">
+                        <h2 style="font-size: 18px; font-family: 'Outfit', sans-serif;"><i class="fas fa-user-clock" style="color:#2ed573; margin-right: 8px;"></i>Staff Duty & Attendance Today</h2>
+                        <button class="btn btn-dark btn-sm" onclick="switchTab('staff')">Manage Staff</button>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Staff Member</th>
+                                <th>Department</th>
+                                <th>Check-In</th>
+                                <th>Duty Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-staff-summary-tbody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Tables Summary Row 3: Room Inventory Damages & Recent Fee Payments -->
+            <div class="summary-grid-2">
+                <!-- Summary Table 5: Damaged Items & Maintenance Status -->
+                <div class="table-container">
+                    <div class="table-header-flex">
+                        <h2 style="font-size: 18px; font-family: 'Outfit', sans-serif;"><i class="fas fa-tools" style="color:#e67e22; margin-right: 8px;"></i>Room Equipment Damages Summary</h2>
+                        <button class="btn btn-dark btn-sm" onclick="switchTab('inventory')">View Inventory</button>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Hostel Room</th>
+                                <th>Damaged Item</th>
+                                <th>Broken Qty</th>
+                                <th>Repair Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-damage-summary-tbody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Summary Table 6: Recent Financial Invoices & Payments -->
+                <div class="table-container">
+                    <div class="table-header-flex">
+                        <h2 style="font-size: 18px; font-family: 'Outfit', sans-serif;"><i class="fas fa-receipt" style="color:var(--primary-yellow); margin-right: 8px;"></i>Recent Hostel Fee Payments</h2>
+                        <button class="btn btn-dark btn-sm" onclick="switchTab('payments')">Manage Payments</button>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Student</th>
+                                <th>Invoice No</th>
+                                <th>Month</th>
+                                <th>Amount (Rs)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-payment-summary-tbody">
                             <!-- Populated dynamically -->
                         </tbody>
                     </table>
