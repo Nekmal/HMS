@@ -367,7 +367,7 @@
             </div>
             <form id="paymentForm" onsubmit="submitPayment(event)">
                 <div class="form-group">
-                    <label>Payment Month</label>
+                    <label>Payment Month <span class="required-star">*</span></label>
                     <select id="month" required>
                         <option value="January 2026">January 2026</option>
                         <option value="February 2026">February 2026</option>
@@ -378,7 +378,7 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>Amount (LKR / Rs)</label>
+                    <label>Amount (LKR / Rs) <span class="required-star">*</span></label>
                     <input type="number" id="amount" required min="100" step="100" placeholder="e.g. 5000">
                     <div class="form-hint">Standard monthly accommodation fee or custom maintenance installment.</div>
                 </div>
@@ -402,7 +402,7 @@
             </div>
             <form id="complaintForm" onsubmit="submitComplaint(event)">
                 <div class="form-group">
-                    <label>Description (What's broken or needs repair?)</label>
+                    <label>Description (What's broken or needs repair?) <span class="required-star">*</span></label>
                     <textarea id="complaintDesc" required placeholder="Describe the issue in detail (e.g. Ceiling fan in Room A-102 stopped working and makes a buzzing sound, please send an electrician)..."></textarea>
                     <div class="form-hint">Please provide specific details so hostel maintenance staff can resolve it as quickly as possible.</div>
                 </div>
@@ -423,7 +423,7 @@
             </div>
             <form id="gatePassForm" onsubmit="submitGatePass(event)">
                 <div class="form-group">
-                    <label>Reason / Purpose of Leaving</label>
+                    <label>Reason / Purpose of Leaving <span class="required-star">*</span></label>
                     <select id="gpReasonSelect" onchange="onReasonSelectChange()" style="margin-bottom: 10px;">
                         <option value="Weekend Home Visit" selected>Weekend Home Visit</option>
                         <option value="Medical Appointment / Sick Leave">Medical Appointment / Sick Leave</option>
@@ -435,11 +435,11 @@
                 </div>
                 <div class="form-grid-2">
                     <div class="form-group">
-                        <label>Departure Date</label>
+                        <label>Departure Date <span class="required-star">*</span></label>
                         <input type="date" id="gpFromDate" required>
                     </div>
                     <div class="form-group">
-                        <label>Expected Return Date</label>
+                        <label>Expected Return Date <span class="required-star">*</span></label>
                         <input type="date" id="gpToDate" required>
                     </div>
                 </div>

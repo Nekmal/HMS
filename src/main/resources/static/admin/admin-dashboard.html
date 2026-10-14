@@ -661,11 +661,11 @@
             <form id="userForm" onsubmit="submitUser(event)">
                 <div class="form-grid-2">
                     <div class="form-group">
-                        <label>Student ID (or Admin username)</label>
+                        <label>Student ID (or Admin username) <span class="required-star">*</span></label>
                         <input type="text" id="studentId" required placeholder="e.g. TG/2021/0151">
                     </div>
                     <div class="form-group">
-                        <label>User Role</label>
+                        <label>User Role <span class="required-star">*</span></label>
                         <select id="role">
                             <option value="STUDENT">Student</option>
                             <option value="ADMIN">Admin</option>
@@ -673,11 +673,11 @@
                     </div>
                 </div>
                 <div class="form-group">
-                    <label>Full Name</label>
+                    <label>Full Name <span class="required-star">*</span></label>
                     <input type="text" id="fullName" required placeholder="e.g. Supun Wickramasinghe">
                 </div>
                 <div class="form-group">
-                    <label>Email Address</label>
+                    <label>Email Address <span class="required-star">*</span></label>
                     <input type="email" id="email" required placeholder="student@ruhuna.ac.lk (For Payment Notifications)">
                 </div>
                 <div class="modal-actions">
@@ -698,7 +698,7 @@
             <form id="roomForm" onsubmit="submitRoom(event)">
                 <div class="form-grid-2">
                     <div class="form-group">
-                        <label>Residential Block / Floor</label>
+                        <label>Residential Block / Floor <span class="required-star">*</span></label>
                         <select id="blockName" onchange="onAddRoomBlockChange()" required>
                             <option value="" disabled selected>-- Select Block / Floor --</option>
                             <option value="Block A">Block A (Floor 1 - 25 Rooms)</option>
@@ -708,7 +708,7 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Room Number (25 Rooms / Block)</label>
+                        <label>Room Number (25 Rooms / Block) <span class="required-star">*</span></label>
                         <select id="roomNumber" required disabled>
                             <option value="" disabled selected>-- Select Block First --</option>
                         </select>
@@ -750,7 +750,7 @@
 
                 <div class="form-grid-2">
                     <div class="form-group">
-                        <label>Select Residential Block / Floor</label>
+                        <label>Select Residential Block / Floor <span class="required-star">*</span></label>
                         <select id="allocateBlockSelect" onchange="onAllocateBlockChange()" required>
                             <option value="" disabled selected>-- Choose Block / Floor (A, B, C, D) --</option>
                             <option value="Block A">Block A (Floor 1 - Rooms A-101 to A-125)</option>
@@ -760,7 +760,7 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Select Room Number (Capacity: 4)</label>
+                        <label>Select Room Number (Capacity: 4) <span class="required-star">*</span></label>
                         <select id="allocateRoomId" onchange="onAllocateRoomChange()" required disabled>
                             <option value="" disabled selected>-- Select Block First --</option>
                         </select>
@@ -789,12 +789,12 @@
             </div>
             <form id="inventoryForm" onsubmit="submitInventory(event)">
                 <div class="form-group">
-                    <label>Item Name</label>
+                    <label>Item Name <span class="required-star">*</span></label>
                     <input type="text" id="itemName" required placeholder="e.g. Study Table, Ceiling Fan, Mattress">
                 </div>
                 <div class="form-grid-2">
                     <div class="form-group">
-                        <label>Category</label>
+                        <label>Category <span class="required-star">*</span></label>
                         <select id="category">
                             <option value="Furniture">Furniture</option>
                             <option value="Electronics">Electronics</option>
@@ -802,7 +802,7 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Total Quantity</label>
+                        <label>Total Quantity <span class="required-star">*</span></label>
                         <input type="number" id="totalQty" required min="1" placeholder="e.g. 50">
                     </div>
                 </div>
@@ -823,11 +823,11 @@
             </div>
             <form id="noticeForm" onsubmit="submitNotice(event)">
                 <div class="form-group">
-                    <label>Notice Title</label>
+                    <label>Notice Title <span class="required-star">*</span></label>
                     <input type="text" id="noticeTitle" required placeholder="e.g. Maintenance Announcement / Hostel Fee Due Date">
                 </div>
                 <div class="form-group">
-                    <label>Notice Content & Full Announcement</label>
+                    <label>Notice Content & Full Announcement <span class="required-star">*</span></label>
                     <textarea id="noticeContent" required placeholder="Write the announcement message to display on the Notice Board..."></textarea>
                 </div>
                 <div class="modal-actions">
@@ -848,7 +848,7 @@
             <form id="reportDamageForm" onsubmit="submitRoomDamage(event)">
                 <div class="form-grid-2">
                     <div class="form-group">
-                        <label>Select Residential Block</label>
+                        <label>Select Residential Block <span class="required-star">*</span></label>
                         <select id="damageBlockSelect" onchange="onDamageBlockChange()" required>
                             <option value="" disabled selected>-- Select Block / Floor --</option>
                             <option value="Block A">Block A (Floor 1)</option>
@@ -858,7 +858,7 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Select Room Number</label>
+                        <label>Select Room Number <span class="required-star">*</span></label>
                         <select id="damageRoomId" required disabled>
                             <option value="" disabled selected>-- Select Block First --</option>
                         </select>
@@ -867,19 +867,19 @@
 
                 <div class="form-grid-2">
                     <div class="form-group">
-                        <label>Broken Inventory Item</label>
+                        <label>Broken Inventory Item <span class="required-star">*</span></label>
                         <select id="damageInventoryId" required>
                             <option value="" disabled selected>-- Select Item (e.g. Fan, Chair, Table) --</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Damaged Quantity</label>
+                        <label>Damaged Quantity <span class="required-star">*</span></label>
                         <input type="number" id="damageQuantity" min="1" max="50" value="1" required>
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label>Damage Description & Issue Details</label>
+                    <label>Damage Description & Issue Details <span class="required-star">*</span></label>
                     <textarea id="damageDescription" required placeholder="Describe what is broken (e.g. Study table leg loose / Ceiling fan regulator burnt out / Bed frame cracked)..."></textarea>
                 </div>
 
@@ -900,7 +900,7 @@
             </div>
             <form id="adminMarkAbsenceForm" onsubmit="submitAdminMarkAbsence(event)">
                 <div class="form-group">
-                    <label>Select Staff Member</label>
+                    <label>Select Staff Member <span class="required-star">*</span></label>
                     <select id="adminAbsenceStaffSelect" required>
                         <option value="" disabled selected>-- Choose Staff Member --</option>
                         <option value="152">Nimal Perera (Head of Security - ID: 152)</option>
@@ -911,11 +911,11 @@
 
                 <div class="form-grid-2">
                     <div class="form-group">
-                        <label>Date</label>
+                        <label>Date <span class="required-star">*</span></label>
                         <input type="date" id="adminAbsenceDate" required>
                     </div>
                     <div class="form-group">
-                        <label>Attendance Status</label>
+                        <label>Attendance Status <span class="required-star">*</span></label>
                         <select id="adminAbsenceStatus" required>
                             <option value="ABSENT" selected>ABSENT (Unreported / Duty Missed)</option>
                             <option value="ON_LEAVE">ON LEAVE (Authorized Leave)</option>
@@ -925,7 +925,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Absence Reason / Admin Remarks</label>
+                    <label>Absence Reason / Admin Remarks <span class="required-star">*</span></label>
                     <textarea id="adminAbsenceRemarks" required placeholder="Explain reason for marking absence or leave (e.g. Unexcused gate absence / Sick leave certificate submitted / Off duty approved)..."></textarea>
                 </div>
 

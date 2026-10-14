@@ -310,6 +310,15 @@ tr:hover {
     background-color: var(--light-black);
 }
 
+/* Required Form Field Indicator */
+.required-star {
+    color: #ff4757;
+    font-weight: 700;
+    margin-left: 4px;
+    font-size: 15px;
+    display: inline;
+}
+
 /* Status Badges */
 .status {
     padding: 5px 10px;

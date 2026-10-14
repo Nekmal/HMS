@@ -89,6 +89,14 @@
     font-family: 'Outfit', sans-serif;
 }
 
+.required-star {
+    color: #ff4757;
+    font-weight: 800;
+    margin-left: 4px;
+    font-size: 15px;
+    display: inline;
+}
+
 .form-group input, 
 .form-group select, 
 .form-group textarea {

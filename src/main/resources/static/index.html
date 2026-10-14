@@ -23,11 +23,11 @@
         <div id="errorMsg" class="error-msg">Invalid Credentials!</div>
         <form id="loginForm" class="login-form" onsubmit="handleLogin(event)">
             <div class="form-group">
-                <label>Student ID / Username</label>
+                <label>Student ID / Username <span class="required-star">*</span></label>
                 <input type="text" id="username" required placeholder="e.g. sub warden (admin), security, maintenance, cleaning">
             </div>
             <div class="form-group">
-                <label>Password</label>
+                <label>Password <span class="required-star">*</span></label>
                 <input type="password" id="password" required placeholder="Password">
             </div>
             <button type="submit" class="btn btn-primary btn-login-submit">Login</button>

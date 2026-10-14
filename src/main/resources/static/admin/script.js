@@ -271,18 +271,33 @@ async function loadDashboardStats() {
                 staffTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#888;">No staff attendance logs recorded today.</td></tr>';
             } else {
                 recentAtt.forEach(att => {
+                    const st = (att.status || 'PRESENT').toUpperCase();
                     let stBadge = 'paid';
-                    if (att.status === 'ABSENT') stBadge = 'maintenance';
-                    else if (att.status === 'LEAVE') stBadge = 'pending';
+                    if (st === 'ABSENT') stBadge = 'maintenance';
+                    else if (st === 'ON_LEAVE' || st === 'LEAVE') stBadge = 'pending';
 
-                    const staffName = att.staff ? (att.staff.fullName || att.staff.studentId) : 'Staff Member';
-                    const dept = att.staff ? att.staff.role : 'Service';
+                    const staffObj = att.staff || att.user;
+                    const staffName = staffObj ? (staffObj.fullName || staffObj.studentId) : 'Staff Member';
+                    const dept = (staffObj && staffObj.role) ? staffObj.role.toUpperCase() : 'SERVICE';
+                    
+                    let deptBadge = dept;
+                    if (dept === 'SECURITY') {
+                        deptBadge = '<span class="status-badge" style="background: rgba(46, 213, 115, 0.15); color: #2ed573; font-weight:700; border: 1px solid rgba(46, 213, 115, 0.3); border-radius: 8px; padding: 3px 8px;"><i class="fas fa-shield-alt"></i> Security</span>';
+                    } else if (dept === 'MAINTENANCE') {
+                        deptBadge = '<span class="status-badge" style="background: rgba(217, 119, 6, 0.15); color: #d97706; font-weight:700; border: 1px solid rgba(217, 119, 6, 0.3); border-radius: 8px; padding: 3px 8px;"><i class="fas fa-tools"></i> Maintenance</span>';
+                    } else if (dept === 'CLEANING') {
+                        deptBadge = '<span class="status-badge" style="background: rgba(8, 145, 178, 0.15); color: #0891b2; font-weight:700; border: 1px solid rgba(8, 145, 178, 0.3); border-radius: 8px; padding: 3px 8px;"><i class="fas fa-broom"></i> Cleaning</span>';
+                    } else {
+                        deptBadge = `<span class="status-badge" style="padding: 3px 8px; border-radius: 8px;">${dept}</span>`;
+                    }
+
+                    const checkInDisplay = formatAdminTime(att.checkInTime);
                     staffTbody.innerHTML += `
                         <tr>
                             <td><strong>${staffName}</strong></td>
-                            <td><span style="font-size:12px; font-weight:600;">${dept}</span></td>
-                            <td>${att.checkInTime ? att.checkInTime.substring(11, 16) : '-'}</td>
-                            <td><span class="status ${stBadge}">${att.status || 'PRESENT'}</span></td>
+                            <td>${deptBadge}</td>
+                            <td><code>${checkInDisplay}</code></td>
+                            <td><span class="status ${stBadge}">${st}</span></td>
                         </tr>
                     `;
                 });
@@ -452,13 +467,27 @@ async function loadUsers() {
                     ? `<button class="btn btn-secondary btn-sm" onclick="openAllocateModal(${user.id})" title="Change Room Allocation"><i class="fas fa-exchange-alt"></i> Change Room</button>`
                     : `<button class="btn btn-primary btn-sm" onclick="openAllocateModal(${user.id})" title="Allocate Room to Student"><i class="fas fa-door-open"></i> Allocate Room</button>`
             );
+
+            let roleBadge = '';
+            const uRole = (user.role || '').toUpperCase();
+            if (uRole === 'ADMIN') {
+                roleBadge = '<span class="status" style="background:#fff3cd; color:#856404; font-weight:700;"><i class="fas fa-user-shield"></i> Sub Warden</span>';
+            } else if (uRole === 'SECURITY') {
+                roleBadge = '<span class="status" style="background: rgba(46, 213, 115, 0.15); color: #155724; border: 1px solid rgba(46, 213, 115, 0.3); font-weight:700;"><i class="fas fa-shield-alt"></i> Security</span>';
+            } else if (uRole === 'MAINTENANCE') {
+                roleBadge = '<span class="status" style="background: rgba(217, 119, 6, 0.15); color: #b45309; border: 1px solid rgba(217, 119, 6, 0.3); font-weight:700;"><i class="fas fa-tools"></i> Maintenance</span>';
+            } else if (uRole === 'CLEANING') {
+                roleBadge = '<span class="status" style="background: rgba(8, 145, 178, 0.15); color: #0e7490; border: 1px solid rgba(8, 145, 178, 0.3); font-weight:700;"><i class="fas fa-broom"></i> Cleaning</span>';
+            } else {
+                roleBadge = '<span class="status allocated" style="font-weight:700;"><i class="fas fa-user-graduate"></i> Student</span>';
+            }
             
             tbody.innerHTML += `
                 <tr>
                     <td>${user.id}</td>
                     <td><strong>${user.studentId}</strong></td>
                     <td>${user.fullName}</td>
-                    <td><span class="status allocated">${user.role}</span></td>
+                    <td>${roleBadge}</td>
                     <td>${roomBadge}</td>
                     <td>${actionBtn}</td>
                 </tr>
@@ -1436,15 +1465,16 @@ async function loadStaffAttendanceManagement() {
 
         allStaffAttendanceData.forEach(item => {
             const isToday = item.date === todayStr;
-            const role = (item.user && item.user.role) || '';
-            const status = item.status;
+            const staffObj = item.staff || item.user;
+            const role = (staffObj && staffObj.role) ? staffObj.role.toUpperCase() : '';
+            const status = (item.status || '').toUpperCase();
 
             if (isToday && status === 'PRESENT') {
                 if (role === 'SECURITY') secPresent++;
                 else if (role === 'MAINTENANCE') maintPresent++;
                 else if (role === 'CLEANING') cleanPresent++;
             }
-            if (status === 'ABSENT' || status === 'ON_LEAVE') {
+            if (status === 'ABSENT' || status === 'ON_LEAVE' || status === 'LEAVE') {
                 totalAbsent++;
             }
         });
@@ -1458,7 +1488,27 @@ async function loadStaffAttendanceManagement() {
         const elAbs = document.getElementById('admin-stat-absent-count');
         if (elAbs) elAbs.innerText = totalAbsent;
 
-        renderStaffAttendanceTable(allStaffAttendanceData);
+        // Populate staff dropdown in modal if empty
+        const staffSelect = document.getElementById('adminAbsenceStaffSelect');
+        if (staffSelect) {
+            const staffMap = {};
+            allStaffAttendanceData.forEach(item => {
+                const s = item.staff || item.user;
+                if (s && s.id && !staffMap[s.id]) {
+                    staffMap[s.id] = s;
+                }
+            });
+            const staffList = Object.values(staffMap);
+            if (staffList.length > 0) {
+                const currentVal = staffSelect.value;
+                staffSelect.innerHTML = '<option value="" disabled selected>-- Choose Staff Member --</option>' +
+                    staffList.map(s => `<option value="${s.id}">${s.fullName} (${s.role} - ID: ${s.id})</option>`).join('');
+                if (currentVal) staffSelect.value = currentVal;
+            }
+        }
+
+        // Apply any active dropdown filters
+        filterAdminStaffAttendance();
     } catch (e) {
         console.error("Error loading staff attendance:", e);
         tableBody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: #ff4757; padding: 20px;"><i class="fas fa-exclamation-triangle"></i> Error loading attendance data.</td></tr>`;
@@ -1470,44 +1520,45 @@ function renderStaffAttendanceTable(records) {
     if (!tableBody) return;
 
     if (!records || records.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 25px; color: #7f8c8d;"><i class="fas fa-calendar-times" style="font-size: 24px; display: block; margin-bottom: 8px;"></i>No staff attendance records found.</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 35px; color: #7f8c8d;"><i class="fas fa-filter" style="font-size: 26px; display: block; margin-bottom: 10px; color: #f39c12;"></i><strong>No attendance records match the selected filter.</strong><br><small style="color: #95a5a6;">Try selecting a different Role or Status from the filter dropdowns above.</small></td></tr>`;
         return;
     }
 
     let html = '';
     records.forEach(rec => {
-        const staffName = (rec.user && rec.user.fullName) || 'Staff Member';
-        const role = (rec.user && rec.user.role) || 'N/A';
-        const status = rec.status || 'PENDING';
+        const staffObj = rec.staff || rec.user;
+        const staffName = (staffObj && (staffObj.fullName || staffObj.studentId)) || 'Staff Member';
+        const role = (staffObj && staffObj.role) ? staffObj.role.toUpperCase() : 'STAFF';
+        const status = (rec.status || 'PENDING').toUpperCase();
         
         let roleBadge = '';
         if (role === 'SECURITY') {
-            roleBadge = '<span class="status-badge" style="background: rgba(46, 213, 115, 0.15); color: #2ed573; border: 1px solid rgba(46, 213, 115, 0.3);"><i class="fas fa-shield-alt"></i> SECURITY</span>';
+            roleBadge = '<span class="status-badge" style="background: rgba(46, 213, 115, 0.15); color: #2ed573; border: 1px solid rgba(46, 213, 115, 0.35); font-weight: 700; padding: 4px 10px; border-radius: 12px; display: inline-flex; align-items: center; gap: 6px;"><i class="fas fa-shield-alt"></i> Security</span>';
         } else if (role === 'MAINTENANCE') {
-            roleBadge = '<span class="status-badge" style="background: rgba(55, 66, 250, 0.15); color: #3742fa; border: 1px solid rgba(55, 66, 250, 0.3);"><i class="fas fa-tools"></i> MAINTENANCE</span>';
+            roleBadge = '<span class="status-badge" style="background: rgba(217, 119, 6, 0.15); color: #d97706; border: 1px solid rgba(217, 119, 6, 0.35); font-weight: 700; padding: 4px 10px; border-radius: 12px; display: inline-flex; align-items: center; gap: 6px;"><i class="fas fa-tools"></i> Maintenance</span>';
         } else if (role === 'CLEANING') {
-            roleBadge = '<span class="status-badge" style="background: rgba(0, 206, 201, 0.15); color: #00cec9; border: 1px solid rgba(0, 206, 201, 0.3);"><i class="fas fa-broom"></i> CLEANING</span>';
+            roleBadge = '<span class="status-badge" style="background: rgba(8, 145, 178, 0.15); color: #0891b2; border: 1px solid rgba(8, 145, 178, 0.35); font-weight: 700; padding: 4px 10px; border-radius: 12px; display: inline-flex; align-items: center; gap: 6px;"><i class="fas fa-broom"></i> Cleaning</span>';
         } else {
-            roleBadge = `<span class="status-badge">${role}</span>`;
+            roleBadge = `<span class="status-badge" style="background: rgba(116, 125, 140, 0.15); color: #747d8c; border: 1px solid rgba(116, 125, 140, 0.35); font-weight: 700; padding: 4px 10px; border-radius: 12px;"><i class="fas fa-user"></i> ${role}</span>`;
         }
 
         let statusBadge = '';
         if (status === 'PRESENT') {
-            statusBadge = '<span class="status-badge status-active"><i class="fas fa-check-circle"></i> PRESENT</span>';
+            statusBadge = '<span class="status-badge status-active" style="padding: 4px 10px; border-radius: 12px; font-weight: 700;"><i class="fas fa-check-circle"></i> PRESENT</span>';
         } else if (status === 'ABSENT') {
-            statusBadge = '<span class="status-badge status-danger" style="background: rgba(255, 71, 87, 0.15); color: #ff4757; border: 1px solid rgba(255, 71, 87, 0.3); font-weight: 700;"><i class="fas fa-user-times"></i> ABSENT</span>';
-        } else if (status === 'ON_LEAVE') {
-            statusBadge = '<span class="status-badge" style="background: rgba(255, 165, 2, 0.15); color: #ffa502; border: 1px solid rgba(255, 165, 2, 0.3); font-weight: 700;"><i class="fas fa-calendar-minus"></i> ON LEAVE</span>';
+            statusBadge = '<span class="status-badge status-danger" style="background: rgba(255, 71, 87, 0.15); color: #ff4757; border: 1px solid rgba(255, 71, 87, 0.3); font-weight: 700; padding: 4px 10px; border-radius: 12px;"><i class="fas fa-user-times"></i> ABSENT</span>';
+        } else if (status === 'ON_LEAVE' || status === 'LEAVE') {
+            statusBadge = '<span class="status-badge" style="background: rgba(255, 165, 2, 0.15); color: #ffa502; border: 1px solid rgba(255, 165, 2, 0.3); font-weight: 700; padding: 4px 10px; border-radius: 12px;"><i class="fas fa-calendar-minus"></i> ON LEAVE</span>';
         } else {
-            statusBadge = `<span class="status-badge">${status}</span>`;
+            statusBadge = `<span class="status-badge" style="padding: 4px 10px; border-radius: 12px;">${status}</span>`;
         }
 
         const markedBy = rec.markedBy === 'ADMIN'
             ? '<span style="color: #ff4757; font-weight: 600;"><i class="fas fa-user-shield"></i> Admin Marked</span>'
             : '<span style="color: #2ed573; font-weight: 600;"><i class="fas fa-user-check"></i> Self Check-in</span>';
 
-        const checkIn = rec.checkInTime ? formatAdminTime(rec.checkInTime) : '--:--';
-        const checkOut = rec.checkOutTime ? formatAdminTime(rec.checkOutTime) : '--:--';
+        const checkIn = formatAdminTime(rec.checkInTime);
+        const checkOut = formatAdminTime(rec.checkOutTime);
         const remarks = rec.remarks || '<span style="color: #a4b0be; font-style: italic;">No special remarks</span>';
 
         html += `
@@ -1515,12 +1566,12 @@ function renderStaffAttendanceTable(records) {
                 <td><strong>#${rec.id}</strong></td>
                 <td><strong>${staffName}</strong></td>
                 <td>${roleBadge}</td>
-                <td>${rec.date}</td>
+                <td><span style="font-weight:600; color:#2f3542;">${rec.date}</span></td>
                 <td>${statusBadge}</td>
-                <td>${checkIn}</td>
-                <td>${checkOut}</td>
+                <td><code style="font-size:13px; font-weight:600;">${checkIn}</code></td>
+                <td><code style="font-size:13px; font-weight:600;">${checkOut}</code></td>
                 <td>${markedBy}</td>
-                <td><small>${remarks}</small></td>
+                <td><small style="color:#57606f;">${remarks}</small></td>
             </tr>
         `;
     });
@@ -1529,17 +1580,27 @@ function renderStaffAttendanceTable(records) {
 }
 
 function filterAdminStaffAttendance() {
-    const roleFilter = document.getElementById('adminStaffFilterRole')?.value || 'ALL';
-    const statusFilter = document.getElementById('adminStaffFilterStatus')?.value || 'ALL';
+    const roleFilter = (document.getElementById('adminStaffFilterRole')?.value || 'ALL').toUpperCase();
+    const statusFilter = (document.getElementById('adminStaffFilterStatus')?.value || 'ALL').toUpperCase();
 
     let filtered = allStaffAttendanceData;
 
     if (roleFilter !== 'ALL') {
-        filtered = filtered.filter(item => item.user && item.user.role === roleFilter);
+        filtered = filtered.filter(item => {
+            const staffObj = item.staff || item.user;
+            const staffRole = (staffObj && staffObj.role) ? staffObj.role.toUpperCase() : '';
+            return staffRole === roleFilter;
+        });
     }
 
     if (statusFilter !== 'ALL') {
-        filtered = filtered.filter(item => item.status === statusFilter);
+        filtered = filtered.filter(item => {
+            const st = (item.status || '').toUpperCase();
+            if (statusFilter === 'ON_LEAVE') {
+                return st === 'ON_LEAVE' || st === 'LEAVE';
+            }
+            return st === statusFilter;
+        });
     }
 
     renderStaffAttendanceTable(filtered);
@@ -1595,7 +1656,8 @@ async function submitAdminMarkAbsence(e) {
 }
 
 function formatAdminTime(isoStr) {
-    if (!isoStr) return '--:--';
+    if (!isoStr || isoStr === '-' || isoStr === '--:--') return '--:--';
+    if (isoStr.includes('AM') || isoStr.includes('PM')) return isoStr;
     try {
         const d = new Date(isoStr);
         if (isNaN(d.getTime())) return isoStr;
