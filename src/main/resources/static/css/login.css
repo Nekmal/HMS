@@ -8,8 +8,35 @@ body.login-page {
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    background: linear-gradient(135deg, #f5f5f5 0%, #FFD700 100%);
     padding: 20px;
+    background-color: #ffd700; /* Default Ruhuna Yellow */
+    background-image: 
+        radial-gradient(at 0% 0%, rgba(255, 255, 255, 0.72) 0px, transparent 55%),
+        radial-gradient(at 100% 100%, rgba(0, 0, 0, 0.22) 0px, transparent 65%),
+        linear-gradient(135deg, rgba(255, 255, 255, 0.3) 0%, rgba(0, 0, 0, 0.08) 100%);
+    background-attachment: fixed;
+    transition: background-color 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Dynamic Role-Based Login Background Themes */
+body.login-page.theme-admin {
+    background-color: #4f46e5; /* Sub Warden Indigo */
+}
+
+body.login-page.theme-security {
+    background-color: #059669; /* Security Emerald Green */
+}
+
+body.login-page.theme-maintenance {
+    background-color: #d97706; /* Maintenance Amber / Warm Orange */
+}
+
+body.login-page.theme-cleaning {
+    background-color: #0891b2; /* Cleaning Cyan / Deep Sky */
+}
+
+body.login-page.theme-student {
+    background-color: #7c3aed; /* Student Violet / Royal Purple */
 }
 
 .login-box {
@@ -124,4 +151,126 @@ body.login-page {
     margin-bottom: 20px;
     text-align: center;
     display: none;
+}
+
+/* Quick Role Buttons & Active States */
+.quick-role-wrapper {
+    margin-top: 25px;
+    padding-top: 18px;
+    border-top: 1px dashed rgba(0, 0, 0, 0.15);
+    text-align: center;
+}
+
+.quick-role-title {
+    font-size: 0.8rem;
+    color: #64748b;
+    margin-bottom: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    font-family: 'Outfit', sans-serif;
+}
+
+.quick-role-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+}
+
+.role-btn {
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    outline: none;
+}
+
+.role-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.role-btn.role-admin {
+    background: rgba(99, 102, 241, 0.15);
+    border: 1.5px solid rgba(99, 102, 241, 0.4);
+    color: #4f46e5;
+}
+.role-btn.role-admin:hover,
+.role-btn.role-admin.active {
+    background: #4f46e5;
+    color: #ffffff;
+    border-color: #4338ca;
+    box-shadow: 0 4px 14px rgba(79, 70, 229, 0.4);
+}
+
+.role-btn.role-security {
+    background: rgba(16, 185, 129, 0.15);
+    border: 1.5px solid rgba(16, 185, 129, 0.4);
+    color: #059669;
+}
+.role-btn.role-security:hover,
+.role-btn.role-security.active {
+    background: #059669;
+    color: #ffffff;
+    border-color: #047857;
+    box-shadow: 0 4px 14px rgba(5, 150, 105, 0.4);
+}
+
+.role-btn.role-maintenance {
+    background: rgba(245, 158, 11, 0.15);
+    border: 1.5px solid rgba(245, 158, 11, 0.4);
+    color: #d97706;
+}
+.role-btn.role-maintenance:hover,
+.role-btn.role-maintenance.active {
+    background: #d97706;
+    color: #ffffff;
+    border-color: #b45309;
+    box-shadow: 0 4px 14px rgba(217, 119, 6, 0.4);
+}
+
+.role-btn.role-cleaning {
+    background: rgba(6, 182, 212, 0.15);
+    border: 1.5px solid rgba(6, 182, 212, 0.4);
+    color: #0891b2;
+}
+.role-btn.role-cleaning:hover,
+.role-btn.role-cleaning.active {
+    background: #0891b2;
+    color: #ffffff;
+    border-color: #0e7490;
+    box-shadow: 0 4px 14px rgba(8, 145, 178, 0.4);
+}
+
+.role-btn.role-student {
+    background: rgba(168, 85, 247, 0.15);
+    border: 1.5px solid rgba(168, 85, 247, 0.4);
+    color: #7c3aed;
+}
+.role-btn.role-student:hover,
+.role-btn.role-student.active {
+    background: #7c3aed;
+    color: #ffffff;
+    border-color: #6d28d9;
+    box-shadow: 0 4px 14px rgba(124, 58, 237, 0.4);
+}
+
+.role-btn.role-default {
+    background: rgba(255, 215, 0, 0.2);
+    border: 1.5px solid rgba(230, 184, 0, 0.6);
+    color: #8c7000;
+}
+.role-btn.role-default:hover,
+.role-btn.role-default.active {
+    background: #ffd700;
+    color: #121212;
+    border-color: #cca300;
+    box-shadow: 0 4px 14px rgba(255, 215, 0, 0.5);
 }
