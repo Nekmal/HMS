@@ -20,7 +20,7 @@ body.login-page {
 
 /* Dynamic Role-Based Login Background Themes */
 body.login-page.theme-admin {
-    background-color: #ffd700; /* Sub Warden uses Default Ruhuna Yellow */
+    background-color: #ffd700; /* Sub Warden Yellow */
 }
 
 body.login-page.theme-security {
@@ -171,11 +171,21 @@ body.login-page.theme-student {
     font-family: 'Outfit', sans-serif;
 }
 
-.quick-role-grid {
+.quick-role-grid,
+.quick-role-row {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
     justify-content: center;
+    align-items: center;
+}
+
+.quick-role-primary {
+    margin-bottom: 8px;
+}
+
+.quick-role-secondary {
+    margin-top: 2px;
 }
 
 .role-btn {
@@ -208,7 +218,6 @@ body.login-page.theme-student {
     color: #121212;
     border-color: #cca300;
     box-shadow: 0 4px 14px rgba(255, 215, 0, 0.5);
-    font-weight: 700;
 }
 
 .role-btn.role-security {
