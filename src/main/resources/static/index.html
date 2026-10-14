@@ -36,10 +36,19 @@
         <!-- Quick Demo Credentials Helper & Theme Switcher -->
         <div class="quick-role-wrapper">
             <p class="quick-role-title">Quick Role Login & Theme Preview</p>
-            <div class="quick-role-grid">
+            
+            <!-- Row 1: Sub Warden & Student -->
+            <div class="quick-role-row quick-role-primary">
                 <button type="button" class="role-btn role-admin active" onclick="fillCreds('admin', 'admin123', 'admin', this)">
                     <i class="fas fa-user-shield"></i> Sub Warden
                 </button>
+                <button type="button" class="role-btn role-student" onclick="fillCreds('TG/2021/0001', 'password123', 'student', this)">
+                    <i class="fas fa-user-graduate"></i> Student
+                </button>
+            </div>
+
+            <!-- Row 2: Security, Maintenance, Cleaning -->
+            <div class="quick-role-row quick-role-secondary">
                 <button type="button" class="role-btn role-security" onclick="fillCreds('security', 'security123', 'security', this)">
                     <i class="fas fa-shield-alt"></i> Security
                 </button>
@@ -49,9 +58,6 @@
                 <button type="button" class="role-btn role-cleaning" onclick="fillCreds('cleaning', 'cleaning123', 'cleaning', this)">
                     <i class="fas fa-broom"></i> Cleaning
                 </button>
-                <button type="button" class="role-btn role-student" onclick="fillCreds('TG/2021/0001', 'password123', 'student', this)">
-                    <i class="fas fa-user-graduate"></i> Student
-                </button>
             </div>
         </div>
     </div>
@@ -59,8 +65,8 @@
     <script>
         // Fill credentials and dynamically switch the login page background theme
         function fillCreds(u, p, theme, btn) {
-            document.getElementById('username').value = u;
-            document.getElementById('password').value = p;
+            if (u !== '') document.getElementById('username').value = u;
+            if (p !== '') document.getElementById('password').value = p;
             document.getElementById('errorMsg').style.display = 'none';
 
             // Remove previous theme classes (only affects login page background)
