@@ -10,6 +10,7 @@ let studentPaymentsChart = null;
 let studentRequestsChart = null;
 let myComplaintsList = [];
 let myGatePassesList = [];
+let allStudentNotices = [];
 
 async function initDashboard() {
     if (!currentUserId || localStorage.getItem('userRole') !== 'STUDENT') {
@@ -387,27 +388,162 @@ function updateStudentRequestsSummary() {
 async function loadNotices() {
     try {
         const res = await fetch(`${API_BASE}/notices`);
-        const notices = await res.json();
-        const container = document.getElementById('notices-container');
-        if (!container) return;
+        if (!res.ok) throw new Error('Failed to load notices');
+        allStudentNotices = await res.json();
         
-        if (notices.length === 0) {
-            container.innerHTML = '<p style="color:#777; font-size:14px;">No new notices.</p>';
-            return;
-        }
-
-        container.innerHTML = '';
-        notices.forEach(n => {
-            container.innerHTML += `
-                <div style="border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 10px;">
-                    <strong style="color: #121212;">${n.title}</strong> <span style="font-size: 12px; color: #888;">(${n.datePosted})</span>
-                    <p style="margin: 5px 0 0; font-size: 14px; color: #555;">${n.content}</p>
-                </div>
-            `;
-        });
+        renderStudentDashboardNotices(allStudentNotices);
+        renderStudentAllNotices(allStudentNotices);
     } catch (e) {
         console.error("Error loading notices", e);
+        const container = document.getElementById('notices-container');
+        if (container) {
+            container.innerHTML = '<p style="color:#ff4757; font-size:14px;"><i class="fas fa-exclamation-circle"></i> Error loading notices from server.</p>';
+        }
     }
+}
+
+function renderStudentDashboardNotices(notices) {
+    const container = document.getElementById('notices-container');
+    const badge = document.getElementById('notices-count-badge');
+    if (badge) badge.innerText = `${notices.length} Active`;
+
+    if (!container) return;
+
+    if (!notices || notices.length === 0) {
+        container.innerHTML = '<p style="color:#777; font-size:14px; text-align: center; padding: 15px;">No new notices published.</p>';
+        return;
+    }
+
+    // Display the 4 most recent notices on dashboard widget
+    const recentNotices = notices.slice(0, 4);
+    let html = '';
+    recentNotices.forEach(n => {
+        html += `
+            <div style="padding: 12px 14px; background: #f8f9fa; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid #FFD700; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; transition: background 0.2s;" onmouseover="this.style.background='#f1f2f6'" onmouseout="this.style.background='#f8f9fa'">
+                <div style="flex: 1;">
+                    <div style="font-weight: 700; color: #121212; font-size: 14px; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+                        <i class="fas fa-bullhorn" style="color: #f39c12; font-size: 13px;"></i>
+                        <span>${n.title}</span>
+                    </div>
+                    <div style="font-size: 13px; color: #57606f; line-height: 1.4;">${n.content}</div>
+                </div>
+                <div style="white-space: nowrap; font-size: 11px; color: #747d8c; background: #ffffff; padding: 4px 8px; border-radius: 6px; border: 1px solid #e1e2e6; font-weight: 600; display: flex; align-items: center; gap: 4px;">
+                    <i class="fas fa-calendar-alt"></i> ${n.datePosted || 'Recent'}
+                </div>
+            </div>
+        `;
+    });
+
+    if (notices.length > 4) {
+        html += `
+            <div style="text-align: center; padding-top: 6px;">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="showSection('notices-section', document.getElementById('sidebar-menu-notices'))" style="font-size: 12px; padding: 6px 16px; border-radius: 20px; font-weight: 600;">
+                    <i class="fas fa-chevron-down"></i> View All ${notices.length} Notices
+                </button>
+            </div>
+        `;
+    }
+
+    container.innerHTML = html;
+}
+
+function renderStudentAllNotices(notices) {
+    const grid = document.getElementById('student-all-notices-grid');
+    const totalStat = document.getElementById('student-notices-total-stat');
+    const latestDateStat = document.getElementById('student-notices-latest-date');
+
+    if (totalStat) totalStat.innerText = `${allStudentNotices.length} Bulletins`;
+    if (latestDateStat) {
+        latestDateStat.innerText = allStudentNotices.length > 0 && allStudentNotices[0].datePosted ? allStudentNotices[0].datePosted : 'Today';
+    }
+
+    if (!grid) return;
+
+    if (!notices || notices.length === 0) {
+        grid.innerHTML = `
+            <div style="grid-column: 1 / -1; text-align: center; padding: 50px 20px; background: #ffffff; border-radius: 12px; border: 1px dashed #ced6e0;">
+                <i class="fas fa-search" style="font-size: 36px; color: #f39c12; margin-bottom: 12px; display: block;"></i>
+                <h3 style="color: #2f3542; margin-bottom: 6px;">No notices match your search</h3>
+                <p style="color: #747d8c; font-size: 14px;">Try searching with different keywords or clear the search input.</p>
+            </div>
+        `;
+        return;
+    }
+
+    let html = '';
+    notices.forEach(n => {
+        const titleLower = (n.title || '').toLowerCase();
+        let iconClass = 'fa-bullhorn';
+        let badgeColor = '#f39c12';
+        let badgeBg = 'rgba(243, 156, 18, 0.12)';
+        let categoryName = 'General Notice';
+
+        if (titleLower.includes('fee') || titleLower.includes('payment') || titleLower.includes('invoice')) {
+            iconClass = 'fa-file-invoice-dollar';
+            badgeColor = '#2ed573';
+            badgeBg = 'rgba(46, 213, 115, 0.12)';
+            categoryName = 'Hostel Fees';
+        } else if (titleLower.includes('maintenance') || titleLower.includes('water') || titleLower.includes('repair')) {
+            iconClass = 'fa-tools';
+            badgeColor = '#e67e22';
+            badgeBg = 'rgba(230, 126, 34, 0.12)';
+            categoryName = 'Maintenance';
+        } else if (titleLower.includes('curfew') || titleLower.includes('gate') || titleLower.includes('action')) {
+            iconClass = 'fa-shield-alt';
+            badgeColor = '#ff4757';
+            badgeBg = 'rgba(255, 71, 87, 0.12)';
+            categoryName = 'Rules & Security';
+        } else if (titleLower.includes('sports') || titleLower.includes('meeting') || titleLower.includes('seminar') || titleLower.includes('campaign')) {
+            iconClass = 'fa-users';
+            badgeColor = '#3742fa';
+            badgeBg = 'rgba(55, 66, 250, 0.12)';
+            categoryName = 'Events & Activities';
+        }
+
+        html += `
+            <div class="card" style="margin-bottom: 0; padding: 22px; border-radius: 14px; border: 1px solid #edf2f7; box-shadow: 0 4px 14px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 8px 22px rgba(0,0,0,0.08)';" onmouseout="this.style.transform='none'; this.style.boxShadow='0 4px 14px rgba(0,0,0,0.05)';">
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                        <span style="background: ${badgeBg}; color: ${badgeColor}; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 12px; display: inline-flex; align-items: center; gap: 6px;">
+                            <i class="fas ${iconClass}"></i> ${categoryName}
+                        </span>
+                        <span style="font-size: 12px; color: #747d8c; background: #f8f9fa; border: 1px solid #e1e2e6; padding: 4px 9px; border-radius: 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 5px;">
+                            <i class="fas fa-calendar-alt"></i> ${n.datePosted || 'Recent'}
+                        </span>
+                    </div>
+                    <h3 style="font-family: 'Outfit', sans-serif; font-size: 17px; font-weight: 700; color: #121212; margin-bottom: 10px; line-height: 1.4;">${n.title}</h3>
+                    <p style="color: #57606f; font-size: 14px; line-height: 1.6; margin: 0 0 16px 0;">${n.content}</p>
+                </div>
+                <div style="padding-top: 14px; border-top: 1px solid #f1f2f6; display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 12px; color: #2ed573; font-weight: 600; display: inline-flex; align-items: center; gap: 5px;">
+                        <i class="fas fa-check-circle"></i> Sub Warden Official
+                    </span>
+                    <span style="font-size: 11px; color: #a4b0be; font-weight: 600;">#NTC-${n.id}</span>
+                </div>
+            </div>
+        `;
+    });
+
+    grid.innerHTML = html;
+}
+
+function searchStudentNotices() {
+    const input = document.getElementById('studentNoticeSearchInput');
+    const query = input ? input.value.trim().toLowerCase() : '';
+    
+    if (!query) {
+        renderStudentAllNotices(allStudentNotices);
+        return;
+    }
+
+    const filtered = allStudentNotices.filter(n => {
+        const title = (n.title || '').toLowerCase();
+        const content = (n.content || '').toLowerCase();
+        const date = (n.datePosted || '').toLowerCase();
+        return title.includes(query) || content.includes(query) || date.includes(query);
+    });
+
+    renderStudentAllNotices(filtered);
 }
 
 // Modal Logic

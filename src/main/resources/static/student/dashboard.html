@@ -28,6 +28,7 @@
             <li onclick="showSection('room-section', this)"><i class="fas fa-bed"></i> Room & Maintenance</li>
             <li onclick="showSection('payments-section', this)"><i class="fas fa-file-invoice-dollar"></i> My Payments</li>
             <li onclick="showSection('leave-section', this)"><i class="fas fa-home-user"></i> Early Home Departure / Gate Pass</li>
+            <li id="sidebar-menu-notices" onclick="showSection('notices-section', this)"><i class="fas fa-bullhorn"></i> Notice Board & Bulletins</li>
         </ul>
 
         <div class="sidebar-logout-container">
@@ -66,11 +67,17 @@
 
             <!-- Notice Board -->
             <div id="notice-board" class="notice-board-box">
-                <h3>
-                    <i class="fas fa-bullhorn" style="color:var(--primary-yellow);"></i> Notice Board & Announcements
-                </h3>
-                <div id="notices-container" class="notices-scroll-list">
-                    <p style="color:#777; font-size:14px;">No new notices.</p>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                    <h3 style="margin: 0; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-bullhorn" style="color:var(--primary-yellow);"></i> Notice Board & Announcements
+                        <span id="notices-count-badge" class="badge" style="background: rgba(255, 215, 0, 0.2); color: #b78103; font-size: 12px; padding: 3px 8px; border-radius: 12px; font-weight: 700;">--</span>
+                    </h3>
+                    <button class="btn btn-secondary btn-sm" onclick="showSection('notices-section', document.getElementById('sidebar-menu-notices'))" style="font-size: 12px; padding: 6px 14px; border-radius: 6px; font-weight: 600;">
+                        <i class="fas fa-external-link-alt"></i> View All Notices
+                    </button>
+                </div>
+                <div id="notices-container" class="notices-scroll-list" style="max-height: 230px; overflow-y: auto;">
+                    <p style="color:#777; font-size:14px;">Loading notices...</p>
                 </div>
             </div>
 
@@ -356,6 +363,39 @@
                 </table>
             </div>
         </div>
+
+        <!-- Tab 5: Notices Section -->
+        <div id="notices-section" class="content-section" style="display: none;">
+            <!-- Hero Banner with Notices Background Image -->
+            <div class="dashboard-hero-banner" style="background-image: linear-gradient(90deg, rgba(18, 18, 18, 0.94) 0%, rgba(30, 55, 153, 0.85) 100%), url('../images/notices_banner_bg.jpg');">
+                <div class="hero-content">
+                    <span class="hero-badge" style="background: rgba(255, 215, 0, 0.2); color: #FFD700; border: 1px solid rgba(255, 215, 0, 0.4);"><i class="fas fa-bullhorn"></i> OFFICIAL STUDENT RESIDENCE BULLETINS</span>
+                    <h2>Hostel Notice Board & Official Circulars</h2>
+                    <p>Stay updated with curfew directives, maintenance schedules, fee payment deadlines, emergency protocols, and official circulars published by the Sub Warden & Hostel Administration.</p>
+                    <div class="hero-stats-row">
+                        <div class="hero-stat-pill"><i class="fas fa-newspaper"></i> Total Notices: <strong id="student-notices-total-stat">--</strong></div>
+                        <div class="hero-stat-pill"><i class="fas fa-calendar-check"></i> Latest Announcement: <strong id="student-notices-latest-date">--</strong></div>
+                        <div class="hero-stat-pill"><i class="fas fa-shield-alt"></i> Official Administration Directives</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controls / Search Bar -->
+            <div style="display: flex; gap: 12px; margin-bottom: 22px; align-items: center; flex-wrap: wrap; background: #ffffff; padding: 14px 18px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid #edf2f7;">
+                <div style="flex: 1; min-width: 260px; position: relative;">
+                    <i class="fas fa-search" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #a4b0be; font-size: 14px;"></i>
+                    <input type="text" id="studentNoticeSearchInput" onkeyup="searchStudentNotices()" placeholder="Search notices by title, keyword, or date..." style="width: 100%; padding: 9px 14px 9px 38px; border-radius: 8px; border: 1px solid #ced6e0; font-size: 14px; outline: none;">
+                </div>
+                <button class="btn btn-secondary btn-sm" onclick="loadNotices()" style="padding: 9px 16px; border-radius: 8px; font-weight: 600;">
+                    <i class="fas fa-sync-alt"></i> Refresh Notices
+                </button>
+            </div>
+
+            <!-- Notices Cards Grid / Container -->
+            <div id="student-all-notices-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 20px;">
+                <!-- Dynamically loaded notices -->
+            </div>
+        </div>
     </div>
 
     <!-- Payment Modal (Enlarged & Spacious) -->
@@ -476,6 +516,21 @@
             }
             if (element) {
                 element.classList.add('active');
+            }
+
+            // Update page header title
+            const headerTitle = document.querySelector('.header h1');
+            if (headerTitle) {
+                if (sectionId === 'dashboard-section') headerTitle.innerText = 'Student Dashboard';
+                else if (sectionId === 'room-section') headerTitle.innerText = 'Room & Maintenance';
+                else if (sectionId === 'payments-section') headerTitle.innerText = 'My Payment Records';
+                else if (sectionId === 'leave-section') headerTitle.innerText = 'Early Departure & Gate Passes';
+                else if (sectionId === 'notices-section') headerTitle.innerText = 'Hostel Notice Board';
+            }
+
+            // Refresh notices if navigating to notices-section
+            if (sectionId === 'notices-section' && (!allStudentNotices || allStudentNotices.length === 0)) {
+                loadNotices();
             }
         }
     </script>
