@@ -20,7 +20,7 @@ body.login-page {
 
 /* Dynamic Role-Based Login Background Themes */
 body.login-page.theme-admin {
-    background-color: #4f46e5; /* Sub Warden Indigo */
+    background-color: #ffd700; /* Sub Warden uses Default Ruhuna Yellow */
 }
 
 body.login-page.theme-security {
