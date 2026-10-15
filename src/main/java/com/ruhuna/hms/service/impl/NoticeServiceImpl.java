@@ -28,11 +28,14 @@ public class NoticeServiceImpl implements NoticeService {
         return noticeRepository.findAllByOrderByDatePostedDesc();
     }
 
-    // Saves a new notice with the current date if not set
+    // Saves a new notice with the current date if not set and default target audience ALL
     @Override
     public Notice createNotice(Notice notice) {
         if (notice.getDatePosted() == null) {
             notice.setDatePosted(LocalDate.now());
+        }
+        if (notice.getTargetAudience() == null || notice.getTargetAudience().trim().isEmpty()) {
+            notice.setTargetAudience("ALL");
         }
         return noticeRepository.save(notice);
     }
