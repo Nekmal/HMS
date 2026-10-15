@@ -268,9 +268,6 @@ BEGIN
     IF NEW.status IS NULL OR TRIM(NEW.status) = '' THEN
         SET NEW.status = 'PENDING';
     END IF;
-    IF NEW.created_at IS NULL THEN
-        SET NEW.created_at = CURRENT_DATE;
-    END IF;
 END //
 
 -- Trigger 2.3: Prevent room occupancy from ever exceeding room capacity
@@ -433,8 +430,7 @@ SELECT
     gp.from_date AS departure_date,
     gp.to_date AS expected_return_date,
     DATEDIFF(gp.to_date, gp.from_date) AS leave_duration_days,
-    gp.status AS pass_status,
-    gp.created_at AS requested_date
+    gp.status AS pass_status
 FROM gate_passes gp
 JOIN users u ON gp.user_id = u.id
 LEFT JOIN rooms r ON u.room_id = r.id;
