@@ -81,6 +81,16 @@ public class UserServiceImpl implements UserService {
     @Override
     public User authenticate(String studentId, String password) {
         User user = userRepository.findByStudentId(studentId);
+        if (user == null && studentId != null) {
+            String lower = studentId.trim().toLowerCase();
+            if ("security".equals(lower)) {
+                user = userRepository.findByStudentId("SEC001");
+            } else if ("maintenance".equals(lower)) {
+                user = userRepository.findByStudentId("MNT001");
+            } else if ("cleaning".equals(lower)) {
+                user = userRepository.findByStudentId("CLN001");
+            }
+        }
         if (user != null && user.getPassword() != null && user.getPassword().equals(password)) {
             return user;
         }

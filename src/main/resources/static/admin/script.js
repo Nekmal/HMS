@@ -474,6 +474,7 @@ async function loadUsers() {
         const tbody = document.getElementById('users-table-body');
         if (!tbody) return;
         tbody.innerHTML = '';
+        allUsersData.forEach(user => {
             let roleBadge = '';
             const uRole = (user.role || '').toUpperCase();
             if (uRole === 'ADMIN') {
@@ -778,11 +779,24 @@ function getNextStudentTgNumber() {
     return `TG/${year}/${paddedNum}`;
 }
 
-function getNextStaffUsername(prefix) {
-    if (!allUsersData || allUsersData.length === 0) return `${prefix}_01`;
-    const matching = allUsersData.filter(u => u.studentId && u.studentId.toLowerCase().startsWith(prefix.toLowerCase()));
-    if (matching.length === 0) return prefix;
-    return `${prefix}_${matching.length + 1}`;
+function getNextStaffId(prefix) {
+    let maxNum = 0;
+    if (allUsersData && allUsersData.length > 0) {
+        allUsersData.forEach(u => {
+            if (u.studentId) {
+                const regex = new RegExp(`^${prefix}[-_/]?(\\d+)$`, 'i');
+                const match = u.studentId.trim().match(regex);
+                if (match) {
+                    const num = parseInt(match[1], 10);
+                    if (!isNaN(num) && num > maxNum) {
+                        maxNum = num;
+                    }
+                }
+            }
+        });
+    }
+    const nextNum = maxNum + 1;
+    return `${prefix}${String(nextNum).padStart(3, '0')}`;
 }
 
 function onUserRoleChange() {
@@ -820,26 +834,26 @@ function onUserRoleChange() {
         if (role === 'ADMIN') {
             roleName = 'Sub Warden / Admin';
             placeholder = 'e.g. admin_office';
-            defaultUsername = getNextStaffUsername('admin');
+            defaultUsername = 'admin_office';
         } else if (role === 'SECURITY') {
             roleName = 'Security Staff';
-            placeholder = 'e.g. security_02';
-            defaultUsername = getNextStaffUsername('security');
+            placeholder = 'e.g. SEC004';
+            defaultUsername = getNextStaffId('SEC');
         } else if (role === 'MAINTENANCE') {
             roleName = 'Maintenance Staff';
-            placeholder = 'e.g. maintenance_02';
-            defaultUsername = getNextStaffUsername('maintenance');
+            placeholder = 'e.g. MNT006';
+            defaultUsername = getNextStaffId('MNT');
         } else if (role === 'CLEANING') {
             roleName = 'Cleaning Staff';
-            placeholder = 'e.g. cleaning_02';
-            defaultUsername = getNextStaffUsername('cleaning');
+            placeholder = 'e.g. CLN008';
+            defaultUsername = getNextStaffId('CLN');
         }
 
-        if (label) label.innerHTML = `${roleName} Username / ID <span class="required-star">*</span>`;
+        if (label) label.innerHTML = `${roleName} Staff ID / Username <span class="required-star">*</span>`;
         studentIdInput.placeholder = placeholder;
         studentIdInput.value = defaultUsername;
         if (emailInput) {
-            emailInput.placeholder = `${role.toLowerCase()}@ruhuna.ac.lk`;
+            emailInput.placeholder = `${defaultUsername.toLowerCase()}@ruhuna.ac.lk`;
         }
     }
 }
