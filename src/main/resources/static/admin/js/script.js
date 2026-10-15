@@ -81,6 +81,23 @@ function openModal(modalId) {
         }
         if (submitBtn) submitBtn.disabled = true;
     }
+
+    if (modalId === 'userModal') {
+        const roleSelect = document.getElementById('role');
+        if (roleSelect && !roleSelect.value) roleSelect.value = 'STUDENT';
+        
+        if (!allUsersData || allUsersData.length === 0) {
+            fetch(`${API_BASE}/users`)
+                .then(r => r.json())
+                .then(users => {
+                    allUsersData = users;
+                    onUserRoleChange();
+                })
+                .catch(() => onUserRoleChange());
+        } else {
+            onUserRoleChange();
+        }
+    }
 }
 
 function closeModal(modalId) {
@@ -457,17 +474,6 @@ async function loadUsers() {
         const tbody = document.getElementById('users-table-body');
         if (!tbody) return;
         tbody.innerHTML = '';
-        allUsersData.forEach(user => {
-            let roomBadge = user.room 
-                ? `<span class="status allocated"><i class="fas fa-bed"></i> ${user.room.roomNumber} (${user.room.blockName})</span>` 
-                : `<span class="status pending"><i class="fas fa-times-circle"></i> Not Assigned</span>`;
-            
-            let actionBtn = user.role === 'ADMIN' ? '-' : (
-                user.room 
-                    ? `<button class="btn btn-secondary btn-sm" onclick="openAllocateModal(${user.id})" title="Change Room Allocation"><i class="fas fa-exchange-alt"></i> Change Room</button>`
-                    : `<button class="btn btn-primary btn-sm" onclick="openAllocateModal(${user.id})" title="Allocate Room to Student"><i class="fas fa-door-open"></i> Allocate Room</button>`
-            );
-
             let roleBadge = '';
             const uRole = (user.role || '').toUpperCase();
             if (uRole === 'ADMIN') {
@@ -480,6 +486,21 @@ async function loadUsers() {
                 roleBadge = '<span class="status" style="background: rgba(8, 145, 178, 0.15); color: #0e7490; border: 1px solid rgba(8, 145, 178, 0.3); font-weight:700;"><i class="fas fa-broom"></i> Cleaning</span>';
             } else {
                 roleBadge = '<span class="status allocated" style="font-weight:700;"><i class="fas fa-user-graduate"></i> Student</span>';
+            }
+
+            let roomBadge = '';
+            let actionBtn = '';
+            if (uRole !== 'STUDENT') {
+                roomBadge = `<span class="status" style="background: #f1f2f6; color: #747d8c; font-weight:600;"><i class="fas fa-id-badge"></i> Staff Member</span>`;
+                actionBtn = `<span style="color:#a4b0be; font-size:12px; font-weight:600;">Staff Personnel</span>`;
+            } else {
+                roomBadge = user.room 
+                    ? `<span class="status allocated"><i class="fas fa-bed"></i> ${user.room.roomNumber} (${user.room.blockName})</span>` 
+                    : `<span class="status pending"><i class="fas fa-times-circle"></i> Not Assigned</span>`;
+                
+                actionBtn = user.room 
+                    ? `<button class="btn btn-secondary btn-sm" onclick="openAllocateModal(${user.id})" title="Change Room Allocation"><i class="fas fa-exchange-alt"></i> Change Room</button>`
+                    : `<button class="btn btn-primary btn-sm" onclick="openAllocateModal(${user.id})" title="Allocate Room to Student"><i class="fas fa-door-open"></i> Allocate Room</button>`;
             }
             
             tbody.innerHTML += `
@@ -733,26 +754,148 @@ async function loadAdminNotices() {
     }
 }
 
+// Auto-increment Next Student TG Number
+function getNextStudentTgNumber() {
+    let maxNum = 0;
+    let year = "2021"; // default base year
+    if (allUsersData && allUsersData.length > 0) {
+        allUsersData.forEach(u => {
+            if (u.studentId) {
+                const match = u.studentId.trim().match(/^TG\/(\d+)\/(\d+)$/i);
+                if (match) {
+                    const y = match[1];
+                    const num = parseInt(match[2], 10);
+                    if (!isNaN(num) && num > maxNum) {
+                        maxNum = num;
+                        year = y;
+                    }
+                }
+            }
+        });
+    }
+    const nextNum = maxNum + 1;
+    const paddedNum = String(nextNum).padStart(4, '0');
+    return `TG/${year}/${paddedNum}`;
+}
+
+function getNextStaffUsername(prefix) {
+    if (!allUsersData || allUsersData.length === 0) return `${prefix}_01`;
+    const matching = allUsersData.filter(u => u.studentId && u.studentId.toLowerCase().startsWith(prefix.toLowerCase()));
+    if (matching.length === 0) return prefix;
+    return `${prefix}_${matching.length + 1}`;
+}
+
+function onUserRoleChange() {
+    const roleSelect = document.getElementById('role');
+    const studentIdInput = document.getElementById('studentId');
+    const label = document.getElementById('userIdLabel');
+    const hint = document.getElementById('studentIdHint');
+    const nextTgDisplay = document.getElementById('nextTgDisplay');
+    const emailInput = document.getElementById('email');
+
+    if (!roleSelect || !studentIdInput) return;
+
+    const role = roleSelect.value;
+
+    if (role === 'STUDENT') {
+        const nextTg = getNextStudentTgNumber();
+        studentIdInput.value = nextTg;
+        studentIdInput.placeholder = "e.g. TG/2021/0151";
+        if (label) label.innerHTML = 'Student TG Number <span class="required-star">*</span>';
+        if (hint) {
+            hint.style.display = 'block';
+            if (nextTgDisplay) nextTgDisplay.innerText = nextTg;
+        }
+        if (emailInput && (!emailInput.value || emailInput.value.includes('@ruhuna'))) {
+            const cleanTg = nextTg.replace(/\//g, '').toLowerCase();
+            emailInput.placeholder = `${cleanTg}@ruhuna.ac.lk`;
+        }
+    } else {
+        if (hint) hint.style.display = 'none';
+
+        let roleName = 'Staff';
+        let placeholder = 'e.g. username';
+        let defaultUsername = '';
+
+        if (role === 'ADMIN') {
+            roleName = 'Sub Warden / Admin';
+            placeholder = 'e.g. admin_office';
+            defaultUsername = getNextStaffUsername('admin');
+        } else if (role === 'SECURITY') {
+            roleName = 'Security Staff';
+            placeholder = 'e.g. security_02';
+            defaultUsername = getNextStaffUsername('security');
+        } else if (role === 'MAINTENANCE') {
+            roleName = 'Maintenance Staff';
+            placeholder = 'e.g. maintenance_02';
+            defaultUsername = getNextStaffUsername('maintenance');
+        } else if (role === 'CLEANING') {
+            roleName = 'Cleaning Staff';
+            placeholder = 'e.g. cleaning_02';
+            defaultUsername = getNextStaffUsername('cleaning');
+        }
+
+        if (label) label.innerHTML = `${roleName} Username / ID <span class="required-star">*</span>`;
+        studentIdInput.placeholder = placeholder;
+        studentIdInput.value = defaultUsername;
+        if (emailInput) {
+            emailInput.placeholder = `${role.toLowerCase()}@ruhuna.ac.lk`;
+        }
+    }
+}
+
 // Submit Forms
 async function submitUser(event) {
     event.preventDefault();
+    const studentId = document.getElementById('studentId').value.trim();
+    const fullName = document.getElementById('fullName').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const role = document.getElementById('role').value;
+    const phone = document.getElementById('phone')?.value.trim() || '';
+    const password = document.getElementById('userPassword')?.value.trim() || 'password123';
+
+    if (!studentId || !fullName || !email) {
+        showToast('Please fill in all required fields.', 'error');
+        return;
+    }
+
+    // Check for duplicate studentId/username
+    if (allUsersData && allUsersData.some(u => u.studentId && u.studentId.toLowerCase() === studentId.toLowerCase())) {
+        showToast(`User ID "${studentId}" already exists! Please use a unique ID.`, 'error');
+        return;
+    }
+
     const user = {
-        studentId: document.getElementById('studentId').value,
-        fullName: document.getElementById('fullName').value,
-        email: document.getElementById('email').value,
-        role: document.getElementById('role').value,
-        password: 'defaultPassword123'
+        studentId: studentId,
+        fullName: fullName,
+        email: email,
+        role: role,
+        phone: phone,
+        password: password
     };
 
-    await fetch(`${API_BASE}/users`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(user)
-    });
+    try {
+        const res = await fetch(`${API_BASE}/users`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(user)
+        });
 
-    closeModal('userModal');
-    document.getElementById('userForm').reset();
-    loadUsers(); // Refresh table
+        if (!res.ok) {
+            const err = await res.text();
+            throw new Error(err || 'Failed to save user');
+        }
+
+        const createdUser = await res.json();
+        closeModal('userModal');
+        document.getElementById('userForm').reset();
+        showToast(`User ${createdUser.fullName} (${createdUser.studentId}) created successfully as ${role}!`, 'success');
+        await loadUsers(); // Refresh table
+        await loadDashboardStats(); // Refresh stats
+    } catch (e) {
+        console.error("Error creating user:", e);
+        showToast('Error saving user: ' + e.message, 'error');
+    }
 }
 
 // Dynamic Dropdown Logic for Adding / Configuring Rooms
