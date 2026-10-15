@@ -8,7 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800;900&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="css/login.css">
+    <link rel="stylesheet" href="css/login.css?v=2.0">
 </head>
 <body class="login-page">
     <div class="login-box">
@@ -24,7 +24,7 @@
         <form id="loginForm" class="login-form" onsubmit="handleLogin(event)">
             <div class="form-group">
                 <label>Student ID / Staff Username <span class="required-star">*</span></label>
-                <input type="text" id="username" required placeholder="e.g. admin, SEC001, MNT001, CLN001, TG/2021/0001">
+                <input type="text" id="username" required placeholder="e.g. admin, SEC001, MNT001, CLN001, TG/2021/0001" oninput="detectThemeFromInput(this.value)">
             </div>
             <div class="form-group">
                 <label>Password <span class="required-star">*</span></label>
@@ -33,24 +33,84 @@
             <button type="submit" class="btn btn-primary btn-login-submit">Login</button>
         </form>
 
-        <!-- Quick Demo Credentials Helper -->
-        <div style="margin-top: 25px; padding-top: 15px; border-top: 1px dashed rgba(255,255,255,0.2); text-align: center;">
-            <p style="font-size: 0.8rem; color: #a0aec0; margin-bottom: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Quick Role Login (Click to fill)</p>
-            <div style="display: flex; flex-wrap: wrap; gap: 6px; justify-content: center;">
-                <button type="button" onclick="fillCreds('admin', 'admin123')" style="background: rgba(99, 102, 241, 0.2); border: 1px solid rgba(99, 102, 241, 0.4); color: #818cf8; padding: 4px 10px; border-radius: 6px; font-size: 0.78rem; cursor: pointer; transition: 0.2s;"><i class="fas fa-user-shield me-1"></i>Sub Warden</button>
-                <button type="button" onclick="fillCreds('SEC001', 'security123')" style="background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399; padding: 4px 10px; border-radius: 6px; font-size: 0.78rem; cursor: pointer; transition: 0.2s;"><i class="fas fa-shield-alt me-1"></i>Security (SEC001)</button>
-                <button type="button" onclick="fillCreds('MNT001', 'maintenance123')" style="background: rgba(245, 158, 11, 0.2); border: 1px solid rgba(245, 158, 11, 0.4); color: #fbbf24; padding: 4px 10px; border-radius: 6px; font-size: 0.78rem; cursor: pointer; transition: 0.2s;"><i class="fas fa-tools me-1"></i>Maintenance (MNT001)</button>
-                <button type="button" onclick="fillCreds('CLN001', 'cleaning123')" style="background: rgba(6, 182, 212, 0.2); border: 1px solid rgba(6, 182, 212, 0.4); color: #22d3ee; padding: 4px 10px; border-radius: 6px; font-size: 0.78rem; cursor: pointer; transition: 0.2s;"><i class="fas fa-broom me-1"></i>Cleaning (CLN001)</button>
-                <button type="button" onclick="fillCreds('TG/2021/0001', 'password123')" style="background: rgba(168, 85, 247, 0.2); border: 1px solid rgba(168, 85, 247, 0.4); color: #c084fc; padding: 4px 10px; border-radius: 6px; font-size: 0.78rem; cursor: pointer; transition: 0.2s;"><i class="fas fa-user-graduate me-1"></i>Student</button>
+        <!-- Quick Demo Credentials Helper & Theme Switcher -->
+        <div class="quick-role-wrapper">
+            <p class="quick-role-title">Quick Role Login & Theme Switcher</p>
+            <div class="quick-role-grid">
+                <button type="button" class="role-btn role-admin" onclick="fillCreds('admin', 'admin123', 'admin', this)">
+                    <i class="fas fa-user-shield"></i> Sub Warden
+                </button>
+                <button type="button" class="role-btn role-security" onclick="fillCreds('SEC001', 'security123', 'security', this)">
+                    <i class="fas fa-shield-alt"></i> Security
+                </button>
+                <button type="button" class="role-btn role-maintenance" onclick="fillCreds('MNT001', 'maintenance123', 'maintenance', this)">
+                    <i class="fas fa-tools"></i> Maintenance
+                </button>
+                <button type="button" class="role-btn role-cleaning" onclick="fillCreds('CLN001', 'cleaning123', 'cleaning', this)">
+                    <i class="fas fa-broom"></i> Cleaning
+                </button>
+                <button type="button" class="role-btn role-student" onclick="fillCreds('TG/2021/0001', 'password123', 'student', this)">
+                    <i class="fas fa-user-graduate"></i> Student
+                </button>
+                <button type="button" class="role-btn role-default active" onclick="fillCreds('', '', 'yellow', this)" title="Reset to original yellow background">
+                    <i class="fas fa-undo"></i> Default
+                </button>
             </div>
         </div>
     </div>
 
     <script>
-        function fillCreds(u, p) {
-            document.getElementById('username').value = u;
-            document.getElementById('password').value = p;
+        function applyTheme(theme) {
+            document.body.classList.remove('theme-admin', 'theme-security', 'theme-maintenance', 'theme-cleaning', 'theme-student', 'theme-yellow');
+            if (theme && theme !== 'yellow' && theme !== 'default') {
+                document.body.classList.add('theme-' + theme);
+            } else {
+                document.body.classList.add('theme-yellow');
+            }
+        }
+
+        // Fill credentials and dynamically switch the login page background theme
+        function fillCreds(u, p, theme, btn) {
+            if (u !== '') document.getElementById('username').value = u;
+            if (p !== '') document.getElementById('password').value = p;
             document.getElementById('errorMsg').style.display = 'none';
+
+            applyTheme(theme);
+
+            // Sync active state on role buttons
+            document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+            if (btn) {
+                btn.classList.add('active');
+            }
+        }
+
+        // Detect role while user is typing in username input and change theme dynamically
+        function detectThemeFromInput(val) {
+            const v = (val || '').trim().toUpperCase();
+            let theme = 'yellow';
+            let btnClass = '.role-default';
+
+            if (v.startsWith('SEC') || v.includes('SECURITY')) {
+                theme = 'security';
+                btnClass = '.role-security';
+            } else if (v.startsWith('MNT') || v.includes('MAINT')) {
+                theme = 'maintenance';
+                btnClass = '.role-maintenance';
+            } else if (v.startsWith('CLN') || v.includes('CLEAN')) {
+                theme = 'cleaning';
+                btnClass = '.role-cleaning';
+            } else if (v.startsWith('TG') || v.includes('STUDENT')) {
+                theme = 'student';
+                btnClass = '.role-student';
+            } else if (v.startsWith('ADMIN') || v.includes('WARDEN')) {
+                theme = 'admin';
+                btnClass = '.role-admin';
+            }
+
+            applyTheme(theme);
+            document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+            const matchedBtn = document.querySelector(btnClass);
+            if (matchedBtn) matchedBtn.classList.add('active');
         }
 
         async function handleLogin(event) {
