@@ -18,6 +18,9 @@ async function initDashboard() {
         return;
     }
 
+    // Load notices immediately on init
+    loadNotices();
+
     try {
         const usersRes = await fetch(`${API_BASE}/users`);
         const users = await usersRes.json();
@@ -702,7 +705,18 @@ function logout() {
     window.location.href = '/hms/';
 }
 
+// Export functions globally to window for access from inline HTML event handlers
+window.allStudentNotices = allStudentNotices;
+window.loadNotices = loadNotices;
+window.renderStudentDashboardNotices = renderStudentDashboardNotices;
+window.renderStudentAllNotices = renderStudentAllNotices;
+window.searchStudentNotices = searchStudentNotices;
+
 // Initial Load
 window.onload = () => {
+    loadNotices();
     initDashboard();
 };
+
+// Also trigger immediate notice load when script executes
+loadNotices();

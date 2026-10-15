@@ -703,21 +703,34 @@ async function loadAdminGatePasses() {
 }
 
 async function loadAdminNotices() {
-    const res = await fetch(`${API_BASE}/notices`);
-    const notices = await res.json();
     const tbody = document.getElementById('notices-table-body-admin');
     if (!tbody) return;
-    tbody.innerHTML = '';
-    notices.forEach(n => {
-        tbody.innerHTML += `
-            <tr>
-                <td>${n.id}</td>
-                <td>${n.datePosted}</td>
-                <td><strong>${n.title}</strong></td>
-                <td>${n.content}</td>
-            </tr>
-        `;
-    });
+
+    try {
+        const res = await fetch(`${API_BASE}/notices`);
+        if (!res.ok) throw new Error('Failed to load notices: ' + res.status);
+        const notices = await res.json();
+        tbody.innerHTML = '';
+
+        if (!notices || notices.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #7f8c8d; padding: 25px;"><i class="fas fa-bullhorn" style="font-size: 24px; display: block; margin-bottom: 8px; color: #f39c12;"></i>No notices published yet. Click "+ Post Notice" to publish an announcement.</td></tr>';
+            return;
+        }
+
+        notices.forEach(n => {
+            tbody.innerHTML += `
+                <tr>
+                    <td><strong>#${n.id}</strong></td>
+                    <td><span style="font-weight: 600; color: #2f3542;"><i class="fas fa-calendar-alt" style="color: #a4b0be; margin-right: 5px;"></i>${n.datePosted || 'Recent'}</span></td>
+                    <td><strong style="color: #121212;">${n.title}</strong></td>
+                    <td style="color: #57606f; line-height: 1.5;">${n.content}</td>
+                </tr>
+            `;
+        });
+    } catch (e) {
+        console.error("Error loading admin notices:", e);
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #ff4757; padding: 20px;"><i class="fas fa-exclamation-triangle"></i> Error loading notices from server.</td></tr>';
+    }
 }
 
 // Submit Forms

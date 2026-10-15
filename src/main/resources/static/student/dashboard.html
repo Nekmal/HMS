@@ -528,13 +528,15 @@
                 else if (sectionId === 'notices-section') headerTitle.innerText = 'Hostel Notice Board';
             }
 
-            // Refresh notices if navigating to notices-section
-            if (sectionId === 'notices-section' && (!allStudentNotices || allStudentNotices.length === 0)) {
-                loadNotices();
+            // Refresh notices if navigating to notices-section or dashboard-section
+            if (sectionId === 'notices-section' || sectionId === 'dashboard-section') {
+                if (typeof loadNotices === 'function') {
+                    loadNotices();
+                }
             }
         }
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="js/student-script.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </body>
 </html>
