@@ -24,6 +24,10 @@ public class Notice {
     // Date posted by Sub Warden
     private LocalDate datePosted;
 
+    // Target Audience: ALL, STUDENTS, STAFF
+    @Column(name = "target_audience")
+    private String targetAudience = "ALL";
+
     public Notice() {}
 
     // Getters and Setters
@@ -38,4 +42,7 @@ public class Notice {
 
     public LocalDate getDatePosted() { return datePosted; }
     public void setDatePosted(LocalDate datePosted) { this.datePosted = datePosted; }
+
+    public String getTargetAudience() { return targetAudience; }
+    public void setTargetAudience(String targetAudience) { this.targetAudience = targetAudience; }
 }
