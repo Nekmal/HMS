@@ -593,7 +593,7 @@
                 <h2>Manage Complaints</h2>
                 <table>
                     <thead>
-                        <tr><th>ID</th><th>Date</th><th>Student</th><th>Room</th><th>Description</th><th>Status</th><th>Action</th></tr>
+                        <tr><th>ID</th><th>Date</th><th>Student</th><th>Room</th><th>Item</th><th>Description</th><th>Status</th><th>Action</th></tr>
                     </thead>
                     <tbody id="complaints-table-body-admin">
                         <!-- Loaded dynamically -->
@@ -661,7 +661,7 @@
                 </div>
                 <table>
                     <thead>
-                        <tr><th>ID</th><th>Date</th><th>Title</th><th>Content</th></tr>
+                        <tr><th>ID</th><th>Date</th><th>Target Audience</th><th>Title</th><th>Content</th></tr>
                     </thead>
                     <tbody id="notices-table-body-admin">
                         <!-- Loaded dynamically -->
@@ -970,13 +970,23 @@
                 <span class="close" onclick="closeModal('noticeModal')">&times;</span>
             </div>
             <form id="noticeForm" onsubmit="submitNotice(event)">
-                <div class="form-group">
-                    <label>Notice Title <span class="required-star">*</span></label>
-                    <input type="text" id="noticeTitle" required placeholder="e.g. Maintenance Announcement / Hostel Fee Due Date">
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label>Notice Title <span class="required-star">*</span></label>
+                        <input type="text" id="noticeTitle" required placeholder="e.g. Maintenance Announcement / Hostel Fee Due Date">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-users-cog" style="color: var(--primary-yellow);"></i> Target Audience <span class="required-star">*</span></label>
+                        <select id="noticeTargetAudience" required style="padding: 10px 14px; border-radius: 8px; background: #1c1d21; color: #fff; border: 1.5px solid rgba(255,255,255,0.15); font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 600;">
+                            <option value="ALL" selected>📢 All (Students & Staff)</option>
+                            <option value="STUDENTS">🎓 Students Only</option>
+                            <option value="STAFF">👷 Staff Only (Security, Maintenance, Cleaning)</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label>Notice Content & Full Announcement <span class="required-star">*</span></label>
-                    <textarea id="noticeContent" required placeholder="Write the announcement message to display on the Notice Board..."></textarea>
+                    <textarea id="noticeContent" required placeholder="Write the announcement message to display on the Notice Board..." rows="4"></textarea>
                 </div>
                 <div class="modal-actions">
                     <button type="button" class="btn btn-dark btn-modal-cancel" onclick="closeModal('noticeModal')">Cancel</button>

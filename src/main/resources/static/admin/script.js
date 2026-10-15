@@ -1187,16 +1187,20 @@ async function loadAdminComplaints() {
     tbody.innerHTML = '';
     complaints.forEach(c => {
         let stuName = c.user ? c.user.fullName : 'Unknown';
-        let roomNo = (c.user && c.user.room) ? c.user.room.roomNumber : '-';
+        let roomNo = c.roomNumber || ((c.user && c.user.room) ? c.user.room.roomNumber : '-');
+        let itemBadge = c.item 
+            ? `<span style="background: rgba(255, 215, 0, 0.12); color: var(--primary-yellow); padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 600;"><i class="fas fa-tools"></i> ${c.item}</span>`
+            : '<span style="color: #888; font-size: 12px;">General</span>';
         let statusClass = c.status === 'RESOLVED' ? 'paid' : 'pending';
         let actionBtn = c.status === 'RESOLVED' ? '-' : `<button class="btn btn-primary" onclick="resolveComplaint(${c.id})"><i class="fas fa-check"></i> Resolve</button>`;
         
         tbody.innerHTML += `
             <tr>
                 <td>${c.id}</td>
-                <td>${c.createdAt}</td>
+                <td>${c.createdAt || '-'}</td>
                 <td>${stuName}</td>
-                <td>${roomNo}</td>
+                <td><span style="font-weight: 700; color: #2ed573;">${roomNo}</span></td>
+                <td>${itemBadge}</td>
                 <td>${c.description}</td>
                 <td><span class="status ${statusClass}">${c.status}</span></td>
                 <td>${actionBtn}</td>
@@ -1282,23 +1286,31 @@ async function loadAdminNotices() {
         tbody.innerHTML = '';
 
         if (!notices || notices.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #7f8c8d; padding: 25px;"><i class="fas fa-bullhorn" style="font-size: 24px; display: block; margin-bottom: 8px; color: #f39c12;"></i>No notices published yet. Click "+ Post Notice" to publish an announcement.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #7f8c8d; padding: 25px;"><i class="fas fa-bullhorn" style="font-size: 24px; display: block; margin-bottom: 8px; color: #f39c12;"></i>No notices published yet. Click "+ Post Notice" to publish an announcement.</td></tr>';
             return;
         }
 
         notices.forEach(n => {
+            let audienceBadge = '<span class="status allocated" style="font-size:11px; font-weight:700;"><i class="fas fa-users"></i> All</span>';
+            if (n.targetAudience === 'STUDENTS') {
+                audienceBadge = '<span class="status pending" style="background:rgba(155,89,182,0.15); color:#a55eea; border:1px solid rgba(155,89,182,0.3); font-size:11px; font-weight:700;"><i class="fas fa-user-graduate"></i> Students</span>';
+            } else if (n.targetAudience === 'STAFF') {
+                audienceBadge = '<span class="status pending" style="background:rgba(230,126,34,0.15); color:#fa8231; border:1px solid rgba(230,126,34,0.3); font-size:11px; font-weight:700;"><i class="fas fa-user-shield"></i> Staff</span>';
+            }
+
             tbody.innerHTML += `
                 <tr>
                     <td><strong>#${n.id}</strong></td>
-                    <td><span style="font-weight: 600; color: #2f3542;"><i class="fas fa-calendar-alt" style="color: #a4b0be; margin-right: 5px;"></i>${n.datePosted || 'Recent'}</span></td>
-                    <td><strong style="color: #121212;">${n.title}</strong></td>
-                    <td style="color: #57606f; line-height: 1.5;">${n.content}</td>
+                    <td><span style="font-weight: 600; color: #cbd5e1;"><i class="fas fa-calendar-alt" style="color: var(--primary-yellow); margin-right: 5px;"></i>${n.datePosted || 'Recent'}</span></td>
+                    <td>${audienceBadge}</td>
+                    <td><strong style="color: #ffffff;">${n.title}</strong></td>
+                    <td style="color: #94a3b8; line-height: 1.5;">${n.content}</td>
                 </tr>
             `;
         });
     } catch (e) {
         console.error("Error loading admin notices:", e);
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #ff4757; padding: 20px;"><i class="fas fa-exclamation-triangle"></i> Error loading notices from server.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #ff4757; padding: 20px;"><i class="fas fa-exclamation-triangle"></i> Error loading notices from server.</td></tr>';
     }
 }
 
@@ -1835,20 +1847,36 @@ async function rejectGatePass(id) {
 
 async function submitNotice(event) {
     event.preventDefault();
+    const audienceSelect = document.getElementById('noticeTargetAudience');
     const notice = {
         title: document.getElementById('noticeTitle').value,
-        content: document.getElementById('noticeContent').value
+        content: document.getElementById('noticeContent').value,
+        targetAudience: audienceSelect ? audienceSelect.value : 'ALL'
     };
 
-    await fetch(`${API_BASE}/notices`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(notice)
-    });
+    try {
+        const res = await fetch(`${API_BASE}/notices`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(notice)
+        });
 
-    closeModal('noticeModal');
-    document.getElementById('noticeForm').reset();
-    loadAdminNotices();
+        if (!res.ok) throw new Error('Server returned ' + res.status);
+
+        closeModal('noticeModal');
+        document.getElementById('noticeForm').reset();
+        if (typeof showToast === 'function') {
+            showToast('Notice published successfully!', 'success');
+        }
+        loadAdminNotices();
+    } catch (err) {
+        console.error("Error posting notice:", err);
+        if (typeof showToast === 'function') {
+            showToast('Failed to publish notice', 'error');
+        } else {
+            alert('Failed to publish notice');
+        }
+    }
 }
 
 // Generate Report Logic

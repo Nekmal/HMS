@@ -11,6 +11,7 @@ let studentRequestsChart = null;
 let myComplaintsList = [];
 let myGatePassesList = [];
 let allStudentNotices = [];
+let currentStudentData = null;
 
 async function initDashboard() {
     if (!currentUserId || localStorage.getItem('userRole') !== 'STUDENT') {
@@ -25,6 +26,7 @@ async function initDashboard() {
         const usersRes = await fetch(`${API_BASE}/users`);
         const users = await usersRes.json();
         const student = users.find(u => u.id == currentUserId);
+        currentStudentData = student;
 
         if (student) {
             document.getElementById('student-name').innerText = student.fullName;
@@ -55,6 +57,7 @@ async function initDashboard() {
             loadGatePasses();
             loadNotices();
             loadRoommates(users, student);
+            populateComplaintRooms();
         }
     } catch (e) {
         console.error("Error initializing dashboard", e);
@@ -204,16 +207,24 @@ async function loadComplaints() {
         if (statCompEl) statCompEl.innerText = activeComplaints.length;
 
         if (myComplaintsList.length === 0) {
-            if (summaryTbody) summaryTbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:#888;">No complaints filed. Everything is in order!</td></tr>';
+            if (summaryTbody) summaryTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#888;">No complaints filed. Everything is in order!</td></tr>';
+            if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#888; padding:25px;">No complaints filed yet. Click "+ New Complaint" to report an issue.</td></tr>';
         }
 
         myComplaintsList.forEach(c => {
             let statusClass = c.status === 'RESOLVED' ? 'paid' : (c.status === 'IN_PROGRESS' ? 'allocated' : 'pending');
+            let roomNo = c.roomNumber || ((c.user && c.user.room) ? c.user.room.roomNumber : '-');
+            let itemBadge = c.item 
+                ? `<span style="background:rgba(255,215,0,0.12); color:var(--primary-yellow); padding:3px 8px; border-radius:4px; font-size:12px; font-weight:600;"><i class="fas fa-tools"></i> ${c.item}</span>`
+                : '<span style="color:#888; font-size:12px;">General</span>';
+
             if (tbody) {
                 tbody.innerHTML += `
                     <tr>
-                        <td>${c.createdAt}</td>
-                        <td>${c.description}</td>
+                        <td><span style="color:#cbd5e1; font-weight:600;"><i class="fas fa-calendar-alt" style="color:var(--primary-yellow); margin-right:5px;"></i>${c.createdAt || '-'}</span></td>
+                        <td><span style="font-weight:700; color:#2ed573;">${roomNo}</span></td>
+                        <td>${itemBadge}</td>
+                        <td style="color:#cbd5e1;">${c.description}</td>
                         <td><span class="status ${statusClass}">${c.status}</span></td>
                     </tr>
                 `;
@@ -222,10 +233,13 @@ async function loadComplaints() {
 
         myComplaintsList.slice(-5).reverse().forEach(c => {
             let statusClass = c.status === 'RESOLVED' ? 'paid' : (c.status === 'IN_PROGRESS' ? 'allocated' : 'pending');
+            let roomNo = c.roomNumber || ((c.user && c.user.room) ? c.user.room.roomNumber : '-');
+            let itemStr = c.item ? ` • <span style="color:var(--primary-yellow);">${c.item}</span>` : '';
             if (summaryTbody) {
                 summaryTbody.innerHTML += `
                     <tr>
                         <td>${c.createdAt || 'Recent'}</td>
+                        <td><span style="font-weight:700; color:#2ed573;">${roomNo}</span>${itemStr}</td>
                         <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${c.description}">${c.description}</td>
                         <td><span class="status ${statusClass}">${c.status}</span></td>
                     </tr>
@@ -392,7 +406,9 @@ async function loadNotices() {
     try {
         const res = await fetch(`${API_BASE}/notices`);
         if (!res.ok) throw new Error('Failed to load notices');
-        allStudentNotices = await res.json();
+        const rawNotices = await res.json();
+        // Filter notices for students: only STUDENTS or ALL target audience
+        allStudentNotices = rawNotices.filter(n => n.targetAudience === 'STUDENTS' || n.targetAudience === 'ALL' || !n.targetAudience);
         
         renderStudentDashboardNotices(allStudentNotices);
         renderStudentAllNotices(allStudentNotices);
@@ -551,11 +567,16 @@ function searchStudentNotices() {
 
 // Modal Logic
 function openModal(modalId) {
-    document.getElementById(modalId).style.display = 'block';
+    const el = document.getElementById(modalId);
+    if (el) el.style.display = 'block';
+    if (modalId === 'complaintModal') {
+        populateComplaintRooms();
+    }
 }
 
 function closeModal(modalId) {
-    document.getElementById(modalId).style.display = 'none';
+    const el = document.getElementById(modalId);
+    if (el) el.style.display = 'none';
 }
 
 // Submit Payment
@@ -590,28 +611,115 @@ async function submitPayment(event) {
     }
 }
 
+// Populate Room options in Complaint Modal
+async function populateComplaintRooms() {
+    const select = document.getElementById('complaintRoomNumber');
+    if (!select) return;
+
+    let myRoom = (currentStudentData && currentStudentData.room) ? currentStudentData.room.roomNumber : null;
+    let myBlock = (currentStudentData && currentStudentData.room) ? currentStudentData.room.blockName : null;
+
+    let html = '';
+    if (myRoom) {
+        html += `<option value="${myRoom}" selected>📌 ${myRoom} (My Allocated Room - ${myBlock})</option>`;
+    } else {
+        html += `<option value="" disabled selected>-- Select Room / Facility --</option>`;
+    }
+
+    // Common Facilities
+    html += `
+        <optgroup label="Hostel Common Facilities">
+            <option value="Common Study Hall">📖 Common Study Hall</option>
+            <option value="Hostel Canteen">🍽️ Hostel Canteen</option>
+            <option value="Common Bathroom Floor 1">🚿 Common Bathroom - 1st Floor</option>
+            <option value="Common Bathroom Floor 2">🚿 Common Bathroom - 2nd Floor</option>
+            <option value="Corridor / Stairway">🪜 Corridor / Stairway</option>
+            <option value="Main Gate & Entrance">🚪 Main Gate & Entrance</option>
+        </optgroup>
+    `;
+
+    // Fetch all rooms from API
+    try {
+        const res = await fetch(`${API_BASE}/rooms`);
+        if (res.ok) {
+            const rooms = await res.json();
+            const blocks = ['Block A', 'Block B', 'Block C', 'Block D'];
+            blocks.forEach(blk => {
+                const bRooms = rooms.filter(r => r.blockName === blk);
+                if (bRooms.length > 0) {
+                    html += `<optgroup label="${blk} Rooms">`;
+                    bRooms.forEach(r => {
+                        if (r.roomNumber !== myRoom) {
+                            html += `<option value="${r.roomNumber}">${r.roomNumber} (${blk})</option>`;
+                        }
+                    });
+                    html += `</optgroup>`;
+                }
+            });
+        }
+    } catch (e) {
+        console.warn("Could not fetch full rooms list for complaint:", e);
+    }
+
+    select.innerHTML = html;
+}
+
 // Submit Complaint
 async function submitComplaint(event) {
     event.preventDefault();
     if (!currentUserId) return;
 
+    const roomSelect = document.getElementById('complaintRoomNumber');
+    const itemSelect = document.getElementById('complaintItem');
+    const descInput = document.getElementById('complaintDesc');
+
+    if (!roomSelect || !roomSelect.value) {
+        if (typeof showStudentToast === 'function') {
+            showStudentToast('Please select a room or location for your complaint.', 'error');
+        } else {
+            alert('Please select a room or location for your complaint.');
+        }
+        return;
+    }
+
+    if (!itemSelect || !itemSelect.value) {
+        if (typeof showStudentToast === 'function') {
+            showStudentToast('Please select the damaged item or equipment.', 'error');
+        } else {
+            alert('Please select the damaged item or equipment.');
+        }
+        return;
+    }
+
     const complaint = {
-        description: document.getElementById('complaintDesc').value,
+        roomNumber: roomSelect.value,
+        item: itemSelect.value,
+        description: descInput ? descInput.value : '',
         user: { id: currentUserId }
     };
 
     try {
-        await fetch(`${API_BASE}/complaints`, {
+        const res = await fetch(`${API_BASE}/complaints`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(complaint)
         });
 
+        if (!res.ok) throw new Error('Server returned ' + res.status);
+
         closeModal('complaintModal');
         document.getElementById('complaintForm').reset();
+        if (typeof showStudentToast === 'function') {
+            showStudentToast('Maintenance complaint submitted successfully!', 'success');
+        }
         loadComplaints(); // Refresh table
     } catch (e) {
         console.error("Error submitting complaint", e);
+        if (typeof showStudentToast === 'function') {
+            showStudentToast('Failed to submit complaint. Please try again.', 'error');
+        } else {
+            alert('Failed to submit complaint. Please try again.');
+        }
     }
 }
 

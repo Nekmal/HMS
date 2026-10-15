@@ -182,6 +182,7 @@
                         <thead>
                             <tr>
                                 <th>Date Filed</th>
+                                <th>Room & Item</th>
                                 <th>Issue Description</th>
                                 <th>Status</th>
                             </tr>
@@ -243,6 +244,8 @@
                     <thead>
                         <tr>
                             <th>Date</th>
+                            <th>Room</th>
+                            <th>Item</th>
                             <th>Description</th>
                             <th>Status</th>
                         </tr>
@@ -433,22 +436,54 @@
         </div>
     </div>
 
-    <!-- Complaint Modal (Enlarged & Spacious) -->
+    <!-- Complaint Modal (Spacious with Room & Item Selectors) -->
     <div id="complaintModal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content" style="max-width: 650px;">
             <div class="modal-header">
                 <h2><i class="fas fa-tools" style="color: #ff4757;"></i> Lodge Maintenance Complaint</h2>
                 <span class="close" onclick="closeModal('complaintModal')">&times;</span>
             </div>
             <form id="complaintForm" onsubmit="submitComplaint(event)">
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label><i class="fas fa-door-open" style="color: var(--primary-yellow);"></i> Select Room / Location <span class="required-star">*</span></label>
+                        <select id="complaintRoomNumber" required style="padding: 10px 14px; border-radius: 8px; background: #1c1d21; color: #fff; border: 1.5px solid rgba(255,255,255,0.15); font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 600;">
+                            <!-- Dynamically loaded with student's room preselected and other hostel rooms -->
+                        </select>
+                        <div class="form-hint">Defaults to your allocated hostel room.</div>
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-couch" style="color: var(--primary-yellow);"></i> Select Item / Equipment <span class="required-star">*</span></label>
+                        <select id="complaintItem" required style="padding: 10px 14px; border-radius: 8px; background: #1c1d21; color: #fff; border: 1.5px solid rgba(255,255,255,0.15); font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 600;">
+                            <option value="" disabled selected>-- Select Damaged Item --</option>
+                            <option value="Ceiling Fan">🌀 Ceiling Fan / Regulator</option>
+                            <option value="Room Light">💡 Room Light / Tube Light</option>
+                            <option value="Electrical Socket">🔌 Electrical Socket / Power Outlet</option>
+                            <option value="Study Table">🪵 Study Table / Desk</option>
+                            <option value="Study Chair">🪑 Study Chair</option>
+                            <option value="Bed Frame / Bunk Bed">🛏️ Bed Frame / Bunk Bed</option>
+                            <option value="Door Lock & Keys">🚪 Door Lock / Handle / Keys</option>
+                            <option value="Window / Latch">🪟 Window Glass / Latch</option>
+                            <option value="Wardrobe / Cupboard">🚪 Wardrobe / Cupboard Lock</option>
+                            <option value="Bathroom Tap / Shower">🚿 Bathroom Tap / Shower</option>
+                            <option value="Toilet Flush / Drain">🚽 Toilet Flush / Plumbing Drain</option>
+                            <option value="WiFi / Network">📶 WiFi / Internet Connectivity</option>
+                            <option value="Other Fixture">⚙️ Other Hostel Fixture</option>
+                        </select>
+                        <div class="form-hint">Select the specific item needing repair.</div>
+                    </div>
+                </div>
+
                 <div class="form-group">
-                    <label>Description (What's broken or needs repair?) <span class="required-star">*</span></label>
-                    <textarea id="complaintDesc" required placeholder="Describe the issue in detail (e.g. Ceiling fan in Room A-102 stopped working and makes a buzzing sound, please send an electrician)..."></textarea>
-                    <div class="form-hint">Please provide specific details so hostel maintenance staff can resolve it as quickly as possible.</div>
+                    <label>Description of Damage / Issue <span class="required-star">*</span></label>
+                    <textarea id="complaintDesc" required placeholder="Describe the problem in detail (e.g. Speed regulator does not work, fan makes loud noise, water tap leaks continuously)..." rows="3"></textarea>
+                    <div class="form-hint">Please describe the exact issue so maintenance technicians bring the right tools.</div>
                 </div>
                 <div class="modal-actions">
                     <button type="button" class="btn btn-dark btn-modal-cancel" onclick="closeModal('complaintModal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary btn-modal-submit">Submit Complaint</button>
+                    <button type="submit" class="btn btn-primary btn-modal-submit" style="background: linear-gradient(135deg, #ff4757, #ee5253); border: none;">
+                        <i class="fas fa-paper-plane"></i> Submit Complaint
+                    </button>
                 </div>
             </form>
         </div>

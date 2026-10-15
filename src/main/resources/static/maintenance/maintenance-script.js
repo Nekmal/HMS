@@ -302,7 +302,10 @@ function renderComplaintsTable(list) {
 
     list.forEach(c => {
         const sName = c.user ? c.user.fullName : 'Student';
-        const rNo = (c.user && c.user.room) ? `${c.user.room.roomNumber} (${c.user.room.blockName})` : '-';
+        const rNo = c.roomNumber || ((c.user && c.user.room) ? `${c.user.room.roomNumber} (${c.user.room.blockName})` : '-');
+        const itemBadge = c.item 
+            ? `<span style="background:rgba(211,84,0,0.12); color:#e67e22; padding:3px 8px; border-radius:4px; font-weight:700; font-size:12px;"><i class="fas fa-tools"></i> ${c.item}</span>` 
+            : '<span style="color:#888;">General</span>';
         const isResolved = c.status === 'RESOLVED';
         const statusClass = isResolved ? 'paid' : 'pending';
 
@@ -316,6 +319,7 @@ function renderComplaintsTable(list) {
                 <td>${c.createdAt || '-'}</td>
                 <td>${sName}</td>
                 <td><span class="status allocated">${rNo}</span></td>
+                <td>${itemBadge}</td>
                 <td>${c.description}</td>
                 <td><span class="status ${statusClass}">${c.status}</span></td>
                 <td>${actionBtn}</td>
@@ -456,16 +460,20 @@ async function markMyCheckOut() {
 async function loadNotices() {
     try {
         const res = await fetch(`${API_BASE}/notices`);
-        const notices = await res.json();
+        const rawNotices = await res.json();
+        const notices = rawNotices.filter(n => n.targetAudience === 'STAFF' || n.targetAudience === 'ALL' || !n.targetAudience);
         const tbody = document.getElementById('maintenance-notices-tbody');
         if (!tbody) return;
         tbody.innerHTML = '';
         notices.forEach(n => {
+            const badge = n.targetAudience === 'STAFF'
+                ? '<span style="background:rgba(230,126,34,0.15); color:#e67e22; padding:2px 6px; border-radius:4px; font-size:11px; font-weight:700; margin-right:6px;"><i class="fas fa-user-shield"></i> Staff</span>'
+                : '<span style="background:rgba(52,152,219,0.15); color:#3498db; padding:2px 6px; border-radius:4px; font-size:11px; font-weight:700; margin-right:6px;"><i class="fas fa-users"></i> All</span>';
             tbody.innerHTML += `
                 <tr>
                     <td>${n.id}</td>
                     <td>${n.datePosted}</td>
-                    <td><strong>${n.title}</strong></td>
+                    <td>${badge}<strong>${n.title}</strong></td>
                     <td>${n.content}</td>
                 </tr>
             `;

@@ -288,16 +288,20 @@ async function loadNotices() {
     try {
         const res = await fetch(`${API_BASE}/notices`);
         if (!res.ok) return;
-        const notices = await res.json();
+        const rawNotices = await res.json();
+        const notices = rawNotices.filter(n => n.targetAudience === 'STAFF' || n.targetAudience === 'ALL' || !n.targetAudience);
         const tbody = document.getElementById('cleaning-notices-tbody');
         if (!tbody) return;
         tbody.innerHTML = '';
         notices.forEach(n => {
+            const badge = n.targetAudience === 'STAFF'
+                ? '<span style="background:rgba(230,126,34,0.15); color:#e67e22; padding:2px 6px; border-radius:4px; font-size:11px; font-weight:700; margin-right:6px;"><i class="fas fa-user-shield"></i> Staff</span>'
+                : '<span style="background:rgba(52,152,219,0.15); color:#3498db; padding:2px 6px; border-radius:4px; font-size:11px; font-weight:700; margin-right:6px;"><i class="fas fa-users"></i> All</span>';
             tbody.innerHTML += `
                 <tr>
                     <td>${n.id}</td>
                     <td>${n.datePosted}</td>
-                    <td><strong>${n.title}</strong></td>
+                    <td>${badge}<strong>${n.title}</strong></td>
                     <td>${n.content}</td>
                 </tr>
             `;
