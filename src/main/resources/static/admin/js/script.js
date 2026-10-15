@@ -71,15 +71,8 @@ function openModal(modalId) {
     modal.style.display = 'block';
 
     if (modalId === 'roomModal') {
-        const blockSelect = document.getElementById('blockName');
-        const roomSelect = document.getElementById('roomNumber');
-        const submitBtn = document.getElementById('roomSubmitBtn');
-        if (blockSelect) blockSelect.value = '';
-        if (roomSelect) {
-            roomSelect.innerHTML = '<option value="" disabled selected>-- Select Block First --</option>';
-            roomSelect.disabled = true;
-        }
-        if (submitBtn) submitBtn.disabled = true;
+        showToast('All 100 hostel rooms are fixed and permanently configured across Blocks A-D. New rooms cannot be added.', 'info');
+        return;
     }
 
     if (modalId === 'userModal') {
