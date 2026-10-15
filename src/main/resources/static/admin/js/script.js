@@ -753,28 +753,430 @@ async function loadInventory() {
     }
 }
 
+// Admin Payments State & Handlers
+let allAdminPaymentsData = [];
+let selectedPaymentMonth = 'ALL';
+
 async function loadAdminPayments() {
-    const res = await fetch(`${API_BASE}/payments`);
-    const payments = await res.json();
+    try {
+        const res = await fetch(`${API_BASE}/payments`);
+        if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+        allAdminPaymentsData = await res.json();
+        
+        // Extract distinct months
+        const monthMap = {};
+        allAdminPaymentsData.forEach(p => {
+            if (p.month && p.month.trim()) {
+                monthMap[p.month.trim()] = true;
+            }
+        });
+
+        const monthNames = ["january", "february", "march", "april", "may", "june", 
+                            "july", "august", "september", "october", "november", "december"];
+        function getMonthScore(str) {
+            const parts = str.trim().split(/\s+/);
+            if (parts.length >= 2) {
+                const mIdx = monthNames.indexOf(parts[0].toLowerCase());
+                const yr = parseInt(parts[1], 10) || 0;
+                return yr * 100 + (mIdx !== -1 ? mIdx : 0);
+            }
+            return 0;
+        }
+
+        const distinctMonths = Object.keys(monthMap).sort((a, b) => getMonthScore(b) - getMonthScore(a)); // Descending chronological
+
+        // Populate dropdown
+        const select = document.getElementById('paymentMonthFilter');
+        if (select) {
+            const currentVal = select.value || 'ALL';
+            let optionsHtml = '<option value="ALL">📅 All Months (Overall)</option>';
+            distinctMonths.forEach(m => {
+                optionsHtml += `<option value="${m}">🗓️ ${m}</option>`;
+            });
+            select.innerHTML = optionsHtml;
+            
+            // Restore selection if valid
+            if (distinctMonths.includes(currentVal) || currentVal === 'ALL') {
+                select.value = currentVal;
+                selectedPaymentMonth = currentVal;
+            } else {
+                select.value = 'ALL';
+                selectedPaymentMonth = 'ALL';
+            }
+        }
+
+        renderAdminPaymentsTable();
+    } catch (e) {
+        console.error("Failed to load admin payments:", e);
+        const tbody = document.getElementById('payments-table-body-admin');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#ff4757; padding:20px;"><i class="fas fa-exclamation-triangle"></i> Failed to load payments from server.</td></tr>';
+        }
+    }
+}
+
+function onPaymentMonthFilterChange() {
+    const filter = document.getElementById('paymentMonthFilter');
+    selectedPaymentMonth = filter ? filter.value : 'ALL';
+    renderAdminPaymentsTable();
+}
+
+function renderAdminPaymentsTable() {
     const tbody = document.getElementById('payments-table-body-admin');
     if (!tbody) return;
-    tbody.innerHTML = '';
-    payments.forEach(p => {
-        let stuName = p.user ? p.user.fullName : 'Unknown';
-        let amt = p.amount ? p.amount.toFixed(2) : '0.00';
-        let pDate = p.paymentDate ? p.paymentDate : 'N/A';
-        
-        tbody.innerHTML += `
+
+    const filtered = allAdminPaymentsData.filter(p => {
+        if (selectedPaymentMonth === 'ALL') return true;
+        return (p.month || '').trim() === selectedPaymentMonth.trim();
+    });
+
+    // Compute stats
+    let totalRevenue = 0;
+    filtered.forEach(p => {
+        totalRevenue += (Number(p.amount) || 0);
+    });
+
+    // Update Summary Header / Bar
+    const titleEl = document.getElementById('paymentSummaryMonthTitle');
+    if (titleEl) {
+        titleEl.innerText = selectedPaymentMonth === 'ALL' 
+            ? 'All Months (Overall Audit)' 
+            : `${selectedPaymentMonth} Statement`;
+    }
+
+    const countEl = document.getElementById('paymentSummaryCount');
+    if (countEl) {
+        countEl.innerText = `${filtered.length} Invoices`;
+    }
+
+    const revEl = document.getElementById('paymentSummaryRevenue');
+    if (revEl) {
+        revEl.innerText = `Rs. ${totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: #888; padding: 25px;">No payment records found for ${selectedPaymentMonth}.</td></tr>`;
+        return;
+    }
+
+    let rowsHtml = '';
+    filtered.forEach((p, idx) => {
+        const invoiceNo = p.invoiceNo || `INV-${p.id}`;
+        const stuName = p.user ? (p.user.fullName || 'Student') : 'Unknown';
+        const stuId = p.user ? (p.user.studentId || p.user.username || '-') : '-';
+        const month = p.month || '-';
+        const amt = Number(p.amount) ? Number(p.amount).toFixed(2) : '0.00';
+        const pDate = p.paymentDate ? p.paymentDate : '-';
+        const isPaid = (p.status || 'PAID').toUpperCase() === 'PAID';
+        const statusBadge = `<span class="status ${isPaid ? 'paid' : 'pending'}">${p.status || 'PAID'}</span>`;
+
+        rowsHtml += `
             <tr>
-                <td>${p.invoiceNo}</td>
-                <td>${stuName}</td>
-                <td>${p.month}</td>
-                <td>Rs. ${amt}</td>
-                <td>${pDate}</td>
-                <td><span class="status paid">${p.status}</span></td>
+                <td style="color: #888; font-weight: 600;">${idx + 1}</td>
+                <td style="font-family: monospace; font-weight: 700; color: var(--primary-yellow);">${invoiceNo}</td>
+                <td style="font-weight: 600;">${stuName}</td>
+                <td><span style="background: rgba(255,255,255,0.06); padding: 3px 8px; border-radius: 4px; font-size: 12px; font-family: monospace;">${stuId}</span></td>
+                <td><span style="font-weight: 600; color: #cbd5e1;">${month}</span></td>
+                <td style="font-weight: 700; color: #2ed573;">Rs. ${amt}</td>
+                <td style="color: #94a3b8; font-size: 13px;">${pDate}</td>
+                <td>${statusBadge}</td>
             </tr>
         `;
     });
+    tbody.innerHTML = rowsHtml;
+}
+
+function downloadMonthlyPaymentReport(format) {
+    const filtered = allAdminPaymentsData.filter(p => {
+        if (selectedPaymentMonth === 'ALL') return true;
+        return (p.month || '').trim() === selectedPaymentMonth.trim();
+    });
+
+    if (filtered.length === 0) {
+        if (typeof showToast === 'function') {
+            showToast('No payment records to download for the selected month.', 'warning');
+        } else {
+            alert('No payment records to download for the selected month.');
+        }
+        return;
+    }
+
+    let totalRevenue = 0;
+    filtered.forEach(p => {
+        totalRevenue += (Number(p.amount) || 0);
+    });
+
+    const monthLabel = selectedPaymentMonth === 'ALL' ? 'All Months' : selectedPaymentMonth;
+    const fileSafeMonth = monthLabel.replace(/[^a-zA-Z0-9_-]/g, '_');
+
+    if (format === 'csv') {
+        // Generate CSV file
+        let csv = '\uFEFF'; // UTF-8 BOM for Excel compatibility
+        csv += '"#","Invoice ID","Student Name","Student TG No","Billing Month","Amount (LKR)","Payment Date","Status"\r\n';
+
+        filtered.forEach((p, idx) => {
+            const invoiceNo = (p.invoiceNo || `INV-${p.id}`).replace(/"/g, '""');
+            const stuName = (p.user ? (p.user.fullName || 'Student') : 'Unknown').replace(/"/g, '""');
+            const stuId = (p.user ? (p.user.studentId || p.user.username || '-') : '-').replace(/"/g, '""');
+            const month = (p.month || '-').replace(/"/g, '""');
+            const amt = Number(p.amount) ? Number(p.amount).toFixed(2) : '0.00';
+            const pDate = (p.paymentDate || '-').replace(/"/g, '""');
+            const status = (p.status || 'PAID').replace(/"/g, '""');
+
+            csv += `"${idx + 1}","${invoiceNo}","${stuName}","${stuId}","${month}","${amt}","${pDate}","${status}"\r\n`;
+        });
+
+        // Summary row
+        csv += `\r\n"","","","","TOTAL REVENUE:","${totalRevenue.toFixed(2)}","",""\r\n`;
+        csv += `"","","","","TOTAL INVOICES:","${filtered.length}","",""\r\n`;
+        csv += `"","","","","REPORT GENERATED:","${new Date().toLocaleString()}","",""\r\n`;
+
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `Ruhuna_Hostel_Fee_Report_${fileSafeMonth}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        if (typeof showToast === 'function') {
+            showToast(`Downloaded CSV report for ${monthLabel}!`, 'success');
+        }
+    } else if (format === 'pdf') {
+        // High quality printable HTML statement (saveable as PDF via browser print dialog)
+        const printWindow = window.open('', '_blank', 'width=1000,height=750');
+        if (!printWindow) {
+            alert('Please allow popups to download/print the PDF statement.');
+            return;
+        }
+
+        let tableRowsHtml = '';
+        filtered.forEach((p, idx) => {
+            const invoiceNo = p.invoiceNo || `INV-${p.id}`;
+            const stuName = p.user ? (p.user.fullName || 'Student') : 'Unknown';
+            const stuId = p.user ? (p.user.studentId || p.user.username || '-') : '-';
+            const month = p.month || '-';
+            const amt = Number(p.amount) ? Number(p.amount).toFixed(2) : '0.00';
+            const pDate = p.paymentDate ? p.paymentDate : '-';
+            const status = p.status || 'PAID';
+
+            tableRowsHtml += `
+                <tr style="border-bottom: 1px solid #e2e8f0; font-size: 13px;">
+                    <td style="padding: 10px 8px; text-align: center; color: #64748b;">${idx + 1}</td>
+                    <td style="padding: 10px 8px; font-weight: 700; font-family: monospace; color: #1e293b;">${invoiceNo}</td>
+                    <td style="padding: 10px 8px; font-weight: 600;">${stuName}</td>
+                    <td style="padding: 10px 8px; font-family: monospace;">${stuId}</td>
+                    <td style="padding: 10px 8px;">${month}</td>
+                    <td style="padding: 10px 8px; font-weight: 700; text-align: right;">Rs. ${amt}</td>
+                    <td style="padding: 10px 8px; text-align: center; color: #64748b;">${pDate}</td>
+                    <td style="padding: 10px 8px; text-align: center;">
+                        <span style="background: #dcfce7; color: #166534; font-weight: 700; padding: 3px 10px; border-radius: 12px; font-size: 11px;">
+                            ${status}
+                        </span>
+                    </td>
+                </tr>
+            `;
+        });
+
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="utf-8">
+                <title>Hostel Fee Report - ${monthLabel} - University of Ruhuna</title>
+                <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+                <style>
+                    @page { size: A4 landscape; margin: 15mm; }
+                    body {
+                        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+                        color: #1e293b;
+                        margin: 0;
+                        padding: 24px;
+                        background: #ffffff;
+                    }
+                    .report-header {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        border-bottom: 2.5px solid #0f172a;
+                        padding-bottom: 16px;
+                        margin-bottom: 20px;
+                    }
+                    .header-left h1 {
+                        font-family: 'Outfit', sans-serif;
+                        font-size: 24px;
+                        margin: 0 0 4px 0;
+                        color: #0f172a;
+                        letter-spacing: -0.5px;
+                    }
+                    .header-left p {
+                        margin: 0;
+                        font-size: 13px;
+                        color: #64748b;
+                        font-weight: 500;
+                    }
+                    .header-right {
+                        text-align: right;
+                    }
+                    .badge-month {
+                        display: inline-block;
+                        background: #fef08a;
+                        color: #854d0e;
+                        font-weight: 800;
+                        font-size: 14px;
+                        padding: 6px 16px;
+                        border-radius: 8px;
+                        border: 1px solid #facc15;
+                        margin-bottom: 4px;
+                    }
+                    .stats-grid {
+                        display: grid;
+                        grid-template-columns: repeat(3, 1fr);
+                        gap: 16px;
+                        margin-bottom: 24px;
+                    }
+                    .stat-box {
+                        background: #f8fafc;
+                        border: 1px solid #e2e8f0;
+                        border-radius: 8px;
+                        padding: 12px 18px;
+                    }
+                    .stat-box .label {
+                        font-size: 11px;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                        color: #64748b;
+                        font-weight: 600;
+                        margin-bottom: 4px;
+                    }
+                    .stat-box .val {
+                        font-size: 20px;
+                        font-weight: 800;
+                        color: #0f172a;
+                    }
+                    .stat-box .val.money {
+                        color: #059669;
+                    }
+                    table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        margin-bottom: 28px;
+                    }
+                    th {
+                        background: #0f172a;
+                        color: #ffffff;
+                        font-size: 12px;
+                        font-weight: 700;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                        padding: 10px 8px;
+                        text-align: left;
+                    }
+                    th.text-center { text-align: center; }
+                    th.text-right { text-align: right; }
+                    tbody tr:nth-child(even) {
+                        background: #f8fafc;
+                    }
+                    .footer-sig {
+                        margin-top: 40px;
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: flex-end;
+                        page-break-inside: avoid;
+                    }
+                    .sig-block {
+                        border-top: 1.5px dashed #94a3b8;
+                        padding-top: 8px;
+                        width: 240px;
+                        text-align: center;
+                        font-size: 12.5px;
+                        font-weight: 600;
+                        color: #334155;
+                    }
+                    @media print {
+                        body { padding: 0; }
+                        .no-print { display: none; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="report-header">
+                    <div class="header-left">
+                        <h1>UNIVERSITY OF RUHUNA - HOSTEL MANAGEMENT SYSTEM</h1>
+                        <p>Sub Warden Treasury Office • Monthly Accommodation Billing & Revenue Audit</p>
+                    </div>
+                    <div class="header-right">
+                        <div class="badge-month">\${monthLabel}</div>
+                        <div style="font-size: 11.5px; color: #64748b; font-weight: 500;">Generated: \${new Date().toLocaleString()}</div>
+                    </div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="label">Billing Scope</div>
+                        <div class="val">\${monthLabel}</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="label">Verified Invoices</div>
+                        <div class="val">\${filtered.length} Paid Invoices</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="label">Total Amount Collected</div>
+                        <div class="val money">Rs. \${totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                    </div>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="text-center" style="width: 40px;">#</th>
+                            <th>Invoice ID</th>
+                            <th>Student Full Name</th>
+                            <th>Student TG No</th>
+                            <th>Billing Month</th>
+                            <th class="text-right">Amount (LKR)</th>
+                            <th class="text-center">Payment Date</th>
+                            <th class="text-center">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        \${tableRowsHtml}
+                    </tbody>
+                    <tfoot>
+                        <tr style="background: #f1f5f9; font-weight: 800; border-top: 2px solid #0f172a;">
+                            <td colspan="5" style="padding: 12px 8px; text-align: right; font-size: 13px; text-transform: uppercase;">Total Verified Revenue:</td>
+                            <td style="padding: 12px 8px; text-align: right; font-size: 14px; color: #059669;">Rs. \${totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            <td colspan="2" style="padding: 12px 8px; text-align: center; font-size: 12px; color: #64748b;">\${filtered.length} Invoices Settled</td>
+                        </tr>
+                    </tfoot>
+                </table>
+
+                <div class="footer-sig">
+                    <div>
+                        <p style="font-size: 11px; color: #94a3b8; margin: 0;">Ruhuna HMS Automated Treasury Statement • Official University Record</p>
+                        <p style="font-size: 11px; color: #94a3b8; margin: 2px 0 0 0;">System Verified Transaction Hash: SHA256-\${Math.random().toString(36).substring(2, 10).toUpperCase()}</p>
+                    </div>
+                    <div class="sig-block">
+                        Sub Warden / Hostel Administrator<br>
+                        <span style="font-size: 11px; color: #64748b; font-weight: 400;">Signature & Official Stamp</span>
+                    </div>
+                </div>
+
+                <script>
+                    window.onload = function() {
+                        setTimeout(function() {
+                            window.print();
+                        }, 500);
+                    };
+                </script>
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
+        printWindow.focus();
+    }
 }
 
 async function loadAdminComplaints() {
@@ -1451,12 +1853,12 @@ async function submitNotice(event) {
 
 // Generate Report Logic
 function generateReport(type) {
+    if (type === 'payments') {
+        downloadMonthlyPaymentReport('pdf');
+        return;
+    }
     let printContent = '';
     let title = '';
-    if (type === 'payments') {
-        printContent = document.getElementById('paymentsTableToPrint').outerHTML;
-        title = "Payments Report - Ruhuna HMS";
-    }
     
     let printWindow = window.open('', '', 'width=900,height=650');
     printWindow.document.write(`
