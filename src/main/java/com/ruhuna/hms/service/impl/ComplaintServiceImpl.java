@@ -35,7 +35,7 @@ public class ComplaintServiceImpl implements ComplaintService {
         return complaintRepository.findByUserId(userId);
     }
 
-    // Saves a new complaint with PENDING status and current date
+    // Saves a new complaint with PENDING status, current date, and room reference
     @Override
     public Complaint createComplaint(Complaint complaint) {
         if (complaint.getStatus() == null || complaint.getStatus().isEmpty()) {
@@ -43,6 +43,10 @@ public class ComplaintServiceImpl implements ComplaintService {
         }
         if (complaint.getCreatedAt() == null) {
             complaint.setCreatedAt(LocalDate.now());
+        }
+        if ((complaint.getRoomNumber() == null || complaint.getRoomNumber().trim().isEmpty()) 
+                && complaint.getUser() != null && complaint.getUser().getRoom() != null) {
+            complaint.setRoomNumber(complaint.getUser().getRoom().getRoomNumber());
         }
         return complaintRepository.save(complaint);
     }
