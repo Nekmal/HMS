@@ -467,56 +467,208 @@ async function loadDashboardStats() {
     }
 }
 
+// User Management Subtab & Filter State
+let currentUserSubTab = 'students';
+let currentStaffDeptFilter = 'ALL';
+let currentUserSearchQuery = '';
+let todayStaffAttendanceMap = {};
+
+function switchUserSubTab(tabName) {
+    currentUserSubTab = tabName;
+    const btnStudents = document.getElementById('subtab-btn-students');
+    const btnStaff = document.getElementById('subtab-btn-staff');
+    const secStudents = document.getElementById('users-section-students');
+    const secStaff = document.getElementById('users-section-staff');
+
+    if (tabName === 'students') {
+        if (btnStudents) btnStudents.classList.add('active');
+        if (btnStaff) btnStaff.classList.remove('active');
+        if (secStudents) secStudents.style.display = 'block';
+        if (secStaff) secStaff.style.display = 'none';
+    } else {
+        if (btnStudents) btnStudents.classList.remove('active');
+        if (btnStaff) btnStaff.classList.add('active');
+        if (secStudents) secStudents.style.display = 'none';
+        if (secStaff) secStaff.style.display = 'block';
+    }
+    renderUsersTables();
+}
+
+function filterStaffByDept(dept, btn) {
+    currentStaffDeptFilter = dept;
+    document.querySelectorAll('.staff-dept-btn').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    renderUsersTables();
+}
+
+function onUserSearchInput(query) {
+    currentUserSearchQuery = (query || '').toLowerCase().trim();
+    renderUsersTables();
+}
+
 async function loadUsers() {
     try {
-        const res = await fetch(`${API_BASE}/users`);
-        allUsersData = await res.json();
-        const tbody = document.getElementById('users-table-body');
-        if (!tbody) return;
-        tbody.innerHTML = '';
-        allUsersData.forEach(user => {
-            let roleBadge = '';
-            const uRole = (user.role || '').toUpperCase();
-            if (uRole === 'ADMIN') {
-                roleBadge = '<span class="status" style="background:#fff3cd; color:#856404; font-weight:700;"><i class="fas fa-user-shield"></i> Sub Warden</span>';
-            } else if (uRole === 'SECURITY') {
-                roleBadge = '<span class="status" style="background: rgba(46, 213, 115, 0.15); color: #155724; border: 1px solid rgba(46, 213, 115, 0.3); font-weight:700;"><i class="fas fa-shield-alt"></i> Security</span>';
-            } else if (uRole === 'MAINTENANCE') {
-                roleBadge = '<span class="status" style="background: rgba(217, 119, 6, 0.15); color: #b45309; border: 1px solid rgba(217, 119, 6, 0.3); font-weight:700;"><i class="fas fa-tools"></i> Maintenance</span>';
-            } else if (uRole === 'CLEANING') {
-                roleBadge = '<span class="status" style="background: rgba(8, 145, 178, 0.15); color: #0e7490; border: 1px solid rgba(8, 145, 178, 0.3); font-weight:700;"><i class="fas fa-broom"></i> Cleaning</span>';
-            } else {
-                roleBadge = '<span class="status allocated" style="font-weight:700;"><i class="fas fa-user-graduate"></i> Student</span>';
-            }
+        const [usersRes, attRes] = await Promise.all([
+            fetch(`${API_BASE}/users`),
+            fetch(`${API_BASE}/staff-attendance`)
+        ]);
 
-            let roomBadge = '';
-            let actionBtn = '';
-            if (uRole !== 'STUDENT') {
-                roomBadge = `<span class="status" style="background: #f1f2f6; color: #747d8c; font-weight:600;"><i class="fas fa-id-badge"></i> Staff Member</span>`;
-                actionBtn = `<span style="color:#a4b0be; font-size:12px; font-weight:600;">Staff Personnel</span>`;
-            } else {
-                roomBadge = user.room 
-                    ? `<span class="status allocated"><i class="fas fa-bed"></i> ${user.room.roomNumber} (${user.room.blockName})</span>` 
-                    : `<span class="status pending"><i class="fas fa-times-circle"></i> Not Assigned</span>`;
-                
-                actionBtn = user.room 
-                    ? `<button class="btn btn-secondary btn-sm" onclick="openAllocateModal(${user.id})" title="Change Room Allocation"><i class="fas fa-exchange-alt"></i> Change Room</button>`
-                    : `<button class="btn btn-primary btn-sm" onclick="openAllocateModal(${user.id})" title="Allocate Room to Student"><i class="fas fa-door-open"></i> Allocate Room</button>`;
-            }
-            
-            tbody.innerHTML += `
-                <tr>
-                    <td>${user.id}</td>
-                    <td><strong>${user.studentId}</strong></td>
-                    <td>${user.fullName}</td>
-                    <td>${roleBadge}</td>
-                    <td>${roomBadge}</td>
-                    <td>${actionBtn}</td>
-                </tr>
-            `;
-        });
+        allUsersData = await usersRes.json();
+        
+        // Cache today's staff attendance
+        todayStaffAttendanceMap = {};
+        if (attRes.ok) {
+            const attList = await attRes.json();
+            const todayStr = '2026-10-15';
+            attList.forEach(rec => {
+                if (rec.date === todayStr && rec.staff) {
+                    todayStaffAttendanceMap[rec.staff.id] = rec;
+                }
+            });
+        }
+
+        renderUsersTables();
     } catch (e) {
         console.error("Failed to load users", e);
+    }
+}
+
+function renderUsersTables() {
+    if (!allUsersData) return;
+
+    const query = currentUserSearchQuery;
+    const filteredUsers = allUsersData.filter(u => {
+        if (!query) return true;
+        const idMatch = (u.studentId || '').toLowerCase().includes(query);
+        const nameMatch = (u.fullName || '').toLowerCase().includes(query);
+        const emailMatch = (u.email || '').toLowerCase().includes(query);
+        const phoneMatch = (u.phone || '').toLowerCase().includes(query);
+        const roleMatch = (u.role || '').toLowerCase().includes(query);
+        const roomMatch = u.room ? (u.room.roomNumber + ' ' + (u.room.blockName || '')).toLowerCase().includes(query) : false;
+        return idMatch || nameMatch || emailMatch || phoneMatch || roleMatch || roomMatch;
+    });
+
+    const students = filteredUsers.filter(u => (u.role || '').toUpperCase() === 'STUDENT');
+    const allTotalStudents = allUsersData.filter(u => (u.role || '').toUpperCase() === 'STUDENT').length;
+    
+    const staff = filteredUsers.filter(u => (u.role || '').toUpperCase() !== 'STUDENT');
+    const allTotalStaff = allUsersData.filter(u => (u.role || '').toUpperCase() !== 'STUDENT');
+
+    // Update count badges
+    const badgeStudents = document.getElementById('count-badge-students');
+    if (badgeStudents) badgeStudents.innerText = query ? `${students.length}/${allTotalStudents}` : allTotalStudents;
+    
+    const badgeStaff = document.getElementById('count-badge-staff');
+    if (badgeStaff) badgeStaff.innerText = query ? `${staff.length}/${allTotalStaff.length}` : allTotalStaff.length;
+
+    const cntAll = document.getElementById('staff-filter-all-cnt');
+    if (cntAll) cntAll.innerText = allTotalStaff.length;
+    const cntSec = document.getElementById('staff-filter-sec-cnt');
+    if (cntSec) cntSec.innerText = allTotalStaff.filter(s => (s.role || '').toUpperCase() === 'SECURITY').length;
+    const cntMaint = document.getElementById('staff-filter-maint-cnt');
+    if (cntMaint) cntMaint.innerText = allTotalStaff.filter(s => (s.role || '').toUpperCase() === 'MAINTENANCE').length;
+    const cntClean = document.getElementById('staff-filter-clean-cnt');
+    if (cntClean) cntClean.innerText = allTotalStaff.filter(s => (s.role || '').toUpperCase() === 'CLEANING').length;
+    const cntAdmin = document.getElementById('staff-filter-admin-cnt');
+    if (cntAdmin) cntAdmin.innerText = allTotalStaff.filter(s => (s.role || '').toUpperCase() === 'ADMIN').length;
+
+    // 1. Render Students Table Body
+    const studentsTbody = document.getElementById('students-table-body');
+    if (studentsTbody) {
+        studentsTbody.innerHTML = '';
+        if (students.length === 0) {
+            studentsTbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 25px; color:#888;"><i class="fas fa-search" style="margin-right:6px;"></i> No students found matching your criteria.</td></tr>`;
+        } else {
+            students.forEach((s, idx) => {
+                const roomBadge = s.room 
+                    ? `<span class="status allocated" style="font-weight:700;"><i class="fas fa-bed"></i> Room ${s.room.roomNumber} (${s.room.blockName || 'Block A'})</span>` 
+                    : `<span class="status pending" style="background: rgba(255, 71, 87, 0.15); color: #ff4757; font-weight:700; border: 1px solid rgba(255, 71, 87, 0.3);"><i class="fas fa-exclamation-circle"></i> Not Assigned</span>`;
+                
+                const actionBtn = s.room 
+                    ? `<button class="btn btn-secondary btn-sm" onclick="openAllocateModal(${s.id})" title="Change Room Allocation"><i class="fas fa-exchange-alt"></i> Change Room</button>`
+                    : `<button class="btn btn-primary btn-sm" onclick="openAllocateModal(${s.id})" title="Allocate Bed to Student"><i class="fas fa-door-open"></i> Allocate Room</button>`;
+
+                const emailDisplay = s.email || `${s.studentId.replace(/\//g, '').toLowerCase()}@ruhuna.ac.lk`;
+                const phoneDisplay = s.phone || '077-XXXXXXX';
+
+                studentsTbody.innerHTML += `
+                    <tr>
+                        <td style="color:#777; font-weight:600;">${idx + 1}</td>
+                        <td><strong style="color:var(--primary-yellow); font-family:'Outfit', sans-serif;">${s.studentId}</strong></td>
+                        <td><strong style="font-size:14px;">${s.fullName}</strong></td>
+                        <td>${roomBadge}</td>
+                        <td style="font-size:13px;">
+                            <div><i class="fas fa-envelope" style="color:#888; width:16px;"></i> ${emailDisplay}</div>
+                            <div style="color:#aaa; margin-top:2px;"><i class="fas fa-phone-alt" style="color:#888; width:16px;"></i> ${phoneDisplay}</div>
+                        </td>
+                        <td>${actionBtn}</td>
+                    </tr>
+                `;
+            });
+        }
+    }
+
+    // 2. Render Staff Table Body
+    const staffTbody = document.getElementById('staff-table-body');
+    if (staffTbody) {
+        staffTbody.innerHTML = '';
+        let deptFilteredStaff = staff;
+        if (currentStaffDeptFilter !== 'ALL') {
+            deptFilteredStaff = staff.filter(s => (s.role || '').toUpperCase() === currentStaffDeptFilter);
+        }
+
+        if (deptFilteredStaff.length === 0) {
+            staffTbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 25px; color:#888;"><i class="fas fa-search" style="margin-right:6px;"></i> No staff personnel found in this department.</td></tr>`;
+        } else {
+            deptFilteredStaff.forEach((stf, idx) => {
+                const uRole = (stf.role || '').toUpperCase();
+                let roleBadge = '';
+                if (uRole === 'SECURITY') {
+                    roleBadge = '<span class="status" style="background: rgba(46, 213, 115, 0.15); color: #2ed573; border: 1px solid rgba(46, 213, 115, 0.3); font-weight:700;"><i class="fas fa-shield-alt"></i> Security</span>';
+                } else if (uRole === 'MAINTENANCE') {
+                    roleBadge = '<span class="status" style="background: rgba(217, 119, 6, 0.15); color: #d97706; border: 1px solid rgba(217, 119, 6, 0.3); font-weight:700;"><i class="fas fa-tools"></i> Maintenance</span>';
+                } else if (uRole === 'CLEANING') {
+                    roleBadge = '<span class="status" style="background: rgba(8, 145, 178, 0.15); color: #0891b2; border: 1px solid rgba(8, 145, 178, 0.3); font-weight:700;"><i class="fas fa-broom"></i> Cleaning</span>';
+                } else if (uRole === 'ADMIN') {
+                    roleBadge = '<span class="status" style="background: rgba(255, 215, 0, 0.15); color: #e6b800; border: 1px solid rgba(255, 215, 0, 0.3); font-weight:700;"><i class="fas fa-user-shield"></i> Administration</span>';
+                } else {
+                    roleBadge = `<span class="status">${uRole}</span>`;
+                }
+
+                // Check today's attendance record
+                const attRec = todayStaffAttendanceMap[stf.id];
+                let attBadge = '<span class="status" style="background:#2a2a2a; color:#888;">No Log Today</span>';
+                if (attRec) {
+                    const st = (attRec.status || '').toUpperCase();
+                    if (st === 'PRESENT') {
+                        attBadge = `<span class="status paid" style="font-weight:700;"><i class="fas fa-check-circle"></i> PRESENT (${attRec.checkInTime || 'On Duty'})</span>`;
+                    } else if (st === 'ON_LEAVE') {
+                        attBadge = `<span class="status pending" style="font-weight:700;"><i class="fas fa-calendar-minus"></i> ON LEAVE</span>`;
+                    } else if (st === 'ABSENT') {
+                        attBadge = `<span class="status" style="background:rgba(255,71,87,0.15); color:#ff4757; border:1px solid rgba(255,71,87,0.3); font-weight:700;"><i class="fas fa-times-circle"></i> ABSENT</span>`;
+                    }
+                }
+
+                staffTbody.innerHTML += `
+                    <tr>
+                        <td style="color:#777; font-weight:600;">${idx + 1}</td>
+                        <td><strong style="color:#00d2d3; font-family:'Outfit', sans-serif; font-size:14px;">${stf.studentId}</strong></td>
+                        <td><strong style="font-size:14px;">${stf.fullName}</strong></td>
+                        <td>${roleBadge}</td>
+                        <td style="font-size:13px;">
+                            <div><i class="fas fa-envelope" style="color:#888; width:16px;"></i> ${stf.email || '-'}</div>
+                            <div style="color:#aaa; margin-top:2px;"><i class="fas fa-phone-alt" style="color:#888; width:16px;"></i> ${stf.phone || '-'}</div>
+                        </td>
+                        <td>${attBadge}</td>
+                        <td>
+                            <button class="btn btn-dark btn-sm" onclick="switchTab('staff')" title="View Attendance in Staff Duty Tab">
+                                <i class="fas fa-user-clock"></i> Duty Logs
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
     }
 }
 
