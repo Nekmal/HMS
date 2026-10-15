@@ -26,6 +26,14 @@ public class Complaint {
     
     private LocalDate createdAt;
 
+    // Room number where issue occurred (e.g., C-112, A-105, Common Bathroom)
+    @Column(name = "room_number")
+    private String roomNumber;
+
+    // Item/Fixture needing maintenance (e.g., Ceiling Fan, Study Table, Bed, Light Bulb, Window Latch, Tap)
+    @Column(name = "item")
+    private String item;
+
     public Complaint() {}
 
     // Getters and Setters
@@ -43,4 +51,10 @@ public class Complaint {
 
     public LocalDate getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDate createdAt) { this.createdAt = createdAt; }
+
+    public String getRoomNumber() { return roomNumber; }
+    public void setRoomNumber(String roomNumber) { this.roomNumber = roomNumber; }
+
+    public String getItem() { return item; }
+    public void setItem(String item) { this.item = item; }
 }
