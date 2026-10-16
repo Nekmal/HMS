@@ -389,10 +389,10 @@
             </div>
 
             <div class="table-container">
-                <div class="table-header-flex">
+                <div class="table-header-flex" style="margin-bottom: 16px;">
                     <div>
-                        <h2>Manage Rooms</h2>
-                        <span style="font-size: 13px; color: #888;">100 Fixed Residential Rooms across Blocks A-D (Cap: 400 Beds)</span>
+                        <h2><i class="fas fa-door-open" style="color: var(--primary-yellow);"></i> Manage Residential Rooms</h2>
+                        <span style="font-size: 13px; color: #888;">100 Pre-configured Rooms across Blocks A, B, C & D (Quadruple Bed Allocation)</span>
                     </div>
                     <div style="display: flex; gap: 10px; align-items: center;">
                         <span class="status paid" style="font-size: 12px; font-weight: 700; padding: 6px 14px; border-radius: 20px; background: rgba(46, 213, 115, 0.15); color: #2ed573; border: 1px solid rgba(46, 213, 115, 0.3);">
@@ -403,6 +403,70 @@
                         </button>
                     </div>
                 </div>
+
+                <!-- Block Filter Switcher Buttons (Arranged neatly on top in order: All, Block A, Block B, Block C, Block D) -->
+                <div class="block-filter-container" style="display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; justify-content: space-between; background: #fafafa; padding: 12px 14px; border-radius: 12px; border: 1px solid #eaedf0;">
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                        <button id="blockBtn-ALL" class="block-tab-btn active" onclick="filterRoomsByBlock('ALL')" title="View all 100 rooms across all blocks">
+                            <i class="fas fa-th-large"></i> <span>All Blocks</span>
+                            <span class="block-badge" id="block-count-all">100 Rooms</span>
+                        </button>
+                        <button id="blockBtn-A" class="block-tab-btn" onclick="filterRoomsByBlock('Block A')" title="Filter Block A rooms only">
+                            <i class="fas fa-building"></i> <span>Block A</span>
+                            <span class="block-badge" id="block-count-a">25 Rooms</span>
+                        </button>
+                        <button id="blockBtn-B" class="block-tab-btn" onclick="filterRoomsByBlock('Block B')" title="Filter Block B rooms only">
+                            <i class="fas fa-building"></i> <span>Block B</span>
+                            <span class="block-badge" id="block-count-b">25 Rooms</span>
+                        </button>
+                        <button id="blockBtn-C" class="block-tab-btn" onclick="filterRoomsByBlock('Block C')" title="Filter Block C rooms only">
+                            <i class="fas fa-building"></i> <span>Block C</span>
+                            <span class="block-badge" id="block-count-c">25 Rooms</span>
+                        </button>
+                        <button id="blockBtn-D" class="block-tab-btn" onclick="filterRoomsByBlock('Block D')" title="Filter Block D rooms only">
+                            <i class="fas fa-building"></i> <span>Block D</span>
+                            <span class="block-badge" id="block-count-d">25 Rooms</span>
+                        </button>
+                    </div>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <div style="position: relative; width: 230px;">
+                            <i class="fas fa-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #888; font-size: 13px;"></i>
+                            <input type="text" id="roomSearchInput" oninput="onRoomSearchChange()" placeholder="Search room (e.g. A-101)..." style="width: 100%; padding: 8px 12px 8px 34px; border-radius: 8px; border: 1px solid #ced6e0; font-size: 13px; outline: none; background: #fff;">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Executive Block Status Summary Card -->
+                <div id="block-summary-card" style="background: linear-gradient(135deg, #1e1e1e 0%, #2f3542 100%); color: #fff; border-radius: 12px; padding: 14px 18px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); border-left: 5px solid var(--primary-yellow);">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="width: 42px; height: 42px; border-radius: 10px; background: rgba(255, 215, 0, 0.15); display: flex; align-items: center; justify-content: center; font-size: 18px; color: var(--primary-yellow); border: 1px solid rgba(255, 215, 0, 0.3);">
+                            <i class="fas fa-city" id="blockSummaryIcon"></i>
+                        </div>
+                        <div>
+                            <h3 id="blockSummaryTitle" style="font-size: 16px; font-weight: 700; color: #fff; margin: 0;">Showing: All Residential Blocks (A, B, C & D)</h3>
+                            <span id="blockSummarySub" style="font-size: 12.5px; color: #a4b0be;">100 Total Rooms • Capacity: 400 Student Beds across all 4 Blocks</span>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                        <div style="text-align: center; padding: 4px 12px; background: rgba(255,255,255,0.06); border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
+                            <div style="font-size: 10.5px; color: #a4b0be; text-transform: uppercase;">Total Rooms</div>
+                            <div style="font-size: 15px; font-weight: 800; color: #fff;" id="blockStatRooms">100</div>
+                        </div>
+                        <div style="text-align: center; padding: 4px 12px; background: rgba(255,255,255,0.06); border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
+                            <div style="font-size: 10.5px; color: #a4b0be; text-transform: uppercase;">Occupied Beds</div>
+                            <div style="font-size: 15px; font-weight: 800; color: #2ed573;" id="blockStatOccupied">150</div>
+                        </div>
+                        <div style="text-align: center; padding: 4px 12px; background: rgba(255,255,255,0.06); border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
+                            <div style="font-size: 10.5px; color: #a4b0be; text-transform: uppercase;">Available Beds</div>
+                            <div style="font-size: 15px; font-weight: 800; color: var(--primary-yellow);" id="blockStatAvailable">250</div>
+                        </div>
+                        <div style="text-align: center; padding: 4px 12px; background: rgba(255,255,255,0.06); border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
+                            <div style="font-size: 10.5px; color: #a4b0be; text-transform: uppercase;">Occupancy Rate</div>
+                            <div style="font-size: 15px; font-weight: 800; color: #70a1ff;" id="blockStatRate">37.5%</div>
+                        </div>
+                    </div>
+                </div>
+
                 <table>
                     <thead>
                         <tr><th>ID</th><th>Room No</th><th>Block / Floor</th><th>Capacity (4 Students)</th><th>Current Status</th></tr>
