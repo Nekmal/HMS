@@ -115,7 +115,9 @@ async function loadRoomDamages() {
 
         const pending = allDamages.filter(d => d.status !== 'REPAIRED').length;
         const completed = allDamages.filter(d => d.status === 'REPAIRED').length;
-        const openComplaints = complaints.filter(c => c.status !== 'RESOLVED').length;
+        const pendingComplaints = complaints.filter(c => c.status !== 'RESOLVED');
+        const openComplaints = pendingComplaints.length;
+        const overdueComplaints = pendingComplaints.filter(c => c.overdue).length;
 
         const pEl = document.getElementById('stat-active-repairs');
         const cEl = document.getElementById('stat-completed-repairs');
@@ -128,7 +130,13 @@ async function loadRoomDamages() {
         const kpiComp = document.getElementById('kpi-completed-repairs');
         if (kpiComp) kpiComp.innerText = completed;
         const kpiOpen = document.getElementById('kpi-open-complaints');
-        if (kpiOpen) kpiOpen.innerText = openComplaints;
+        if (kpiOpen) {
+            if (overdueComplaints > 0) {
+                kpiOpen.innerHTML = `${openComplaints} <span style="font-size:13px; color:#ff4757; font-weight:700;">(${overdueComplaints} Overdue!)</span>`;
+            } else {
+                kpiOpen.innerText = openComplaints;
+            }
+        }
         const kpiHlt = document.getElementById('kpi-facility-health');
         const healthPercent = allDamages.length > 0 ? Math.round((completed / allDamages.length) * 100) : 100;
         if (kpiHlt) kpiHlt.innerText = `${healthPercent}%`;
@@ -280,14 +288,117 @@ function completeRepair(id) {
 }
 
 // 2. Student Complaints
+let currentMaintFilter = 'all';
+let currentMaintSearch = '';
+
 async function loadComplaints() {
     try {
         const res = await fetch(`${API_BASE}/complaints`);
         allComplaints = await res.json();
-        renderComplaintsTable(allComplaints);
+        
+        // Calculate counts
+        const total = allComplaints.length;
+        const notified = allComplaints.filter(c => c.notifiedAt && c.status !== 'RESOLVED').length;
+        const overdue = allComplaints.filter(c => c.overdue && c.status !== 'RESOLVED').length;
+        const inProgress = allComplaints.filter(c => c.status === 'IN_PROGRESS' || (c.notifiedAt && c.status !== 'RESOLVED')).length;
+        const resolved = allComplaints.filter(c => c.status === 'RESOLVED').length;
+        
+        // Update hero banner pill stats
+        const nEl = document.getElementById('maint-stat-notified');
+        if (nEl) nEl.innerText = notified;
+        const oEl = document.getElementById('maint-stat-overdue');
+        if (oEl) oEl.innerText = overdue;
+        const pEl = document.getElementById('maint-stat-pending');
+        if (pEl) pEl.innerText = inProgress;
+        const rEl = document.getElementById('maint-stat-resolved');
+        if (rEl) rEl.innerText = resolved;
+
+        // Update tab pill counts
+        const tAll = document.getElementById('maint-tab-cnt-all');
+        if (tAll) tAll.innerText = total;
+        const tNot = document.getElementById('maint-tab-cnt-notified');
+        if (tNot) tNot.innerText = notified;
+        const tOvd = document.getElementById('maint-tab-cnt-overdue');
+        if (tOvd) tOvd.innerText = overdue;
+        const tRes = document.getElementById('maint-tab-cnt-resolved');
+        if (tRes) tRes.innerText = resolved;
+
+        // Overdue Alert Banner
+        const ovdBanner = document.getElementById('maintOverdueBanner');
+        const ovdCountEl = document.getElementById('maintOverdueCount');
+        if (ovdBanner && ovdCountEl) {
+            if (overdue > 0) {
+                ovdBanner.style.display = 'flex';
+                ovdCountEl.innerText = overdue;
+            } else {
+                ovdBanner.style.display = 'none';
+            }
+        }
+
+        applyMaintComplaintsFilter();
     } catch (e) {
         console.error("Failed to load complaints", e);
     }
+}
+
+function filterMaintComplaints(type) {
+    currentMaintFilter = type;
+    document.querySelectorAll('.maint-filter-tab').forEach(tab => {
+        const isActive = tab.getAttribute('data-filter') === type;
+        if (isActive) {
+            tab.classList.add('active');
+            tab.style.background = (type === 'overdue' ? '#ff4757' : (type === 'resolved' ? '#2ed573' : '#e67e22'));
+            tab.style.borderColor = tab.style.background;
+            tab.style.color = '#fff';
+        } else {
+            tab.classList.remove('active');
+            tab.style.background = '#fff';
+            tab.style.borderColor = (tab.getAttribute('data-filter') === 'overdue' ? '#ff4757' : '#ddd');
+            tab.style.color = (tab.getAttribute('data-filter') === 'overdue' ? '#ff4757' : '#2f3542');
+        }
+    });
+    applyMaintComplaintsFilter();
+}
+
+function searchMaintComplaints() {
+    const input = document.getElementById('maintComplaintSearch');
+    currentMaintSearch = input ? input.value.toLowerCase().trim() : '';
+    applyMaintComplaintsFilter();
+}
+
+function applyMaintComplaintsFilter() {
+    let filtered = allComplaints;
+
+    // Filter by type
+    if (currentMaintFilter === 'notified') {
+        filtered = filtered.filter(c => c.notifiedAt && c.status !== 'RESOLVED');
+    } else if (currentMaintFilter === 'overdue') {
+        filtered = filtered.filter(c => c.overdue && c.status !== 'RESOLVED');
+    } else if (currentMaintFilter === 'resolved') {
+        filtered = filtered.filter(c => c.status === 'RESOLVED');
+    }
+
+    // Filter by search keyword
+    if (currentMaintSearch) {
+        filtered = filtered.filter(c => {
+            const sName = (c.user && c.user.fullName) ? c.user.fullName.toLowerCase() : '';
+            const rNo = (c.roomNumber || ((c.user && c.user.room) ? c.user.room.roomNumber : '')).toString().toLowerCase();
+            const bName = (c.user && c.user.room && c.user.room.blockName) ? c.user.room.blockName.toLowerCase() : '';
+            const item = (c.item || '').toLowerCase();
+            const desc = (c.description || '').toLowerCase();
+            const idStr = (c.id || '').toString();
+            const notes = (c.adminNotes || '').toLowerCase();
+            return idStr.includes(currentMaintSearch) || 
+                   sName.includes(currentMaintSearch) || 
+                   rNo.includes(currentMaintSearch) || 
+                   bName.includes(currentMaintSearch) || 
+                   item.includes(currentMaintSearch) || 
+                   desc.includes(currentMaintSearch) || 
+                   notes.includes(currentMaintSearch);
+        });
+    }
+
+    renderComplaintsTable(filtered);
 }
 
 function renderComplaintsTable(list) {
@@ -296,7 +407,7 @@ function renderComplaintsTable(list) {
     tbody.innerHTML = '';
 
     if (list.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#888; padding:25px;">No complaints filed.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#888; padding:30px;"><i class="fas fa-inbox" style="font-size:24px; color:#ccc; display:block; margin-bottom:8px;"></i>No complaints found matching this criteria.</td></tr>';
         return;
     }
 
@@ -305,22 +416,93 @@ function renderComplaintsTable(list) {
         const rNo = c.roomNumber || ((c.user && c.user.room) ? `${c.user.room.roomNumber} (${c.user.room.blockName})` : '-');
         const itemBadge = c.item 
             ? `<span style="background:rgba(211,84,0,0.12); color:#e67e22; padding:3px 8px; border-radius:4px; font-weight:700; font-size:12px;"><i class="fas fa-tools"></i> ${c.item}</span>` 
-            : '<span style="color:#888;">General</span>';
+            : '<span style="color:#888;">General Repair</span>';
         const isResolved = c.status === 'RESOLVED';
-        const statusClass = isResolved ? 'paid' : 'pending';
+        const statusClass = isResolved ? 'paid' : (c.status === 'IN_PROGRESS' ? 'allocated' : 'pending');
+
+        // Priority badge
+        let priorityBadge = '';
+        if (c.priority === 'URGENT' || c.priority === 'HIGH') {
+            priorityBadge = `<span style="background:#ff4757; color:#fff; padding:3px 8px; border-radius:4px; font-size:11px; font-weight:800; display:inline-block;"><i class="fas fa-fire"></i> ${c.priority}</span>`;
+        } else if (c.priority === 'LOW') {
+            priorityBadge = `<span style="background:#a4b0be; color:#fff; padding:3px 8px; border-radius:4px; font-size:11px; font-weight:700; display:inline-block;">LOW</span>`;
+        } else {
+            priorityBadge = `<span style="background:#70a1ff; color:#fff; padding:3px 8px; border-radius:4px; font-size:11px; font-weight:700; display:inline-block;">NORMAL</span>`;
+        }
+
+        // Sub Warden dispatch info
+        let dispatchHtml = '';
+        if (c.notifiedAt) {
+            dispatchHtml = `
+                <div>
+                    ${priorityBadge}
+                    <div style="margin-top:4px; font-size:12px; font-weight:600; color:#2f3542;">
+                        <i class="fas fa-user-check" style="color:#2ed573;"></i> ${c.assignedTo || 'Maintenance Specialist'}
+                    </div>
+                    <div style="font-size:11px; color:#747d8c;">
+                        <i class="fas fa-bell"></i> Dispatched: ${c.notifiedAt}
+                    </div>
+                    ${c.adminNotes ? `<div style="margin-top:4px; font-size:11.5px; background:#f1f2f6; border-left:3px solid #e67e22; padding:4px 6px; border-radius:3px; color:#2f3542; max-width:220px;"><strong>Note:</strong> ${c.adminNotes}</div>` : ''}
+                </div>
+            `;
+        } else {
+            dispatchHtml = `
+                <div>
+                    ${priorityBadge}
+                    <div style="margin-top:4px; font-size:11.5px; color:#a4b0be;">
+                        <i class="fas fa-clock"></i> Pending Warden Action
+                    </div>
+                </div>
+            `;
+        }
+
+        // Delay / Overdue status
+        let delayHtml = '';
+        if (isResolved) {
+            delayHtml = `<span style="background:#e8f8f0; color:#2ed573; padding:4px 9px; border-radius:6px; font-size:11.5px; font-weight:700;"><i class="fas fa-check-circle"></i> Resolved</span>`;
+        } else if (c.overdue) {
+            delayHtml = `
+                <div style="display:flex; flex-direction:column; gap:4px;">
+                    <span style="background:#ff4757; color:#ffffff; padding:4px 9px; border-radius:6px; font-size:11.5px; font-weight:800; display:inline-flex; align-items:center; gap:5px; box-shadow:0 2px 6px rgba(255,71,87,0.3);">
+                        <i class="fas fa-hourglass-end"></i> ${c.daysLate || 1} DAYS DELAYED
+                    </span>
+                    ${c.escalationCount > 0 ? `
+                        <span style="background:#ffeaa7; color:#d63031; border:1px solid #fdcb6e; padding:3px 6px; border-radius:4px; font-size:11px; font-weight:800; display:inline-flex; align-items:center; gap:4px;">
+                            <i class="fas fa-bell"></i> ${c.escalationCount} Escalation Warning(s)!
+                        </span>
+                    ` : ''}
+                    ${c.dueDate ? `<span style="font-size:11px; color:#ff4757; font-weight:600;">Due: ${c.dueDate}</span>` : ''}
+                </div>
+            `;
+        } else {
+            delayHtml = `
+                <div>
+                    <span style="background:#e8f8f0; color:#2ed573; padding:4px 8px; border-radius:6px; font-size:11.5px; font-weight:700;">
+                        <i class="fas fa-calendar-check"></i> On Track
+                    </span>
+                    ${c.dueDate ? `<div style="font-size:11px; color:#747d8c; margin-top:3px;">Due: ${c.dueDate}</div>` : ''}
+                </div>
+            `;
+        }
 
         const actionBtn = isResolved
-            ? '<span style="color:#2ed573; font-weight:700;"><i class="fas fa-check-double"></i> Resolved</span>'
-            : `<button class="btn btn-primary btn-sm" onclick="resolveComplaint(${c.id})" style="background:#2ed573; color:#121212; font-weight:700;"><i class="fas fa-wrench"></i> Mark Resolved</button>`;
+            ? '<span style="color:#2ed573; font-weight:700; font-size:13px;"><i class="fas fa-check-double"></i> Resolved</span>'
+            : `<button class="btn btn-primary btn-sm" onclick="resolveComplaint(${c.id})" style="background:#2ed573; color:#121212; font-weight:700; white-space:nowrap; padding:6px 12px;"><i class="fas fa-wrench"></i> Mark Resolved</button>`;
 
         tbody.innerHTML += `
-            <tr>
+            <tr style="${!isResolved && c.overdue ? 'background: #fff8f8;' : ''}">
                 <td><strong>#${c.id}</strong></td>
                 <td>${c.createdAt || '-'}</td>
-                <td>${sName}</td>
-                <td><span class="status allocated">${rNo}</span></td>
-                <td>${itemBadge}</td>
-                <td>${c.description}</td>
+                <td>
+                    <strong>${sName}</strong>
+                    <div><span class="status allocated" style="margin-top:3px; display:inline-block;"><i class="fas fa-door-closed"></i> ${rNo}</span></div>
+                </td>
+                <td style="max-width:240px;">
+                    <div style="margin-bottom:4px;">${itemBadge}</div>
+                    <div style="font-size:13px; color:#2f3542; word-break:break-word;">${c.description}</div>
+                </td>
+                <td>${dispatchHtml}</td>
+                <td>${delayHtml}</td>
                 <td><span class="status ${statusClass}">${c.status}</span></td>
                 <td>${actionBtn}</td>
             </tr>

@@ -1814,35 +1814,377 @@ function downloadMonthlyPaymentReport(format) {
     }
 }
 
+// Admin Complaints State & Handlers
+let allAdminComplaintsData = [];
+let selectedComplaintCategory = 'ALL'; // 'ALL', 'PENDING', 'IN_PROGRESS', 'OVERDUE', 'RESOLVED'
+let adminComplaintSearchQuery = '';
+
 async function loadAdminComplaints() {
-    const res = await fetch(`${API_BASE}/complaints`);
-    const complaints = await res.json();
+    try {
+        const res = await fetch(`${API_BASE}/complaints`);
+        if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+        allAdminComplaintsData = await res.json();
+        renderAdminComplaintsTable();
+    } catch (e) {
+        console.error("Failed to load admin complaints:", e);
+        const tbody = document.getElementById('complaints-table-body-admin');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#ff4757; padding:20px;"><i class="fas fa-exclamation-triangle"></i> Failed to load complaints from server.</td></tr>';
+        }
+    }
+}
+
+function switchComplaintCategory(cat) {
+    selectedComplaintCategory = cat;
+
+    ['ALL', 'PENDING', 'IN_PROGRESS', 'OVERDUE', 'RESOLVED'].forEach(c => {
+        const btn = document.getElementById(`compTab-${c}`);
+        if (btn) {
+            if (c === cat) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        }
+    });
+
+    renderAdminComplaintsTable();
+}
+
+function onAdminComplaintSearchChange() {
+    const input = document.getElementById('adminComplaintSearchInput');
+    adminComplaintSearchQuery = input ? input.value.toLowerCase().trim() : '';
+    renderAdminComplaintsTable();
+}
+
+function renderAdminComplaintsTable() {
     const tbody = document.getElementById('complaints-table-body-admin');
     if (!tbody) return;
-    tbody.innerHTML = '';
-    complaints.forEach(c => {
-        let stuName = c.user ? c.user.fullName : 'Unknown';
-        let roomNo = c.roomNumber || ((c.user && c.user.room) ? c.user.room.roomNumber : '-');
-        let itemBadge = c.item 
-            ? `<span style="background: rgba(255, 215, 0, 0.12); color: var(--primary-yellow); padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 600;"><i class="fas fa-tools"></i> ${c.item}</span>`
+
+    // Calculate Counts for KPIs and Filter Tabs
+    const totalCount = allAdminComplaintsData.length;
+    const pendingCount = allAdminComplaintsData.filter(c => (c.status || '').toUpperCase() === 'PENDING').length;
+    const progressCount = allAdminComplaintsData.filter(c => (c.status || '').toUpperCase() === 'IN_PROGRESS').length;
+    const overdueCount = allAdminComplaintsData.filter(c => c.overdue || (c.status || '').toUpperCase() === 'OVERDUE').length;
+    const resolvedCount = allAdminComplaintsData.filter(c => (c.status || '').toUpperCase() === 'RESOLVED').length;
+
+    // Update KPI Cards
+    const kTotal = document.getElementById('kpi-comp-total');
+    if (kTotal) kTotal.innerText = totalCount;
+    const kPending = document.getElementById('kpi-comp-pending');
+    if (kPending) kPending.innerText = pendingCount;
+    const kProg = document.getElementById('kpi-comp-progress');
+    if (kProg) kProg.innerText = progressCount;
+    const kOver = document.getElementById('kpi-comp-overdue');
+    if (kOver) kOver.innerText = overdueCount;
+    const kRes = document.getElementById('kpi-comp-resolved');
+    if (kRes) kRes.innerText = resolvedCount;
+
+    // Update Badge Counts on Filter Tabs
+    const bAll = document.getElementById('compBadge-ALL');
+    if (bAll) bAll.innerText = totalCount;
+    const bPending = document.getElementById('compBadge-PENDING');
+    if (bPending) bPending.innerText = pendingCount;
+    const bProg = document.getElementById('compBadge-IN_PROGRESS');
+    if (bProg) bProg.innerText = progressCount;
+    const bOver = document.getElementById('compBadge-OVERDUE');
+    if (bOver) bOver.innerText = overdueCount;
+    const bRes = document.getElementById('compBadge-RESOLVED');
+    if (bRes) bRes.innerText = resolvedCount;
+
+    // Filter by category
+    let list = allAdminComplaintsData;
+    if (selectedComplaintCategory === 'PENDING') {
+        list = list.filter(c => (c.status || '').toUpperCase() === 'PENDING');
+    } else if (selectedComplaintCategory === 'IN_PROGRESS') {
+        list = list.filter(c => (c.status || '').toUpperCase() === 'IN_PROGRESS');
+    } else if (selectedComplaintCategory === 'OVERDUE') {
+        list = list.filter(c => c.overdue || (c.status || '').toUpperCase() === 'OVERDUE');
+    } else if (selectedComplaintCategory === 'RESOLVED') {
+        list = list.filter(c => (c.status || '').toUpperCase() === 'RESOLVED');
+    }
+
+    // Filter by search query
+    if (adminComplaintSearchQuery) {
+        list = list.filter(c => {
+            const rNo = (c.roomNumber || ((c.user && c.user.room) ? c.user.room.roomNumber : '')).toLowerCase();
+            const sName = (c.user ? (c.user.fullName || '') : '').toLowerCase();
+            const sId = (c.user ? (c.user.studentId || c.user.username || '') : '').toLowerCase();
+            const item = (c.item || '').toLowerCase();
+            const desc = (c.description || '').toLowerCase();
+            const assigned = (c.assignedTo || '').toLowerCase();
+            return rNo.includes(adminComplaintSearchQuery) || sName.includes(adminComplaintSearchQuery) ||
+                   sId.includes(adminComplaintSearchQuery) || item.includes(adminComplaintSearchQuery) ||
+                   desc.includes(adminComplaintSearchQuery) || assigned.includes(adminComplaintSearchQuery);
+        });
+    }
+
+    if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#888; padding:30px;"><i class="fas fa-inbox"></i> No complaints found in this category.</td></tr>`;
+        return;
+    }
+
+    let rowsHtml = '';
+    list.forEach((c, idx) => {
+        const sName = c.user ? (c.user.fullName || 'Student') : 'Unknown';
+        const sId = c.user ? (c.user.studentId || c.user.username || '') : '';
+        const roomNo = c.roomNumber || ((c.user && c.user.room) ? c.user.room.roomNumber : '-');
+        const blockName = (c.user && c.user.room && c.user.room.blockName) ? c.user.room.blockName : '';
+        const roomDisplay = blockName ? `${roomNo} (${blockName})` : roomNo;
+
+        const itemBadge = c.item 
+            ? `<span style="background: rgba(255, 215, 0, 0.12); color: var(--primary-yellow); padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 700;"><i class="fas fa-tools"></i> ${c.item}</span>`
             : '<span style="color: #888; font-size: 12px;">General</span>';
-        let statusClass = c.status === 'RESOLVED' ? 'paid' : 'pending';
-        let actionBtn = c.status === 'RESOLVED' ? '-' : `<button class="btn btn-primary" onclick="resolveComplaint(${c.id})"><i class="fas fa-check"></i> Resolve</button>`;
-        
-        tbody.innerHTML += `
+
+        const statusRaw = (c.status || 'PENDING').toUpperCase();
+        const isResolved = statusRaw === 'RESOLVED';
+        const isOverdue = c.overdue || statusRaw === 'OVERDUE';
+        const isProgress = statusRaw === 'IN_PROGRESS';
+        const isPending = statusRaw === 'PENDING';
+
+        // Assigned & Status Display
+        let assignedInfo = '';
+        if (isResolved) {
+            assignedInfo = `<span class="status paid"><i class="fas fa-check-circle"></i> RESOLVED</span>`;
+        } else if (isOverdue) {
+            assignedInfo = `<span class="status unpaid" style="font-weight:700;"><i class="fas fa-exclamation-triangle"></i> OVERDUE</span><div style="font-size:11px; color:#ff4757; margin-top:3px;"><i class="fas fa-user-cog"></i> ${c.assignedTo || 'Maintenance'}</div>`;
+        } else if (isProgress) {
+            assignedInfo = `<span class="status allocated"><i class="fas fa-tools"></i> IN PROGRESS</span><div style="font-size:11px; color:#70a1ff; margin-top:3px;"><i class="fas fa-user-cog"></i> ${c.assignedTo || 'Maintenance'}</div>`;
+        } else {
+            assignedInfo = `<span class="status pending"><i class="fas fa-clock"></i> PENDING DISPATCH</span>`;
+        }
+
+        // Delay / Late Status Badge
+        let delayBadge = '';
+        if (isResolved) {
+            delayBadge = `<span style="color:#2ed573; font-size:12px; font-weight:600;"><i class="fas fa-check"></i> Closed</span>`;
+        } else if (isOverdue) {
+            const days = c.daysLate || 1;
+            const esc = c.escalationCount ? ` • Alerted ${c.escalationCount}x` : '';
+            delayBadge = `<span style="background:rgba(255,71,87,0.15); color:#ff4757; border:1px solid rgba(255,71,87,0.35); padding:3px 8px; border-radius:12px; font-size:11px; font-weight:800; display:inline-block;"><i class="fas fa-bolt"></i> ${days}d DELAYED${esc}</span>`;
+        } else if (isProgress) {
+            const dueStr = c.dueDate ? `Due: ${c.dueDate}` : 'Active Dispatch';
+            delayBadge = `<span style="background:rgba(46,213,115,0.12); color:#2ed573; padding:3px 8px; border-radius:12px; font-size:11px; font-weight:700;"><i class="fas fa-business-time"></i> ${dueStr}</span>`;
+        } else {
+            delayBadge = `<span style="color:#888; font-size:11.5px;"><i class="fas fa-hourglass-start"></i> Awaiting Notice</span>`;
+        }
+
+        // Action Column
+        let actionButtonsHtml = '';
+        if (isResolved) {
+            actionButtonsHtml = `<span style="color: #2ed573; font-weight: 700; font-size: 13px;"><i class="fas fa-check-double"></i> Done</span>`;
+        } else if (isPending) {
+            // One-Click Notify Maintenance Button
+            actionButtonsHtml = `
+                <div style="display: flex; gap: 5px; justify-content: center;">
+                    <button class="btn btn-sm" onclick="quickNotifyMaintenance(${c.id})" title="1-Click Dispatch to Maintenance Specialist Sunil Rathnayake" style="background: linear-gradient(135deg, #e67e22, #d35400); color: #fff; font-weight: 700; border: none; padding: 5px 10px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(230,126,34,0.3);">
+                        <i class="fas fa-paper-plane"></i> Notify
+                    </button>
+                    <button class="btn btn-sm btn-dark" onclick="openNotifyModal(${c.id})" title="Customize Technician & Due Date" style="border: 1px solid rgba(255,255,255,0.2); padding: 5px 8px; border-radius: 6px; cursor: pointer;">
+                        <i class="fas fa-sliders-h"></i>
+                    </button>
+                    <button class="btn btn-sm" onclick="resolveComplaint(${c.id})" title="Directly Mark Resolved" style="background: rgba(46,213,115,0.15); color: #2ed573; border: 1px solid rgba(46,213,115,0.3); padding: 5px 8px; border-radius: 6px; cursor: pointer;">
+                        <i class="fas fa-check"></i>
+                    </button>
+                </div>
+            `;
+        } else if (isOverdue) {
+            // LATE / OVERDUE -> Urgent Reminder / Escalate Button!
+            actionButtonsHtml = `
+                <div style="display: flex; gap: 5px; justify-content: center;">
+                    <button class="btn btn-sm" onclick="openEscalateModal(${c.id})" title="Send Urgent Late Alert / Warning Reminder to Maintenance Team" style="background: linear-gradient(135deg, #ff4757, #ee5253); color: #fff; font-weight: 800; border: none; padding: 5px 12px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 8px rgba(255,71,87,0.4); animation: pulse 1.8s infinite;">
+                        <i class="fas fa-bolt"></i> Late Alert (${c.escalationCount || 0})
+                    </button>
+                    <button class="btn btn-sm" onclick="resolveComplaint(${c.id})" title="Mark Resolved" style="background: #2ed573; color: #121212; font-weight: 700; border: none; padding: 5px 9px; border-radius: 6px; cursor: pointer;">
+                        <i class="fas fa-check"></i>
+                    </button>
+                </div>
+            `;
+        } else {
+            // In progress (not late)
+            actionButtonsHtml = `
+                <div style="display: flex; gap: 5px; justify-content: center;">
+                    <button class="btn btn-sm" onclick="openEscalateModal(${c.id})" title="Send Progress Reminder" style="background: rgba(255, 165, 2, 0.15); color: #ffa502; border: 1px solid rgba(255, 165, 2, 0.35); font-weight: 700; padding: 5px 10px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
+                        <i class="fas fa-bell"></i> Remind
+                    </button>
+                    <button class="btn btn-sm" onclick="resolveComplaint(${c.id})" title="Mark Resolved" style="background: #2ed573; color: #121212; font-weight: 700; border: none; padding: 5px 9px; border-radius: 6px; cursor: pointer;">
+                        <i class="fas fa-check"></i>
+                    </button>
+                </div>
+            `;
+        }
+
+        // Show escalation note if present
+        const noteBadge = (c.adminNotes && isOverdue) 
+            ? `<div style="font-size:11px; color:#ff6b81; margin-top:4px; font-weight:600;"><i class="fas fa-exclamation-circle"></i> Escalation Note logged</div>`
+            : '';
+
+        rowsHtml += `
             <tr>
-                <td>${c.id}</td>
-                <td>${c.createdAt || '-'}</td>
-                <td>${stuName}</td>
-                <td><span style="font-weight: 700; color: #2ed573;">${roomNo}</span></td>
+                <td style="color: #888; font-weight: 600;">${idx + 1}</td>
+                <td style="color: #94a3b8; font-size: 13px;">${c.createdAt || '-'}</td>
+                <td>
+                    <strong style="color: #fff;">${sName}</strong>
+                    ${sId ? `<span style="font-size:11px; color:#888; font-family:monospace; display:block;">${sId}</span>` : ''}
+                    <div style="font-weight: 700; color: #2ed573; font-size: 12.5px; margin-top: 2px;"><i class="fas fa-bed"></i> ${roomDisplay}</div>
+                </td>
                 <td>${itemBadge}</td>
-                <td>${c.description}</td>
-                <td><span class="status ${statusClass}">${c.status}</span></td>
-                <td>${actionBtn}</td>
+                <td style="max-width: 220px;">
+                    <div style="font-size: 13px; color: #cbd5e1;">${c.description}</div>
+                    ${noteBadge}
+                </td>
+                <td>${assignedInfo}</td>
+                <td>${delayBadge}</td>
+                <td style="text-align: center;">${actionButtonsHtml}</td>
             </tr>
         `;
     });
+
+    tbody.innerHTML = rowsHtml;
 }
+
+// 1-Click Fast Notify Maintenance Dispatch
+async function quickNotifyMaintenance(complaintId) {
+    const complaint = (allAdminComplaintsData || []).find(c => c.id === complaintId);
+    const roomStr = complaint ? (complaint.roomNumber || 'hostel room') : 'hostel room';
+    const itemStr = complaint ? (complaint.item || 'fixture') : 'fixture';
+
+    try {
+        const res = await fetch(`${API_BASE}/complaints/${complaintId}/notify-maintenance`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                assignedTo: 'Sunil Rathnayake (Maintenance Specialist)',
+                priority: 'HIGH',
+                adminNotes: `1-Click Dispatch by Sub Warden for ${itemStr} in Room ${roomStr}.`
+            })
+        });
+
+        if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+
+        showToast(`Dispatched to Sunil Rathnayake (Maintenance Specialist) for Room ${roomStr}!`, 'success');
+        await loadAdminComplaints();
+    } catch (err) {
+        console.error("Failed to notify maintenance:", err);
+        showToast(`Dispatch failed: ${err.message}`, 'error');
+    }
+}
+
+// Open Customized Notify Modal
+function openNotifyModal(complaintId) {
+    const complaint = (allAdminComplaintsData || []).find(c => c.id === complaintId);
+    if (!complaint) return;
+
+    document.getElementById('dispatchComplaintId').value = complaint.id;
+    document.getElementById('dispatchComplaintRoom').innerText = `Room: ${complaint.roomNumber || 'Hostel Room'}`;
+    document.getElementById('dispatchComplaintItem').innerText = `Defective Item: ${complaint.item || 'General Maintenance'}`;
+    document.getElementById('dispatchComplaintDesc').innerText = `Student Note: "${complaint.description || '-'}"`;
+
+    // Default target due date = today + 2 days
+    const due = new Date();
+    due.setDate(due.getDate() + 2);
+    document.getElementById('dispatchDueDate').value = due.toISOString().split('T')[0];
+    document.getElementById('dispatchPriority').value = 'HIGH';
+    document.getElementById('dispatchAdminNotes').value = `Please inspect ${complaint.item || 'fixture'} and restore operation promptly.`;
+
+    openModal('notifyMaintenanceModal');
+}
+
+// Submit Customized Dispatch Form
+async function submitNotifyMaintenance(e) {
+    e.preventDefault();
+    const id = document.getElementById('dispatchComplaintId').value;
+    const assignedTo = document.getElementById('dispatchAssignedTo').value;
+    const priority = document.getElementById('dispatchPriority').value;
+    const dueDate = document.getElementById('dispatchDueDate').value;
+    const adminNotes = document.getElementById('dispatchAdminNotes').value.trim();
+
+    try {
+        const res = await fetch(`${API_BASE}/complaints/${id}/notify-maintenance`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                assignedTo: assignedTo,
+                priority: priority,
+                dueDate: dueDate,
+                adminNotes: adminNotes
+            })
+        });
+
+        if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+
+        closeModal('notifyMaintenanceModal');
+        showToast(`Maintenance dispatched successfully to ${assignedTo}!`, 'success');
+        await loadAdminComplaints();
+    } catch (err) {
+        console.error("Failed to dispatch:", err);
+        showToast(`Dispatch failed: ${err.message}`, 'error');
+    }
+}
+
+// Open Late / Overdue Escalation Modal
+function openEscalateModal(complaintId) {
+    const complaint = (allAdminComplaintsData || []).find(c => c.id === complaintId);
+    if (!complaint) return;
+
+    document.getElementById('escalateComplaintId').value = complaint.id;
+    const days = complaint.daysLate || 2;
+    const roomStr = complaint.roomNumber || 'Room';
+    const itemStr = complaint.item || 'Item';
+    const tech = complaint.assignedTo || 'Maintenance Crew';
+    const timesAlerted = complaint.escalationCount || 0;
+
+    document.getElementById('escalateDelayDetail').innerHTML = `
+        <strong>Complaint #${complaint.id} (${roomStr} - ${itemStr})</strong><br>
+        Currently assigned to: <strong>${tech}</strong><br>
+        Delay status: <span style="color:#ff4757; font-weight:800;">${days} Days Overdue</span> (Alerted ${timesAlerted} times previously).
+    `;
+
+    document.getElementById('escalateNoteText').value = `URGENT OVERDUE ALERT: Repair for ${itemStr} in Room ${roomStr} has been delayed by ${days} days. Attend and fix immediately today!`;
+
+    openModal('escalateLateComplaintModal');
+}
+
+// Submit Late Escalation
+async function submitEscalateComplaint(e) {
+    e.preventDefault();
+    const id = document.getElementById('escalateComplaintId').value;
+    const note = document.getElementById('escalateNoteText').value.trim();
+
+    try {
+        const res = await fetch(`${API_BASE}/complaints/${id}/escalate`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ note: note })
+        });
+
+        if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+
+        closeModal('escalateLateComplaintModal');
+        showToast("Urgent Late Reminder sent to Maintenance Crew with High Priority!", "success");
+        await loadAdminComplaints();
+    } catch (err) {
+        console.error("Failed to escalate:", err);
+        showToast(`Escalation failed: ${err.message}`, 'error');
+    }
+}
+
+// Resolve Complaint
+async function resolveComplaint(id) {
+    try {
+        const res = await fetch(`${API_BASE}/complaints/${id}/resolve`, {
+            method: 'PUT'
+        });
+        if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+
+        showToast("Complaint marked as resolved!", "success");
+        await loadAdminComplaints();
+    } catch (err) {
+        console.error("Failed to resolve complaint:", err);
+        showToast(`Resolution failed: ${err.message}`, 'error');
+    }
+}
+
 
 async function loadAdminGatePasses() {
     try {
