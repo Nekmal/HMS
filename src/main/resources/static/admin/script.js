@@ -665,6 +665,9 @@ function renderUsersTables() {
     }
 }
 
+let selectedRoomBlock = 'ALL';
+let roomSearchQuery = '';
+
 async function loadRooms() {
     try {
         const [roomsRes, dmgRes] = await Promise.all([
@@ -674,40 +677,189 @@ async function loadRooms() {
         allRoomsData = await roomsRes.json();
         allRoomDamagesData = await dmgRes.json();
 
-        const tbody = document.getElementById('rooms-table-body');
-        if (!tbody) return;
-        tbody.innerHTML = '';
-        allRoomsData.forEach(room => {
-            const isFull = room.currentOccupancy >= room.capacity;
-            const statusBadge = isFull 
-                ? `<span class="status pending" style="background:#ff4757; color:#fff; font-weight:700;">FULL (4/4)</span>` 
-                : `<span class="status paid">${room.capacity - room.currentOccupancy} Beds Available</span>`;
-            
-            // Check if this room has broken equipment
-            const activeDamages = allRoomDamagesData.filter(d => d.room && d.room.id === room.id && d.status !== 'REPAIRED');
-            let damageBadge = '';
-            if (activeDamages.length > 0) {
-                const itemSummary = activeDamages.map(d => `${d.brokenQuantity}x ${d.inventory ? d.inventory.itemName : 'Item'}`).join(', ');
-                damageBadge = `<div style="margin-top:4px;"><span class="status pending" style="background:#fff0f3; color:#d63031; border:1px solid #ff7675; font-size:11.5px; padding:3px 8px;" title="${itemSummary}"><i class="fas fa-tools"></i> <strong>${activeDamages.length} Damaged:</strong> ${itemSummary}</span></div>`;
-            }
-
-            tbody.innerHTML += `
-                <tr>
-                    <td>${room.id}</td>
-                    <td><strong>${room.roomNumber}</strong></td>
-                    <td><span class="status allocated">${room.blockName}</span></td>
-                    <td><strong>${room.currentOccupancy}</strong> / ${room.capacity} Students</td>
-                    <td>
-                        ${statusBadge}
-                        ${damageBadge}
-                    </td>
-                </tr>
-            `;
-        });
+        updateBlockButtonCounts();
+        renderRoomsTable();
     } catch (e) {
         console.error("Failed to load rooms", e);
     }
 }
+
+function updateBlockButtonCounts() {
+    if (!allRoomsData || !allRoomsData.length) return;
+    
+    const countAll = allRoomsData.length;
+    const countA = allRoomsData.filter(r => r.blockName === 'Block A').length;
+    const countB = allRoomsData.filter(r => r.blockName === 'Block B').length;
+    const countC = allRoomsData.filter(r => r.blockName === 'Block C').length;
+    const countD = allRoomsData.filter(r => r.blockName === 'Block D').length;
+
+    const elAll = document.getElementById('block-count-all');
+    if (elAll) elAll.innerText = `${countAll} Rooms`;
+    const elA = document.getElementById('block-count-a');
+    if (elA) elA.innerText = `${countA} Rooms`;
+    const elB = document.getElementById('block-count-b');
+    if (elB) elB.innerText = `${countB} Rooms`;
+    const elC = document.getElementById('block-count-c');
+    if (elC) elC.innerText = `${countC} Rooms`;
+    const elD = document.getElementById('block-count-d');
+    if (elD) elD.innerText = `${countD} Rooms`;
+}
+
+function filterRoomsByBlock(blockName) {
+    selectedRoomBlock = blockName;
+    
+    // Toggle active class on buttons
+    document.querySelectorAll('.block-tab-btn').forEach(btn => btn.classList.remove('active'));
+    let activeBtnId = 'blockBtn-ALL';
+    if (blockName === 'Block A') activeBtnId = 'blockBtn-A';
+    else if (blockName === 'Block B') activeBtnId = 'blockBtn-B';
+    else if (blockName === 'Block C') activeBtnId = 'blockBtn-C';
+    else if (blockName === 'Block D') activeBtnId = 'blockBtn-D';
+    
+    const activeBtn = document.getElementById(activeBtnId);
+    if (activeBtn) activeBtn.classList.add('active');
+
+    renderRoomsTable();
+}
+
+function onRoomSearchChange() {
+    const input = document.getElementById('roomSearchInput');
+    roomSearchQuery = input ? input.value.trim().toLowerCase() : '';
+    renderRoomsTable();
+}
+
+function renderRoomsTable() {
+    const tbody = document.getElementById('rooms-table-body');
+    if (!tbody) return;
+
+    if (!allRoomsData || !allRoomsData.length) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:30px; color:#888;">No rooms loaded.</td></tr>`;
+        return;
+    }
+
+    // Filter by Block
+    let filtered = allRoomsData;
+    if (selectedRoomBlock !== 'ALL') {
+        filtered = filtered.filter(r => r.blockName === selectedRoomBlock);
+    }
+
+    // Filter by Search Query
+    if (roomSearchQuery) {
+        filtered = filtered.filter(r => 
+            (r.roomNumber && r.roomNumber.toLowerCase().includes(roomSearchQuery)) ||
+            (r.blockName && r.blockName.toLowerCase().includes(roomSearchQuery)) ||
+            (String(r.id).includes(roomSearchQuery))
+        );
+    }
+
+    // Update Block Summary Card
+    updateBlockSummaryCard(filtered);
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" style="text-align: center; padding: 40px 20px; color: #888;">
+                    <i class="fas fa-door-closed" style="font-size: 32px; color: #ced6e0; margin-bottom: 10px; display: block;"></i>
+                    <strong style="font-size: 15px; color: #57606f;">No rooms found in ${selectedRoomBlock === 'ALL' ? 'Any Block' : selectedRoomBlock}</strong>
+                    <div style="font-size: 12.5px; color: #a4b0be; margin-top: 4px;">${roomSearchQuery ? `No rooms match search term "${roomSearchQuery}"` : 'There are currently no rooms registered under this block filter.'}</div>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = '';
+    filtered.forEach(room => {
+        const isFull = room.currentOccupancy >= room.capacity;
+        const availableBeds = Math.max(0, room.capacity - room.currentOccupancy);
+        const statusBadge = isFull 
+            ? `<span class="status pending" style="background:#ff4757; color:#fff; font-weight:700; box-shadow: 0 2px 6px rgba(255, 71, 87, 0.3);">FULL (4/4)</span>` 
+            : `<span class="status paid" style="background:rgba(46, 213, 115, 0.15); color:#2ed573; border:1px solid rgba(46, 213, 115, 0.3); font-weight:700;"><i class="fas fa-bed"></i> ${availableBeds} Beds Available</span>`;
+        
+        // Check if this room has broken equipment
+        const activeDamages = allRoomDamagesData.filter(d => d.room && d.room.id === room.id && d.status !== 'REPAIRED');
+        let damageBadge = '';
+        if (activeDamages.length > 0) {
+            const itemSummary = activeDamages.map(d => `${d.brokenQuantity}x ${d.inventory ? d.inventory.itemName : 'Item'}`).join(', ');
+            damageBadge = `<div style="margin-top:5px;"><span class="status pending" style="background:#fff0f3; color:#d63031; border:1px solid #ff7675; font-size:11.5px; padding:3px 8px; border-radius: 6px;" title="${itemSummary}"><i class="fas fa-tools"></i> <strong>${activeDamages.length} Damaged:</strong> ${itemSummary}</span></div>`;
+        }
+
+        // Extract Floor indicator if room has standard numbering like A-101, A-201
+        let floorInfo = room.blockName;
+        if (room.roomNumber && room.roomNumber.length >= 3) {
+            const floorChar = room.roomNumber.charAt(2);
+            if (!isNaN(floorChar)) {
+                floorInfo = `${room.blockName} • Floor ${floorChar}`;
+            }
+        }
+
+        const pct = Math.min(100, Math.round((room.currentOccupancy / room.capacity) * 100));
+
+        tbody.innerHTML += `
+            <tr style="transition: background 0.15s ease;">
+                <td><strong style="color: #747d8c;">#${room.id}</strong></td>
+                <td>
+                    <div style="display: flex; align-items: center; gap: 9px;">
+                        <span style="display: inline-flex; width: 34px; height: 34px; border-radius: 8px; background: rgba(255, 215, 0, 0.14); color: #b78103; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; border: 1px solid rgba(255, 215, 0, 0.3);">
+                            <i class="fas fa-door-open"></i>
+                        </span>
+                        <div>
+                            <strong style="font-size: 14.5px; color: #1e272e;">${room.roomNumber}</strong>
+                        </div>
+                    </div>
+                </td>
+                <td><span class="status allocated" style="font-weight: 600;"><i class="fas fa-building"></i> ${floorInfo}</span></td>
+                <td>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div style="flex: 1; max-width: 90px; height: 7px; background: #eaedf0; border-radius: 4px; overflow: hidden;">
+                            <div style="width: ${pct}%; height: 100%; background: ${isFull ? '#ff4757' : (pct > 0 ? '#2ed573' : '#ced6e0')}; border-radius: 4px;"></div>
+                        </div>
+                        <span style="font-size: 12.5px; font-weight: 700; color: #2f3542;">${room.currentOccupancy} / ${room.capacity}</span>
+                    </div>
+                </td>
+                <td>
+                    ${statusBadge}
+                    ${damageBadge}
+                </td>
+            </tr>
+        `;
+    });
+}
+
+function updateBlockSummaryCard(filteredRooms) {
+    const titleEl = document.getElementById('blockSummaryTitle');
+    const subEl = document.getElementById('blockSummarySub');
+    const statRoomsEl = document.getElementById('blockStatRooms');
+    const statOccupiedEl = document.getElementById('blockStatOccupied');
+    const statAvailableEl = document.getElementById('blockStatAvailable');
+    const statRateEl = document.getElementById('blockStatRate');
+
+    if (!titleEl) return;
+
+    const totalRooms = filteredRooms.length;
+    let totalCap = 0;
+    let totalOccupied = 0;
+    filteredRooms.forEach(r => {
+        totalCap += (r.capacity || 4);
+        totalOccupied += (r.currentOccupancy || 0);
+    });
+    const totalAvailable = Math.max(0, totalCap - totalOccupied);
+    const rate = totalCap > 0 ? ((totalOccupied / totalCap) * 100).toFixed(1) : 0;
+
+    if (selectedRoomBlock === 'ALL') {
+        titleEl.innerHTML = `<i class="fas fa-city" style="color:var(--primary-yellow);"></i> Showing: All Residential Blocks (A, B, C & D)`;
+        if (subEl) subEl.innerText = `100 Total Rooms • Capacity: ${totalCap} Student Beds across all 4 Blocks`;
+    } else {
+        titleEl.innerHTML = `<i class="fas fa-building" style="color:var(--primary-yellow);"></i> Showing: ${selectedRoomBlock} (${totalRooms} Residential Rooms)`;
+        if (subEl) subEl.innerText = `${selectedRoomBlock} Wing • ${totalRooms} Rooms with ${totalCap} Total Student Bed Capacity`;
+    }
+
+    if (statRoomsEl) statRoomsEl.innerText = totalRooms;
+    if (statOccupiedEl) statOccupiedEl.innerText = `${totalOccupied} Students`;
+    if (statAvailableEl) statAvailableEl.innerText = `${totalAvailable} Beds`;
+    if (statRateEl) statRateEl.innerText = `${rate}%`;
+}
+
 
 async function loadInventory() {
     try {
