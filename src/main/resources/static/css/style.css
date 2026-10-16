@@ -725,5 +725,63 @@ tr:hover {
     box-shadow: 0 2px 10px rgba(255, 215, 0, 0.25);
 }
 
+/* Room Block Filter Tabs */
+.block-tab-btn {
+    padding: 8px 16px;
+    border-radius: 10px;
+    border: 1.5px solid #dfe4ea;
+    background: #ffffff;
+    color: #2f3542;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+}
 
+.block-tab-btn:hover {
+    background: #f1f2f6;
+    border-color: #ced6e0;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.07);
+}
 
+.block-tab-btn.active {
+    background: linear-gradient(135deg, #121212 0%, #2f3542 100%);
+    color: #ffffff;
+    border-color: #121212;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.22);
+}
+
+.block-tab-btn i {
+    font-size: 13px;
+    color: #747d8c;
+    transition: color 0.2s;
+}
+
+.block-tab-btn.active i {
+    color: var(--primary-yellow, #FFD700);
+}
+
+.block-badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    background: #f1f2f6;
+    color: #57606f;
+    font-weight: 700;
+    transition: all 0.2s;
+}
+
+.block-tab-btn:hover .block-badge {
+    background: #e4e7eb;
+    color: #2f3542;
+}
+
+.block-tab-btn.active .block-badge {
+    background: rgba(255, 215, 0, 0.18);
+    color: var(--primary-yellow, #FFD700);
+}
