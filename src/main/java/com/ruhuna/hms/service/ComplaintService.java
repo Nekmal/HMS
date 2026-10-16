@@ -18,4 +18,10 @@ public interface ComplaintService {
 
     // Mark a complaint as resolved
     Complaint resolveComplaint(Long id);
+
+    // Notify/dispatch complaint to maintenance personnel
+    Complaint notifyMaintenance(Long id, String assignedTo, String priority, java.time.LocalDate dueDate, String adminNotes);
+
+    // Send urgent reminder / escalate delayed overdue complaint
+    Complaint escalateComplaint(Long id, String escalationNote);
 }

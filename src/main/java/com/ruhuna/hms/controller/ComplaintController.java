@@ -47,4 +47,30 @@ public class ComplaintController {
         Complaint resolved = complaintService.resolveComplaint(id);
         return ResponseEntity.ok(resolved);
     }
+
+    // Notify and dispatch complaint to maintenance personnel with single click or options
+    @PutMapping("/{id}/notify-maintenance")
+    public ResponseEntity<?> notifyMaintenance(
+            @PathVariable Long id,
+            @RequestBody(required = false) java.util.Map<String, String> body) {
+        String assignedTo = body != null ? body.get("assignedTo") : null;
+        String priority = body != null ? body.get("priority") : null;
+        String adminNotes = body != null ? body.get("adminNotes") : null;
+        String dueDateStr = body != null ? body.get("dueDate") : null;
+        java.time.LocalDate dueDate = dueDateStr != null && !dueDateStr.trim().isEmpty() 
+                ? java.time.LocalDate.parse(dueDateStr.trim()) : null;
+
+        Complaint updated = complaintService.notifyMaintenance(id, assignedTo, priority, dueDate, adminNotes);
+        return ResponseEntity.ok(updated);
+    }
+
+    // Send urgent reminder or escalate delayed overdue maintenance
+    @PutMapping("/{id}/escalate")
+    public ResponseEntity<?> escalateComplaint(
+            @PathVariable Long id,
+            @RequestBody(required = false) java.util.Map<String, String> body) {
+        String note = body != null ? body.get("note") : null;
+        Complaint escalated = complaintService.escalateComplaint(id, note);
+        return ResponseEntity.ok(escalated);
+    }
 }
