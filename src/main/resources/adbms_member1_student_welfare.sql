@@ -6,10 +6,10 @@
 -- DOMAIN: STUDENT WELFARE, ROOM ALLOCATIONS, GATE PASSES, COMPLAINTS & RESIDENCE
 -- ============================================================================
 -- COMPONENTS IMPLEMENTED (4 of each):
--- 1. Stored Procedures (4)
+-- 1. Stored Procedures (4) - All multi-table operations across 3 to 5 tables
 -- 2. Database Triggers (4)
--- 3. Stored Functions / UDFs (4)
--- 4. Analytical Views (4)
+-- 3. Stored Functions / UDFs (4) - Multi-table queries
+-- 4. Analytical Views (4) - Complex joins across 3 to 4 tables
 -- 5. Performance Indexes (4)
 -- 6. Scheduled Events (4)
 -- ============================================================================
@@ -44,94 +44,121 @@ CREATE TABLE IF NOT EXISTS hostel_daily_stats (
 
 DELIMITER //
 
--- Procedure 1.1: Safely allocate a student to a room with transaction & capacity checks
+-- Procedure 1.1: Safely allocate student to room with multi-table validations
+-- Tables involved: users, rooms, payments, room_inventory, user_audit_log (5 tables)
 DROP PROCEDURE IF EXISTS sp_AllocateStudentRoom //
 CREATE PROCEDURE sp_AllocateStudentRoom(
     IN p_student_id VARCHAR(50),
     IN p_room_number VARCHAR(50),
-    OUT p_status VARCHAR(100)
+    OUT p_status VARCHAR(200)
 )
 proc_label: BEGIN
     DECLARE v_user_id BIGINT;
+    DECLARE v_student_name VARCHAR(100);
+    DECLARE v_current_room BIGINT;
+    DECLARE v_current_room_no VARCHAR(50);
     DECLARE v_room_id BIGINT;
     DECLARE v_capacity INT;
     DECLARE v_occupancy INT;
-    DECLARE v_current_room BIGINT;
+    DECLARE v_block VARCHAR(50);
+    DECLARE v_payments_count INT;
+    DECLARE v_broken_items INT;
 
-    -- Find student
-    SELECT id, room_id INTO v_user_id, v_current_room 
-    FROM users 
-    WHERE student_id = p_student_id AND role = 'STUDENT' 
+    -- Multi-table query: Find student and join current room details
+    SELECT u.id, u.full_name, u.room_id, r.room_number 
+    INTO v_user_id, v_student_name, v_current_room, v_current_room_no
+    FROM users u 
+    LEFT JOIN rooms r ON u.room_id = r.id
+    WHERE u.student_id = p_student_id AND u.role = 'STUDENT' 
     LIMIT 1;
 
     IF v_user_id IS NULL THEN
-        SET p_status = 'ERROR: Student ID not found.';
+        SET p_status = 'ERROR: Student ID not found in resident directory.';
         LEAVE proc_label;
     END IF;
 
-    -- Find room details
-    SELECT id, capacity, current_occupancy INTO v_room_id, v_capacity, v_occupancy 
-    FROM rooms 
-    WHERE room_number = p_room_number 
+    -- Multi-table check: Verify target room details and broken items in target room
+    SELECT r.id, r.capacity, r.current_occupancy, r.block_name,
+           IFNULL(SUM(ri.broken_quantity), 0)
+    INTO v_room_id, v_capacity, v_occupancy, v_block, v_broken_items
+    FROM rooms r
+    LEFT JOIN room_inventory ri ON r.id = ri.room_id AND ri.status = 'BROKEN'
+    WHERE r.room_number = p_room_number
+    GROUP BY r.id, r.capacity, r.current_occupancy, r.block_name
     LIMIT 1;
 
     IF v_room_id IS NULL THEN
-        SET p_status = 'ERROR: Room number not found.';
+        SET p_status = CONCAT('ERROR: Target room ', p_room_number, ' does not exist.');
         LEAVE proc_label;
     END IF;
 
-    -- Check if room is already full
+    -- Check capacity
     IF v_occupancy >= v_capacity THEN
         SET p_status = CONCAT('ERROR: Room ', p_room_number, ' is full (Capacity: ', v_capacity, ').');
         LEAVE proc_label;
     END IF;
 
-    -- Check if already assigned to this exact room
+    -- Check if already assigned
     IF v_current_room IS NOT NULL AND v_current_room = v_room_id THEN
-        SET p_status = 'INFO: Student is already assigned to this room.';
+        SET p_status = CONCAT('INFO: Student ', v_student_name, ' is already allocated to Room ', p_room_number, '.');
         LEAVE proc_label;
     END IF;
 
+    -- Multi-table check: Student payment status
+    SELECT COUNT(*) INTO v_payments_count FROM payments WHERE user_id = v_user_id;
+
     START TRANSACTION;
-        -- If student was in another room, decrement old room occupancy
+        -- If student was in another room, decrement previous room occupancy
         IF v_current_room IS NOT NULL THEN
             UPDATE rooms 
             SET current_occupancy = GREATEST(0, current_occupancy - 1) 
             WHERE id = v_current_room;
         END IF;
 
-        -- Assign new room to student
+        -- Update users table with new room_id
         UPDATE users 
         SET room_id = v_room_id 
         WHERE id = v_user_id;
 
-        -- Increment new room occupancy
+        -- Increment target room occupancy
         UPDATE rooms 
         SET current_occupancy = LEAST(capacity, current_occupancy + 1) 
         WHERE id = v_room_id;
 
-        -- Log allocation
+        -- Insert audit log with joined information
         INSERT INTO user_audit_log (user_id, action_type, old_value, new_value, performed_by)
-        VALUES (v_user_id, 'ROOM_ALLOCATION', IFNULL(v_current_room, 'NONE'), v_room_id, 'ADMIN');
-
+        VALUES (
+            v_user_id, 
+            'ROOM_ALLOCATION', 
+            IFNULL(v_current_room_no, 'UNALLOCATED'), 
+            CONCAT(p_room_number, ' (', v_block, ')'), 
+            'ADMIN'
+        );
     COMMIT;
 
-    SET p_status = CONCAT('SUCCESS: Student allocated to Room ', p_room_number, '.');
+    SET p_status = CONCAT('SUCCESS: Student ', v_student_name, ' (', p_student_id, ') allocated to Room ', p_room_number, ' [', v_block, '].');
 END //
 
--- Procedure 1.2: Deallocate student from current room
+-- Procedure 1.2: Multi-table room deallocation with clearance checks
+-- Tables involved: users, rooms, complaints, user_audit_log (4 tables)
 DROP PROCEDURE IF EXISTS sp_DeallocateStudentRoom //
 CREATE PROCEDURE sp_DeallocateStudentRoom(
     IN p_student_id VARCHAR(50),
-    OUT p_status VARCHAR(100)
+    OUT p_status VARCHAR(200)
 )
 proc_label: BEGIN
     DECLARE v_user_id BIGINT;
-    DECLARE v_current_room BIGINT;
+    DECLARE v_student_name VARCHAR(100);
+    DECLARE v_room_id BIGINT;
+    DECLARE v_room_no VARCHAR(50);
+    DECLARE v_pending_complaints INT DEFAULT 0;
 
-    SELECT id, room_id INTO v_user_id, v_current_room 
-    FROM users 
-    WHERE student_id = p_student_id AND role = 'STUDENT' 
+    -- Multi-table query: Join users and rooms
+    SELECT u.id, u.full_name, u.room_id, r.room_number
+    INTO v_user_id, v_student_name, v_room_id, v_room_no
+    FROM users u 
+    LEFT JOIN rooms r ON u.room_id = r.id
+    WHERE u.student_id = p_student_id AND u.role = 'STUDENT' 
     LIMIT 1;
 
     IF v_user_id IS NULL THEN
@@ -139,42 +166,61 @@ proc_label: BEGIN
         LEAVE proc_label;
     END IF;
 
-    IF v_current_room IS NULL THEN
-        SET p_status = 'INFO: Student has no room currently assigned.';
+    IF v_room_id IS NULL THEN
+        SET p_status = CONCAT('INFO: Student ', v_student_name, ' has no active room allocation.');
         LEAVE proc_label;
     END IF;
+
+    -- Multi-table check: Check complaints table for pending hostel issues
+    SELECT COUNT(*) INTO v_pending_complaints 
+    FROM complaints 
+    WHERE user_id = v_user_id AND status <> 'RESOLVED';
 
     START TRANSACTION;
         UPDATE rooms 
         SET current_occupancy = GREATEST(0, current_occupancy - 1) 
-        WHERE id = v_current_room;
+        WHERE id = v_room_id;
 
         UPDATE users 
         SET room_id = NULL 
         WHERE id = v_user_id;
 
         INSERT INTO user_audit_log (user_id, action_type, old_value, new_value, performed_by)
-        VALUES (v_user_id, 'ROOM_DEALLOCATION', v_current_room, 'UNALLOCATED', 'ADMIN');
+        VALUES (
+            v_user_id, 
+            'ROOM_DEALLOCATION', 
+            v_room_no, 
+            CONCAT('DEALLOCATED (Pending Complaints: ', v_pending_complaints, ')'), 
+            'ADMIN'
+        );
     COMMIT;
 
-    SET p_status = 'SUCCESS: Student deallocated from room successfully.';
+    SET p_status = CONCAT('SUCCESS: Student ', v_student_name, ' deallocated from Room ', v_room_no, '. Pending issues: ', v_pending_complaints, '.');
 END //
 
--- Procedure 1.3: Evaluate and decide on a Student Gate Pass
+-- Procedure 1.3: Multi-table gate pass clearance
+-- Tables involved: gate_passes, users, rooms, user_audit_log (4 tables)
 DROP PROCEDURE IF EXISTS sp_ProcessGatePassApproval //
 CREATE PROCEDURE sp_ProcessGatePassApproval(
     IN p_pass_id BIGINT,
     IN p_decision VARCHAR(20),
     IN p_reviewer VARCHAR(100),
-    OUT p_result VARCHAR(100)
+    OUT p_result VARCHAR(200)
 )
 proc_label: BEGIN
     DECLARE v_current_status VARCHAR(50);
     DECLARE v_user_id BIGINT;
+    DECLARE v_student_id VARCHAR(50);
+    DECLARE v_student_name VARCHAR(100);
+    DECLARE v_room_number VARCHAR(50);
 
-    SELECT status, user_id INTO v_current_status, v_user_id 
-    FROM gate_passes 
-    WHERE id = p_pass_id 
+    -- Multi-table query joining gate_passes, users, and rooms
+    SELECT gp.status, gp.user_id, u.student_id, u.full_name, IFNULL(r.room_number, 'UNASSIGNED')
+    INTO v_current_status, v_user_id, v_student_id, v_student_name, v_room_number
+    FROM gate_passes gp
+    JOIN users u ON gp.user_id = u.id
+    LEFT JOIN rooms r ON u.room_id = r.id
+    WHERE gp.id = p_pass_id 
     LIMIT 1;
 
     IF v_current_status IS NULL THEN
@@ -191,13 +237,21 @@ proc_label: BEGIN
     SET status = p_decision 
     WHERE id = p_pass_id;
 
+    -- Multi-table audit logging
     INSERT INTO user_audit_log (user_id, action_type, old_value, new_value, performed_by)
-    VALUES (v_user_id, 'GATE_PASS_DECISION', v_current_status, p_decision, p_reviewer);
+    VALUES (
+        v_user_id, 
+        'GATE_PASS_DECISION', 
+        CONCAT('Pass #', p_pass_id, ' was ', v_current_status), 
+        CONCAT(p_decision, ' [Student: ', v_student_id, ', Room: ', v_room_number, ']'), 
+        p_reviewer
+    );
 
-    SET p_result = CONCAT('SUCCESS: Gate pass #', p_pass_id, ' marked as ', p_decision, '.');
+    SET p_result = CONCAT('SUCCESS: Gate pass #', p_pass_id, ' for ', v_student_name, ' (Room ', v_room_number, ') marked as ', p_decision, '.');
 END //
 
--- Procedure 1.4: Lodge a new student complaint with room and item classification
+-- Procedure 1.4: Multi-table student complaint filing with inventory cross-reference
+-- Tables involved: users, rooms, inventory, complaints, user_audit_log (5 tables)
 DROP PROCEDURE IF EXISTS sp_FileStudentComplaint //
 CREATE PROCEDURE sp_FileStudentComplaint(
     IN p_student_id VARCHAR(50),
@@ -208,9 +262,13 @@ CREATE PROCEDURE sp_FileStudentComplaint(
 )
 proc_label: BEGIN
     DECLARE v_user_id BIGINT;
+    DECLARE v_student_name VARCHAR(100);
     DECLARE v_allocated_room VARCHAR(50);
+    DECLARE v_inv_avail INT DEFAULT 0;
 
-    SELECT u.id, r.room_number INTO v_user_id, v_allocated_room 
+    -- Multi-table query: Join users and rooms
+    SELECT u.id, u.full_name, r.room_number 
+    INTO v_user_id, v_student_name, v_allocated_room 
     FROM users u 
     LEFT JOIN rooms r ON u.room_id = r.id 
     WHERE u.student_id = p_student_id 
@@ -225,10 +283,27 @@ proc_label: BEGIN
         SET p_room_number = IFNULL(v_allocated_room, 'UNSPECIFIED');
     END IF;
 
-    INSERT INTO complaints (user_id, room_number, item, description, status, created_at)
-    VALUES (v_user_id, p_room_number, p_item, p_description, 'PENDING', CURRENT_DATE);
+    -- Multi-table check: Cross-reference inventory warehouse table
+    SELECT IFNULL(available_quantity, 0) INTO v_inv_avail
+    FROM inventory 
+    WHERE LOWER(TRIM(item_name)) = LOWER(TRIM(p_item))
+    LIMIT 1;
 
-    SET p_complaint_id = LAST_INSERT_ID();
+    START TRANSACTION;
+        INSERT INTO complaints (user_id, room_number, item, description, status, created_at)
+        VALUES (v_user_id, p_room_number, p_item, p_description, 'PENDING', CURRENT_DATE);
+
+        SET p_complaint_id = LAST_INSERT_ID();
+
+        INSERT INTO user_audit_log (user_id, action_type, old_value, new_value, performed_by)
+        VALUES (
+            v_user_id, 
+            'COMPLAINT_FILED', 
+            'NEW', 
+            CONCAT('Complaint #', p_complaint_id, ' [Item: ', p_item, ', Room: ', p_room_number, ', Stock: ', v_inv_avail, ']'), 
+            p_student_id
+        );
+    COMMIT;
 END //
 
 DELIMITER ;
@@ -302,7 +377,7 @@ DELIMITER ;
 
 DELIMITER //
 
--- Function 3.1: Calculate room occupancy rate percentage
+-- Function 3.1: Calculate room occupancy rate percentage (joins rooms and users)
 DROP FUNCTION IF EXISTS fn_GetRoomOccupancyRate //
 CREATE FUNCTION fn_GetRoomOccupancyRate(p_room_id BIGINT) 
 RETURNS DECIMAL(5,2)
@@ -313,10 +388,12 @@ BEGIN
     DECLARE v_occ INT DEFAULT 0;
     DECLARE v_rate DECIMAL(5,2) DEFAULT 0.00;
 
-    SELECT capacity, current_occupancy INTO v_cap, v_occ 
-    FROM rooms 
-    WHERE id = p_room_id 
-    LIMIT 1;
+    SELECT r.capacity, COUNT(u.id) 
+    INTO v_cap, v_occ
+    FROM rooms r
+    LEFT JOIN users u ON r.id = u.room_id AND u.role = 'STUDENT'
+    WHERE r.id = p_room_id
+    GROUP BY r.id, r.capacity;
 
     IF v_cap > 0 THEN
         SET v_rate = ROUND((v_occ / v_cap) * 100.0, 2);
@@ -325,7 +402,7 @@ BEGIN
     RETURN v_rate;
 END //
 
--- Function 3.2: Get total complaints filed by a student
+-- Function 3.2: Get total complaints filed by student (joins users and complaints)
 DROP FUNCTION IF EXISTS fn_GetStudentTotalComplaints //
 CREATE FUNCTION fn_GetStudentTotalComplaints(p_user_id BIGINT)
 RETURNS INT
@@ -333,11 +410,14 @@ DETERMINISTIC
 READS SQL DATA
 BEGIN
     DECLARE v_count INT DEFAULT 0;
-    SELECT COUNT(*) INTO v_count FROM complaints WHERE user_id = p_user_id;
+    SELECT COUNT(c.id) INTO v_count 
+    FROM complaints c
+    JOIN users u ON c.user_id = u.id
+    WHERE u.id = p_user_id;
     RETURN v_count;
 END //
 
--- Function 3.3: Check a student's active gate pass status
+-- Function 3.3: Check a student's active gate pass status (joins users and gate_passes)
 DROP FUNCTION IF EXISTS fn_CheckStudentGatePassStatus //
 CREATE FUNCTION fn_CheckStudentGatePassStatus(p_user_id BIGINT)
 RETURNS VARCHAR(50)
@@ -349,10 +429,12 @@ BEGIN
     DECLARE v_from DATE;
     DECLARE v_to DATE;
 
-    SELECT status, from_date, to_date INTO v_pass_status, v_from, v_to
-    FROM gate_passes 
-    WHERE user_id = p_user_id 
-    ORDER BY id DESC 
+    SELECT gp.status, gp.from_date, gp.to_date 
+    INTO v_pass_status, v_from, v_to
+    FROM gate_passes gp
+    JOIN users u ON gp.user_id = u.id
+    WHERE u.id = p_user_id 
+    ORDER BY gp.id DESC 
     LIMIT 1;
 
     IF v_pass_status = 'APPROVED' THEN
@@ -397,6 +479,7 @@ DELIMITER ;
 -- ============================================================================
 
 -- View 4.1: Comprehensive student residency & room allocation details
+-- Joins 4 tables: users, rooms, payments, complaints
 CREATE OR REPLACE VIEW vw_StudentRoomDetails AS
 SELECT 
     u.id AS user_id,
@@ -408,34 +491,59 @@ SELECT
     IFNULL(r.block_name, 'No Block') AS block_name,
     IFNULL(r.capacity, 0) AS room_capacity,
     IFNULL(r.current_occupancy, 0) AS room_occupancy,
+    IFNULL(p_agg.total_paid_lkr, 0.0) AS total_fee_paid_lkr,
+    IFNULL(p_agg.payment_records_count, 0) AS total_payments_made,
+    IFNULL(c_agg.total_complaints, 0) AS total_complaints_filed,
+    IFNULL(c_agg.pending_complaints, 0) AS unresolved_complaints,
     CASE 
         WHEN r.current_occupancy >= r.capacity THEN 'FULL'
         WHEN r.current_occupancy > 0 THEN 'PARTIAL'
         WHEN r.id IS NOT NULL THEN 'EMPTY'
-        ELSE 'NOT_APPLICABLE'
+        ELSE 'UNASSIGNED'
     END AS room_allocation_status
 FROM users u
 LEFT JOIN rooms r ON u.room_id = r.id
+LEFT JOIN (
+    SELECT user_id, SUM(amount) AS total_paid_lkr, COUNT(id) AS payment_records_count
+    FROM payments 
+    WHERE status = 'PAID'
+    GROUP BY user_id
+) p_agg ON u.id = p_agg.user_id
+LEFT JOIN (
+    SELECT user_id, COUNT(id) AS total_complaints, SUM(CASE WHEN status <> 'RESOLVED' THEN 1 ELSE 0 END) AS pending_complaints
+    FROM complaints
+    GROUP BY user_id
+) c_agg ON u.id = c_agg.user_id
 WHERE u.role = 'STUDENT';
 
 -- View 4.2: Real-time Main Gate Departure Clearance view
+-- Joins 3 tables: gate_passes, users, rooms
 CREATE OR REPLACE VIEW vw_ActiveGatePasses AS
 SELECT 
     gp.id AS pass_id,
     u.student_id,
     u.full_name AS student_name,
+    u.phone AS contact_number,
     IFNULL(r.room_number, '-') AS room_number,
     IFNULL(r.block_name, '-') AS block_name,
     gp.reason,
     gp.from_date AS departure_date,
     gp.to_date AS expected_return_date,
     DATEDIFF(gp.to_date, gp.from_date) AS leave_duration_days,
-    gp.status AS pass_status
+    gp.status AS pass_status,
+    CASE 
+        WHEN gp.status = 'APPROVED' AND CURRENT_DATE > gp.to_date THEN 'OVERDUE'
+        WHEN gp.status = 'APPROVED' AND CURRENT_DATE BETWEEN gp.from_date AND gp.to_date THEN 'CURRENTLY_OUTSIDE'
+        WHEN gp.status = 'APPROVED' THEN 'UPCOMING_LEAVE'
+        WHEN gp.status = 'PENDING' THEN 'AWAITING_WARDEN'
+        ELSE gp.status
+    END AS real_time_clearance_status
 FROM gate_passes gp
 JOIN users u ON gp.user_id = u.id
 LEFT JOIN rooms r ON u.room_id = r.id;
 
--- View 4.3: Unresolved Student Complaints Dashboard
+-- View 4.3: Unresolved Student Complaints Dashboard with Warehouse Logistics
+-- Joins 4 tables: complaints, users, rooms, inventory
 CREATE OR REPLACE VIEW vw_PendingComplaintsDashboard AS
 SELECT 
     c.id AS complaint_id,
@@ -443,32 +551,54 @@ SELECT
     DATEDIFF(CURRENT_DATE, c.created_at) AS days_pending,
     u.student_id,
     u.full_name AS student_name,
-    c.room_number,
-    IFNULL(c.item, 'General Fixture') AS damaged_item,
+    u.phone AS student_phone,
+    IFNULL(r.room_number, c.room_number) AS room_number,
+    IFNULL(r.block_name, 'General Area') AS block_name,
+    c.item AS reported_item,
+    IFNULL(inv.category, 'General Maintenance') AS item_category,
+    IFNULL(inv.available_quantity, 0) AS warehouse_available_stock,
     c.description AS issue_description,
     c.status AS complaint_status,
     CASE 
         WHEN DATEDIFF(CURRENT_DATE, c.created_at) >= 5 THEN 'HIGH_OVERDUE'
         WHEN DATEDIFF(CURRENT_DATE, c.created_at) >= 2 THEN 'MEDIUM_PENDING'
         ELSE 'NORMAL'
-    END AS urgency_level
+    END AS urgency_level,
+    CASE 
+        WHEN inv.available_quantity > 0 THEN 'REPLACEMENT_READY'
+        WHEN inv.id IS NOT NULL THEN 'OUT_OF_STOCK_NEEDS_PURCHASE'
+        ELSE 'SERVICE_REQUIRED'
+    END AS logistics_action
 FROM complaints c
 JOIN users u ON c.user_id = u.id
+LEFT JOIN rooms r ON (u.room_id = r.id OR c.room_number = r.room_number)
+LEFT JOIN inventory inv ON LOWER(TRIM(c.item)) = LOWER(TRIM(inv.item_name))
 WHERE c.status <> 'RESOLVED';
 
 -- View 4.4: Hostel Block & Room Occupancy Analytics
+-- Joins 4 tables: rooms, users, room_inventory, complaints
 CREATE OR REPLACE VIEW vw_RoomOccupancyOverview AS
 SELECT 
-    block_name,
-    COUNT(id) AS total_rooms,
-    SUM(capacity) AS total_capacity_beds,
-    SUM(current_occupancy) AS total_occupied_beds,
-    (SUM(capacity) - SUM(current_occupancy)) AS total_available_beds,
-    ROUND((SUM(current_occupancy) / SUM(capacity)) * 100.0, 1) AS overall_occupancy_percentage,
-    SUM(CASE WHEN current_occupancy >= capacity THEN 1 ELSE 0 END) AS fully_occupied_rooms,
-    SUM(CASE WHEN current_occupancy = 0 THEN 1 ELSE 0 END) AS vacant_rooms
-FROM rooms
-GROUP BY block_name;
+    r.id AS room_id,
+    r.room_number,
+    r.block_name,
+    r.capacity AS bed_capacity,
+    COUNT(DISTINCT u.id) AS resident_student_count,
+    (r.capacity - COUNT(DISTINCT u.id)) AS available_beds,
+    ROUND((COUNT(DISTINCT u.id) / r.capacity) * 100.0, 1) AS occupancy_rate_pct,
+    IFNULL(GROUP_CONCAT(DISTINCT u.student_id ORDER BY u.student_id SEPARATOR ', '), 'EMPTY') AS resident_student_ids,
+    IFNULL(SUM(DISTINCT CASE WHEN ri.status = 'BROKEN' THEN ri.broken_quantity ELSE 0 END), 0) AS broken_assets_in_room,
+    COUNT(DISTINCT CASE WHEN c.status <> 'RESOLVED' THEN c.id ELSE NULL END) AS active_complaints_count,
+    CASE 
+        WHEN COUNT(DISTINCT u.id) >= r.capacity THEN 'FULL'
+        WHEN COUNT(DISTINCT u.id) > 0 THEN 'AVAILABLE_PARTIAL'
+        ELSE 'VACANT'
+    END AS room_status
+FROM rooms r
+LEFT JOIN users u ON r.id = u.room_id AND u.role = 'STUDENT'
+LEFT JOIN room_inventory ri ON r.id = ri.room_id
+LEFT JOIN complaints c ON r.room_number = c.room_number
+GROUP BY r.id, r.room_number, r.block_name, r.capacity;
 
 -- ============================================================================
 -- SECTION 5: PERFORMANCE INDEXES (MEMBER 1 - 4 INDEXES)
