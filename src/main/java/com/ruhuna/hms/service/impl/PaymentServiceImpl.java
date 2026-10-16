@@ -61,4 +61,35 @@ public class PaymentServiceImpl implements PaymentService {
 
         return saved;
     }
+
+    // Updates an existing fee transaction record
+    @Override
+    @Transactional
+    public Payment updatePayment(Long id, Payment paymentDetails) {
+        Payment existing = paymentRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Payment record not found with id: " + id));
+
+        existing.setAmount(paymentDetails.getAmount());
+        if (paymentDetails.getStatus() != null && !paymentDetails.getStatus().isEmpty()) {
+            existing.setStatus(paymentDetails.getStatus());
+        }
+        if (paymentDetails.getMonth() != null && !paymentDetails.getMonth().isEmpty()) {
+            existing.setMonth(paymentDetails.getMonth());
+        }
+        if (paymentDetails.getPaymentDate() != null) {
+            existing.setPaymentDate(paymentDetails.getPaymentDate());
+        }
+        if (paymentDetails.getInvoiceNo() != null && !paymentDetails.getInvoiceNo().isEmpty()) {
+            existing.setInvoiceNo(paymentDetails.getInvoiceNo());
+        }
+
+        return paymentRepository.save(existing);
+    }
+
+    // Deletes a payment transaction record
+    @Override
+    @Transactional
+    public void deletePayment(Long id) {
+        paymentRepository.deleteById(id);
+    }
 }
