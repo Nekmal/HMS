@@ -38,4 +38,16 @@ public class PaymentController {
     public Payment createPayment(@RequestBody Payment payment) {
         return paymentService.processPayment(payment);
     }
+
+    // Update an existing student hostel fee payment record
+    @PutMapping("/{id}")
+    public Payment updatePayment(@PathVariable Long id, @RequestBody Payment payment) {
+        return paymentService.updatePayment(id, payment);
+    }
+
+    // Delete a payment transaction record
+    @DeleteMapping("/{id}")
+    public void deletePayment(@PathVariable Long id) {
+        paymentService.deletePayment(id);
+    }
 }
