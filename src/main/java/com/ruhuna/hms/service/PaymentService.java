@@ -15,4 +15,10 @@ public interface PaymentService {
 
     // Process and record a student fee payment
     Payment processPayment(Payment payment);
+
+    // Update an existing payment transaction record
+    Payment updatePayment(Long id, Payment paymentDetails);
+
+    // Delete a payment record by id
+    void deletePayment(Long id);
 }
