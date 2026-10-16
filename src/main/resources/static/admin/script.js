@@ -908,12 +908,24 @@ async function loadInventory() {
 // Admin Payments State & Handlers
 let allAdminPaymentsData = [];
 let selectedPaymentMonth = 'ALL';
+let selectedPaymentCategory = 'ALL'; // 'ALL', 'FULL', 'HALF', 'UNPAID'
+let paymentSearchQuery = '';
+const STANDARD_MONTHLY_FEE = 2000.0;
+const HALF_MONTHLY_FEE = 1000.0;
 
 async function loadAdminPayments() {
     try {
-        const res = await fetch(`${API_BASE}/payments`);
-        if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-        allAdminPaymentsData = await res.json();
+        const [payRes, usersRes] = await Promise.all([
+            fetch(`${API_BASE}/payments`),
+            (!allUsersData || allUsersData.length === 0) ? fetch(`${API_BASE}/users`) : Promise.resolve(null)
+        ]);
+
+        if (!payRes.ok) throw new Error(`HTTP error ${payRes.status}`);
+        allAdminPaymentsData = await payRes.json();
+
+        if (usersRes && usersRes.ok) {
+            allUsersData = await usersRes.json();
+        }
         
         // Extract distinct months
         const monthMap = {};
@@ -962,7 +974,7 @@ async function loadAdminPayments() {
         console.error("Failed to load admin payments:", e);
         const tbody = document.getElementById('payments-table-body-admin');
         if (tbody) {
-            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#ff4757; padding:20px;"><i class="fas fa-exclamation-triangle"></i> Failed to load payments from server.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:#ff4757; padding:20px;"><i class="fas fa-exclamation-triangle"></i> Failed to load payments from server.</td></tr>';
         }
     }
 }
@@ -973,22 +985,88 @@ function onPaymentMonthFilterChange() {
     renderAdminPaymentsTable();
 }
 
+function switchPaymentCategory(category) {
+    selectedPaymentCategory = category;
+
+    ['ALL', 'FULL', 'HALF', 'UNPAID'].forEach(cat => {
+        const btn = document.getElementById(`payTab-${cat}`);
+        if (btn) {
+            if (cat === category) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        }
+    });
+
+    renderAdminPaymentsTable();
+}
+
+function onPaymentSearchChange() {
+    const input = document.getElementById('paymentSearchInput');
+    paymentSearchQuery = input ? input.value.toLowerCase().trim() : '';
+    renderAdminPaymentsTable();
+}
+
+// Helper to determine unpaid students
+function getUnpaidStudentsList(month) {
+    if (!allUsersData || allUsersData.length === 0) return [];
+
+    const students = allUsersData.filter(u => (u.role || '').toUpperCase() === 'STUDENT');
+
+    if (month && month !== 'ALL') {
+        const paidUserIds = new Set();
+        allAdminPaymentsData.forEach(p => {
+            if ((p.month || '').trim().toLowerCase() === month.trim().toLowerCase() && (Number(p.amount) || 0) > 0) {
+                if (p.user && p.user.id) paidUserIds.add(p.user.id);
+            }
+        });
+
+        return students.filter(s => !paidUserIds.has(s.id));
+    } else {
+        const anyPaidUserIds = new Set();
+        allAdminPaymentsData.forEach(p => {
+            if ((Number(p.amount) || 0) > 0) {
+                if (p.user && p.user.id) anyPaidUserIds.add(p.user.id);
+            }
+        });
+
+        return students.filter(s => !anyPaidUserIds.has(s.id));
+    }
+}
+
 function renderAdminPaymentsTable() {
+    const thead = document.getElementById('payments-table-head-admin');
     const tbody = document.getElementById('payments-table-body-admin');
     if (!tbody) return;
 
-    const filtered = allAdminPaymentsData.filter(p => {
+    // Filter payments for month
+    const monthPayments = allAdminPaymentsData.filter(p => {
         if (selectedPaymentMonth === 'ALL') return true;
         return (p.month || '').trim() === selectedPaymentMonth.trim();
     });
 
-    // Compute stats
+    // Counts for Category Tabs
+    const fullPayments = monthPayments.filter(p => (Number(p.amount) >= 2000) || (p.status || '').toUpperCase() === 'PAID');
+    const halfPayments = monthPayments.filter(p => (Number(p.amount) > 0 && Number(p.amount) < 2000) || (p.status || '').toUpperCase() === 'PARTIAL');
+    const unpaidStudents = getUnpaidStudentsList(selectedPaymentMonth);
+
+    // Update Category Badges
+    const badgeAll = document.getElementById('payCount-ALL');
+    if (badgeAll) badgeAll.innerText = monthPayments.length;
+    const badgeFull = document.getElementById('payCount-FULL');
+    if (badgeFull) badgeFull.innerText = fullPayments.length;
+    const badgeHalf = document.getElementById('payCount-HALF');
+    if (badgeHalf) badgeHalf.innerText = halfPayments.length;
+    const badgeUnpaid = document.getElementById('payCount-UNPAID');
+    if (badgeUnpaid) badgeUnpaid.innerText = unpaidStudents.length;
+
+    // Update Summary Header / Bar
     let totalRevenue = 0;
-    filtered.forEach(p => {
+    monthPayments.forEach(p => {
         totalRevenue += (Number(p.amount) || 0);
     });
 
-    // Update Summary Header / Bar
     const titleEl = document.getElementById('paymentSummaryMonthTitle');
     if (titleEl) {
         titleEl.innerText = selectedPaymentMonth === 'ALL' 
@@ -998,7 +1076,7 @@ function renderAdminPaymentsTable() {
 
     const countEl = document.getElementById('paymentSummaryCount');
     if (countEl) {
-        countEl.innerText = `${filtered.length} Invoices`;
+        countEl.innerText = `${monthPayments.length} Invoices (${unpaidStudents.length} Unpaid)`;
     }
 
     const revEl = document.getElementById('paymentSummaryRevenue');
@@ -1006,49 +1084,457 @@ function renderAdminPaymentsTable() {
         revEl.innerText = `Rs. ${totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     }
 
-    if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: #888; padding: 25px;">No payment records found for ${selectedPaymentMonth}.</td></tr>`;
+    // Active Filter Label
+    const activeLabelEl = document.getElementById('paymentActiveFilterLabel');
+    if (activeLabelEl) {
+        if (selectedPaymentCategory === 'ALL') {
+            activeLabelEl.innerText = `Showing: All Invoices (${monthPayments.length})`;
+            activeLabelEl.style.color = '#2ed573';
+        } else if (selectedPaymentCategory === 'FULL') {
+            activeLabelEl.innerText = `Showing: Full Paid Students - Rs. 2,000 (${fullPayments.length})`;
+            activeLabelEl.style.color = '#2ed573';
+        } else if (selectedPaymentCategory === 'HALF') {
+            activeLabelEl.innerText = `Showing: Half Paid Students - Rs. 1,000 (${halfPayments.length})`;
+            activeLabelEl.style.color = '#ffa502';
+        } else if (selectedPaymentCategory === 'UNPAID') {
+            activeLabelEl.innerText = `Showing: Unpaid Resident Students (${unpaidStudents.length})`;
+            activeLabelEl.style.color = '#ff4757';
+        }
+    }
+
+    // Render based on selected category
+    if (selectedPaymentCategory === 'UNPAID') {
+        if (thead) {
+            thead.innerHTML = `
+                <tr>
+                    <th style="width: 45px;">#</th>
+                    <th>Student TG No</th>
+                    <th>Student Name</th>
+                    <th>Room & Block</th>
+                    <th>Contact Info</th>
+                    <th>Billing Month</th>
+                    <th>Fee Arrears</th>
+                    <th>Payment Status</th>
+                    <th style="text-align: center; width: 140px;">Action</th>
+                </tr>
+            `;
+        }
+
+        const filteredUnpaid = unpaidStudents.filter(s => {
+            if (!paymentSearchQuery) return true;
+            const tg = (s.studentId || '').toLowerCase();
+            const name = (s.fullName || '').toLowerCase();
+            const email = (s.email || '').toLowerCase();
+            const phone = (s.phone || '').toLowerCase();
+            const room = s.room ? `${s.room.roomNumber} ${s.room.blockName || ''}`.toLowerCase() : '';
+            return tg.includes(paymentSearchQuery) || name.includes(paymentSearchQuery) || 
+                   email.includes(paymentSearchQuery) || phone.includes(paymentSearchQuery) || room.includes(paymentSearchQuery);
+        });
+
+        if (filteredUnpaid.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: #2ed573; padding: 25px; font-weight: 600;"><i class="fas fa-check-circle"></i> Great! No unpaid students found for ${selectedPaymentMonth}.</td></tr>`;
+            return;
+        }
+
+        const effectiveMonth = selectedPaymentMonth === 'ALL' ? 'Current Term' : selectedPaymentMonth;
+        let rowsHtml = '';
+        filteredUnpaid.forEach((s, idx) => {
+            const tg = s.studentId || s.username || '-';
+            const name = s.fullName || 'Resident Student';
+            const roomStr = s.room ? `${s.room.roomNumber} (${s.room.blockName || 'Hostel'})` : '<span style="color:#888;">Unassigned</span>';
+            const phoneStr = s.phone ? `<i class="fas fa-phone-alt" style="font-size:11px; color:#888;"></i> ${s.phone}` : '-';
+            const emailStr = s.email ? `<div style="font-size:11.5px; color:#94a3b8;"><i class="fas fa-envelope" style="font-size:11px;"></i> ${s.email}</div>` : '';
+
+            rowsHtml += `
+                <tr>
+                    <td style="color: #888; font-weight: 600;">${idx + 1}</td>
+                    <td><span style="background: rgba(255,255,255,0.06); padding: 3px 8px; border-radius: 4px; font-size: 12px; font-family: monospace; font-weight: 700; color: #ffa502;">${tg}</span></td>
+                    <td style="font-weight: 700; color: #fff;">${name}</td>
+                    <td><span style="font-weight: 600; color: #cbd5e1;">${roomStr}</span></td>
+                    <td><div>${phoneStr}</div>${emailStr}</td>
+                    <td><span style="font-weight: 600; color: #cbd5e1;">${effectiveMonth}</span></td>
+                    <td style="font-weight: 800; color: #ff4757;">Rs. 2,000.00</td>
+                    <td><span class="status unpaid"><i class="fas fa-exclamation-circle"></i> UNPAID</span></td>
+                    <td style="text-align: center;">
+                        <button class="btn btn-sm" onclick="openRecordPaymentForStudent(${s.id}, '${effectiveMonth}')" style="background: #2ed573; color: #121212; font-weight: 800; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; box-shadow: 0 2px 6px rgba(46,213,115,0.3);">
+                            <i class="fas fa-hand-holding-usd"></i> Record
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+        tbody.innerHTML = rowsHtml;
+        return;
+    }
+
+    // Default: ALL, FULL, or HALF Payments View
+    if (thead) {
+        thead.innerHTML = `
+            <tr>
+                <th style="width: 45px;">#</th>
+                <th>Invoice ID</th>
+                <th>Student Name</th>
+                <th>Student TG No</th>
+                <th>Billing Month</th>
+                <th>Amount</th>
+                <th>Payment Date</th>
+                <th>Status</th>
+                <th style="text-align: center; width: 90px;">Action</th>
+            </tr>
+        `;
+    }
+
+    let displayedPayments = monthPayments;
+    if (selectedPaymentCategory === 'FULL') {
+        displayedPayments = fullPayments;
+    } else if (selectedPaymentCategory === 'HALF') {
+        displayedPayments = halfPayments;
+    }
+
+    if (paymentSearchQuery) {
+        displayedPayments = displayedPayments.filter(p => {
+            const invoice = (p.invoiceNo || `INV-${p.id}`).toLowerCase();
+            const stuName = (p.user ? (p.user.fullName || '') : '').toLowerCase();
+            const stuId = (p.user ? (p.user.studentId || p.user.username || '') : '').toLowerCase();
+            const month = (p.month || '').toLowerCase();
+            const status = (p.status || '').toLowerCase();
+            return invoice.includes(paymentSearchQuery) || stuName.includes(paymentSearchQuery) ||
+                   stuId.includes(paymentSearchQuery) || month.includes(paymentSearchQuery) || status.includes(paymentSearchQuery);
+        });
+    }
+
+    if (displayedPayments.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: #888; padding: 25px;">No payment records found matching the criteria.</td></tr>`;
         return;
     }
 
     let rowsHtml = '';
-    filtered.forEach((p, idx) => {
+    displayedPayments.forEach((p, idx) => {
         const invoiceNo = p.invoiceNo || `INV-${p.id}`;
         const stuName = p.user ? (p.user.fullName || 'Student') : 'Unknown';
         const stuId = p.user ? (p.user.studentId || p.user.username || '-') : '-';
         const month = p.month || '-';
-        const amt = Number(p.amount) ? Number(p.amount).toFixed(2) : '0.00';
+        const amtNum = Number(p.amount) || 0;
+        const amtStr = amtNum.toFixed(2);
         const pDate = p.paymentDate ? p.paymentDate : '-';
-        const isPaid = (p.status || 'PAID').toUpperCase() === 'PAID';
-        const statusBadge = `<span class="status ${isPaid ? 'paid' : 'pending'}">${p.status || 'PAID'}</span>`;
+        
+        let statusBadge = '';
+        if (amtNum >= 2000 || (p.status || '').toUpperCase() === 'PAID') {
+            statusBadge = `<span class="status paid"><i class="fas fa-check-circle"></i> FULL (PAID)</span>`;
+        } else if (amtNum > 0 && amtNum < 2000 || (p.status || '').toUpperCase() === 'PARTIAL') {
+            statusBadge = `<span class="status partial"><i class="fas fa-adjust"></i> HALF (PARTIAL)</span>`;
+        } else {
+            statusBadge = `<span class="status pending">${p.status || 'PENDING'}</span>`;
+        }
+
+        const amtColor = amtNum >= 2000 ? '#2ed573' : (amtNum >= 1000 ? '#ffa502' : '#ffffff');
 
         rowsHtml += `
             <tr>
                 <td style="color: #888; font-weight: 600;">${idx + 1}</td>
                 <td style="font-family: monospace; font-weight: 700; color: var(--primary-yellow);">${invoiceNo}</td>
-                <td style="font-weight: 600;">${stuName}</td>
+                <td style="font-weight: 600; color: #fff;">${stuName}</td>
                 <td><span style="background: rgba(255,255,255,0.06); padding: 3px 8px; border-radius: 4px; font-size: 12px; font-family: monospace;">${stuId}</span></td>
                 <td><span style="font-weight: 600; color: #cbd5e1;">${month}</span></td>
-                <td style="font-weight: 700; color: #2ed573;">Rs. ${amt}</td>
+                <td style="font-weight: 800; color: ${amtColor};">Rs. ${amtStr}</td>
                 <td style="color: #94a3b8; font-size: 13px;">${pDate}</td>
                 <td>${statusBadge}</td>
+                <td style="text-align: center;">
+                    <button class="btn btn-sm" onclick="openEditPaymentModal(${p.id})" style="background: rgba(255, 215, 0, 0.12); color: var(--primary-yellow); border: 1px solid rgba(255, 215, 0, 0.35); font-weight: 700; padding: 5px 12px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s;">
+                        <i class="fas fa-edit"></i> Edit
+                    </button>
+                </td>
             </tr>
         `;
     });
     tbody.innerHTML = rowsHtml;
 }
 
+// Edit Payment Modal Handlers
+function openEditPaymentModal(paymentId) {
+    const payment = allAdminPaymentsData.find(p => p.id === paymentId);
+    if (!payment) {
+        showToast('Payment record not found.', 'error');
+        return;
+    }
+
+    document.getElementById('editPaymentId').value = payment.id;
+
+    const stuName = payment.user ? (payment.user.fullName || 'Student') : 'Unknown';
+    const stuId = payment.user ? (payment.user.studentId || payment.user.username || '-') : '-';
+    document.getElementById('editPaymentStudentInfo').innerText = `${stuName} (${stuId})`;
+    document.getElementById('editPaymentInvoiceInfo').innerText = `Invoice: ${payment.invoiceNo || 'INV-' + payment.id} • Registered Date: ${payment.paymentDate || 'N/A'}`;
+
+    const amt = Number(payment.amount) || 2000;
+    document.getElementById('editPaymentAmount').value = amt;
+    document.getElementById('editPaymentStatus').value = payment.status || (amt >= 2000 ? 'PAID' : 'PARTIAL');
+    document.getElementById('editPaymentMonth').value = payment.month || (selectedPaymentMonth !== 'ALL' ? selectedPaymentMonth : 'March 2026');
+    document.getElementById('editPaymentDate').value = payment.paymentDate || new Date().toISOString().split('T')[0];
+
+    updateEditTierButtons(amt);
+    openModal('editPaymentModal');
+}
+
+function updateEditTierButtons(amount) {
+    const btnFull = document.getElementById('editTierBtnFull');
+    const btnHalf = document.getElementById('editTierBtnHalf');
+    if (!btnFull || !btnHalf) return;
+
+    if (amount >= 2000) {
+        btnFull.style.background = 'rgba(46, 213, 115, 0.25)';
+        btnFull.style.borderColor = '#2ed573';
+        btnHalf.style.background = 'rgba(255, 165, 2, 0.08)';
+        btnHalf.style.borderColor = 'rgba(255, 165, 2, 0.3)';
+    } else if (amount === 1000) {
+        btnHalf.style.background = 'rgba(255, 165, 2, 0.25)';
+        btnHalf.style.borderColor = '#ffa502';
+        btnFull.style.background = 'rgba(46, 213, 115, 0.08)';
+        btnFull.style.borderColor = 'rgba(46, 213, 115, 0.3)';
+    } else {
+        btnFull.style.background = 'rgba(255, 255, 255, 0.05)';
+        btnFull.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+        btnHalf.style.background = 'rgba(255, 255, 255, 0.05)';
+        btnHalf.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+    }
+}
+
+function setEditPaymentTier(tier) {
+    const amtInput = document.getElementById('editPaymentAmount');
+    const statusSelect = document.getElementById('editPaymentStatus');
+    if (tier === 'FULL') {
+        amtInput.value = 2000;
+        statusSelect.value = 'PAID';
+        updateEditTierButtons(2000);
+    } else if (tier === 'HALF') {
+        amtInput.value = 1000;
+        statusSelect.value = 'PARTIAL';
+        updateEditTierButtons(1000);
+    }
+}
+
+function onEditAmountChange() {
+    const amt = Number(document.getElementById('editPaymentAmount').value) || 0;
+    const statusSelect = document.getElementById('editPaymentStatus');
+    if (amt >= 2000) {
+        statusSelect.value = 'PAID';
+    } else if (amt > 0 && amt < 2000) {
+        statusSelect.value = 'PARTIAL';
+    }
+    updateEditTierButtons(amt);
+}
+
+async function submitEditPayment(e) {
+    e.preventDefault();
+    const id = document.getElementById('editPaymentId').value;
+    const amount = Number(document.getElementById('editPaymentAmount').value);
+    const status = document.getElementById('editPaymentStatus').value;
+    const month = document.getElementById('editPaymentMonth').value.trim();
+    const paymentDate = document.getElementById('editPaymentDate').value;
+
+    if (!amount || amount <= 0) {
+        showToast('Please enter a valid payment amount.', 'warning');
+        return;
+    }
+    if (!month) {
+        showToast('Please specify a billing month.', 'warning');
+        return;
+    }
+
+    try {
+        const res = await fetch(`${API_BASE}/payments/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                amount: amount,
+                status: status,
+                month: month,
+                paymentDate: paymentDate
+            })
+        });
+
+        if (!res.ok) {
+            const errText = await res.text();
+            throw new Error(errText || `Server responded with ${res.status}`);
+        }
+
+        closeModal('editPaymentModal');
+        showToast(`Payment of Rs. ${amount.toLocaleString()} updated successfully!`, 'success');
+        await loadAdminPayments();
+    } catch (err) {
+        console.error("Failed to update payment:", err);
+        showToast(`Update failed: ${err.message}`, 'error');
+    }
+}
+
+// Record Payment for Unpaid Student Handlers
+function openRecordPaymentForStudent(userId, month) {
+    const student = (allUsersData || []).find(u => u.id === userId);
+    if (!student) {
+        showToast('Student information not found.', 'error');
+        return;
+    }
+
+    document.getElementById('recordPaymentUserId').value = student.id;
+    document.getElementById('recordPaymentStudentName').innerText = `${student.fullName} (${student.studentId || student.username})`;
+    
+    const roomStr = student.room 
+        ? `Allocated Room: ${student.room.roomNumber} (${student.room.blockName || 'Hostel'})` 
+        : 'Room: Not Allocated';
+    document.getElementById('recordPaymentStudentRoom').innerText = roomStr;
+
+    const targetMonth = (month && month !== 'ALL' && month !== 'Current Term') 
+        ? month 
+        : (selectedPaymentMonth !== 'ALL' ? selectedPaymentMonth : 'March 2026');
+    document.getElementById('recordPaymentMonth').value = targetMonth;
+    document.getElementById('recordPaymentDate').value = new Date().toISOString().split('T')[0];
+
+    setRecordPaymentTier('FULL');
+    openModal('recordUnpaidPaymentModal');
+}
+
+function updateRecordTierButtons(amount) {
+    const btnFull = document.getElementById('recTierBtnFull');
+    const btnHalf = document.getElementById('recTierBtnHalf');
+    if (!btnFull || !btnHalf) return;
+
+    if (amount >= 2000) {
+        btnFull.style.background = 'rgba(46, 213, 115, 0.25)';
+        btnFull.style.borderColor = '#2ed573';
+        btnHalf.style.background = 'rgba(255, 165, 2, 0.08)';
+        btnHalf.style.borderColor = 'rgba(255, 165, 2, 0.4)';
+    } else if (amount === 1000) {
+        btnHalf.style.background = 'rgba(255, 165, 2, 0.25)';
+        btnHalf.style.borderColor = '#ffa502';
+        btnFull.style.background = 'rgba(46, 213, 115, 0.08)';
+        btnFull.style.borderColor = 'rgba(46, 213, 115, 0.3)';
+    }
+}
+
+function setRecordPaymentTier(tier) {
+    const amtInput = document.getElementById('recordPaymentAmount');
+    const statusSelect = document.getElementById('recordPaymentStatus');
+    if (tier === 'FULL') {
+        amtInput.value = 2000;
+        statusSelect.value = 'PAID';
+        updateRecordTierButtons(2000);
+    } else if (tier === 'HALF') {
+        amtInput.value = 1000;
+        statusSelect.value = 'PARTIAL';
+        updateRecordTierButtons(1000);
+    }
+}
+
+function onRecordAmountChange() {
+    const amt = Number(document.getElementById('recordPaymentAmount').value) || 0;
+    const statusSelect = document.getElementById('recordPaymentStatus');
+    if (amt >= 2000) {
+        statusSelect.value = 'PAID';
+    } else if (amt > 0 && amt < 2000) {
+        statusSelect.value = 'PARTIAL';
+    }
+    updateRecordTierButtons(amt);
+}
+
+async function submitNewStudentPayment(e) {
+    e.preventDefault();
+    const userId = document.getElementById('recordPaymentUserId').value;
+    const amount = Number(document.getElementById('recordPaymentAmount').value);
+    const status = document.getElementById('recordPaymentStatus').value;
+    const month = document.getElementById('recordPaymentMonth').value.trim();
+    const paymentDate = document.getElementById('recordPaymentDate').value;
+
+    if (!amount || amount <= 0) {
+        showToast('Please enter a valid payment amount.', 'warning');
+        return;
+    }
+    if (!month) {
+        showToast('Please specify a billing month.', 'warning');
+        return;
+    }
+
+    try {
+        const res = await fetch(`${API_BASE}/payments`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                user: { id: Number(userId) },
+                amount: amount,
+                status: status,
+                month: month,
+                paymentDate: paymentDate
+            })
+        });
+
+        if (!res.ok) {
+            const errText = await res.text();
+            throw new Error(errText || `Server responded with ${res.status}`);
+        }
+
+        closeModal('recordUnpaidPaymentModal');
+        showToast(`Fee payment of Rs. ${amount.toLocaleString()} recorded successfully!`, 'success');
+        await loadAdminPayments();
+    } catch (err) {
+        console.error("Failed to record payment:", err);
+        showToast(`Recording failed: ${err.message}`, 'error');
+    }
+}
+
+
 function downloadMonthlyPaymentReport(format) {
-    const filtered = allAdminPaymentsData.filter(p => {
+    const monthLabel = selectedPaymentMonth === 'ALL' ? 'All Months' : selectedPaymentMonth;
+    const fileSafeMonth = monthLabel.replace(/[^a-zA-Z0-9_-]/g, '_');
+
+    // If on UNPAID tab, export unpaid students list
+    if (selectedPaymentCategory === 'UNPAID') {
+        const unpaidStudents = getUnpaidStudentsList(selectedPaymentMonth);
+        if (unpaidStudents.length === 0) {
+            showToast('No unpaid students to export for this selection.', 'info');
+            return;
+        }
+
+        if (format === 'csv') {
+            let csv = '\uFEFF';
+            csv += '"#","Student TG No","Student Name","Allocated Room & Block","Phone","Email","Month Due","Arrears (LKR)","Status"\r\n';
+            unpaidStudents.forEach((s, idx) => {
+                const tg = (s.studentId || s.username || '-').replace(/"/g, '""');
+                const name = (s.fullName || 'Resident Student').replace(/"/g, '""');
+                const roomStr = (s.room ? `${s.room.roomNumber} (${s.room.blockName || 'Hostel'})` : 'Unassigned').replace(/"/g, '""');
+                const phone = (s.phone || '-').replace(/"/g, '""');
+                const email = (s.email || '-').replace(/"/g, '""');
+                csv += `"${idx + 1}","${tg}","${name}","${roomStr}","${phone}","${email}","${monthLabel}","2000.00","UNPAID"\r\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `Ruhuna_Unpaid_Students_${fileSafeMonth}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            showToast(`Downloaded Unpaid Students CSV (${unpaidStudents.length} records)!`, 'success');
+            return;
+        }
+    }
+
+    const monthPayments = allAdminPaymentsData.filter(p => {
         if (selectedPaymentMonth === 'ALL') return true;
         return (p.month || '').trim() === selectedPaymentMonth.trim();
     });
 
+    let filtered = monthPayments;
+    if (selectedPaymentCategory === 'FULL') {
+        filtered = monthPayments.filter(p => (Number(p.amount) >= 2000) || (p.status || '').toUpperCase() === 'PAID');
+    } else if (selectedPaymentCategory === 'HALF') {
+        filtered = monthPayments.filter(p => (Number(p.amount) > 0 && Number(p.amount) < 2000) || (p.status || '').toUpperCase() === 'PARTIAL');
+    }
+
     if (filtered.length === 0) {
         if (typeof showToast === 'function') {
-            showToast('No payment records to download for the selected month.', 'warning');
+            showToast('No payment records to download for the selected category.', 'warning');
         } else {
-            alert('No payment records to download for the selected month.');
+            alert('No payment records to download for the selected category.');
         }
         return;
     }
@@ -1057,9 +1543,6 @@ function downloadMonthlyPaymentReport(format) {
     filtered.forEach(p => {
         totalRevenue += (Number(p.amount) || 0);
     });
-
-    const monthLabel = selectedPaymentMonth === 'ALL' ? 'All Months' : selectedPaymentMonth;
-    const fileSafeMonth = monthLabel.replace(/[^a-zA-Z0-9_-]/g, '_');
 
     if (format === 'csv') {
         // Generate CSV file

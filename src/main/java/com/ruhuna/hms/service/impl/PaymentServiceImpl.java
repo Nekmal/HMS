@@ -43,7 +43,12 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     @Transactional
     public Payment processPayment(Payment payment) {
-        payment.setStatus("PAID");
+        if (payment.getStatus() == null || payment.getStatus().isEmpty()) {
+            payment.setStatus("PAID");
+        }
+        if (payment.getInvoiceNo() == null || payment.getInvoiceNo().isEmpty()) {
+            payment.setInvoiceNo("INV-" + (System.currentTimeMillis() % 10000000));
+        }
         if (payment.getPaymentDate() == null) {
             payment.setPaymentDate(LocalDate.now());
         }

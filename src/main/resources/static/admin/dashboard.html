@@ -616,8 +616,43 @@
                     </div>
                 </div>
 
+                <!-- Payment Category Filter Switcher Tabs -->
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <button type="button" class="pay-tab-btn active" id="payTab-ALL" onclick="switchPaymentCategory('ALL')">
+                            <i class="fas fa-list-ul"></i> <span>All Payments</span>
+                            <span class="badge-count" id="payCount-ALL">0</span>
+                        </button>
+                        <button type="button" class="pay-tab-btn" id="payTab-FULL" onclick="switchPaymentCategory('FULL')">
+                            <i class="fas fa-check-circle" style="color: #2ed573;"></i> <span>Full Paid (Rs. 2,000)</span>
+                            <span class="badge-count" id="payCount-FULL">0</span>
+                        </button>
+                        <button type="button" class="pay-tab-btn" id="payTab-HALF" onclick="switchPaymentCategory('HALF')">
+                            <i class="fas fa-adjust" style="color: #ffa502;"></i> <span>Half Paid (Rs. 1,000)</span>
+                            <span class="badge-count" id="payCount-HALF">0</span>
+                        </button>
+                        <button type="button" class="pay-tab-btn" id="payTab-UNPAID" onclick="switchPaymentCategory('UNPAID')">
+                            <i class="fas fa-exclamation-circle" style="color: #ff4757;"></i> <span>Unpaid Students (Due)</span>
+                            <span class="badge-count" id="payCount-UNPAID">0</span>
+                        </button>
+                    </div>
+                    <div style="position: relative; width: 230px;">
+                        <i class="fas fa-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #888; font-size: 13px;"></i>
+                        <input type="text" id="paymentSearchInput" oninput="onPaymentSearchChange()" placeholder="Search student / TG / invoice..." style="width: 100%; padding: 8px 12px 8px 34px; border-radius: 8px; border: 1.5px solid rgba(255,255,255,0.15); font-size: 13px; outline: none; background: #1c1d21; color: #fff;">
+                    </div>
+                </div>
+
+                <!-- Info Callout Banner for Standard Fee -->
+                <div id="payment-category-info-banner" style="background: rgba(46, 213, 115, 0.08); border-left: 4px solid #2ed573; padding: 10px 16px; border-radius: 6px; margin-bottom: 16px; font-size: 13px; color: #cbd5e1; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                    <div>
+                        <i class="fas fa-info-circle" style="color: #2ed573; margin-right: 6px;"></i>
+                        <span><strong>Standard Hostel Monthly Fee: Rs. 2,000.00</strong> | Full payment = Rs. 2,000.00 (PAID) • Half payment = Rs. 1,000.00 (PARTIAL, Rs. 1,000 balance due).</span>
+                    </div>
+                    <div id="paymentActiveFilterLabel" style="font-weight: 700; color: #2ed573; font-size: 12.5px;">Showing: All Invoices</div>
+                </div>
+
                 <table id="paymentsTableToPrint">
-                    <thead>
+                    <thead id="payments-table-head-admin">
                         <tr>
                             <th style="width: 45px;">#</th>
                             <th>Invoice ID</th>
@@ -627,6 +662,7 @@
                             <th>Amount</th>
                             <th>Payment Date</th>
                             <th>Status</th>
+                            <th style="text-align: center; width: 90px;">Action</th>
                         </tr>
                     </thead>
                     <tbody id="payments-table-body-admin">
@@ -1173,6 +1209,136 @@
                     <i class="fas fa-check"></i> Yes, Mark Repaired
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- Edit Payment Modal -->
+    <div id="editPaymentModal" class="modal">
+        <div class="modal-content" style="max-width: 520px;">
+            <div class="modal-header">
+                <h2><i class="fas fa-edit" style="color: var(--primary-yellow);"></i> Edit Payment Record</h2>
+                <span class="close" onclick="closeModal('editPaymentModal')">&times;</span>
+            </div>
+            <form id="editPaymentForm" onsubmit="submitEditPayment(event)">
+                <input type="hidden" id="editPaymentId">
+
+                <div style="background: rgba(255,255,255,0.04); border-radius: 8px; padding: 12px 14px; margin-bottom: 16px; border-left: 4px solid var(--primary-yellow);">
+                    <div style="font-size: 11.5px; color: #94a3b8; text-transform: uppercase; font-weight: 700;">Student & Invoice Details</div>
+                    <div id="editPaymentStudentInfo" style="font-size: 15px; font-weight: 700; color: #fff; margin-top: 2px;">Loading...</div>
+                    <div id="editPaymentInvoiceInfo" style="font-size: 12.5px; color: #cbd5e1; font-family: monospace; margin-top: 2px;">-</div>
+                </div>
+
+                <!-- Quick Tier Selection -->
+                <div class="form-group">
+                    <label style="font-weight: 600; font-size: 13px; color: #cbd5e1; margin-bottom: 6px; display: block;">Select Payment Plan Tier</label>
+                    <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+                        <button type="button" class="btn btn-sm" id="editTierBtnFull" onclick="setEditPaymentTier('FULL')" style="flex: 1; padding: 10px; border: 1.5px solid #2ed573; background: rgba(46, 213, 115, 0.12); color: #2ed573; font-weight: 700; border-radius: 8px; cursor: pointer;">
+                            <i class="fas fa-check-circle"></i> Full (Rs. 2,000)
+                        </button>
+                        <button type="button" class="btn btn-sm" id="editTierBtnHalf" onclick="setEditPaymentTier('HALF')" style="flex: 1; padding: 10px; border: 1.5px solid #ffa502; background: rgba(255, 165, 2, 0.12); color: #ffa502; font-weight: 700; border-radius: 8px; cursor: pointer;">
+                            <i class="fas fa-adjust"></i> Half (Rs. 1,000)
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label>Amount (LKR) <span class="required-star">*</span></label>
+                        <input type="number" id="editPaymentAmount" step="1" min="0" required placeholder="e.g. 2000" oninput="onEditAmountChange()">
+                    </div>
+                    <div class="form-group">
+                        <label>Payment Status <span class="required-star">*</span></label>
+                        <select id="editPaymentStatus" required>
+                            <option value="PAID">PAID (Full Settlement)</option>
+                            <option value="PARTIAL">PARTIAL (Half / Installment)</option>
+                            <option value="PENDING">PENDING (Unsettled)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label>Billing Month <span class="required-star">*</span></label>
+                        <input type="text" id="editPaymentMonth" required placeholder="e.g. March 2026">
+                    </div>
+                    <div class="form-group">
+                        <label>Payment Date <span class="required-star">*</span></label>
+                        <input type="date" id="editPaymentDate" required>
+                    </div>
+                </div>
+
+                <div class="modal-actions" style="margin-top: 18px;">
+                    <button type="button" class="btn btn-dark btn-modal-cancel" onclick="closeModal('editPaymentModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-modal-submit" style="font-weight: 700;">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Record Payment for Unpaid Student Modal -->
+    <div id="recordUnpaidPaymentModal" class="modal">
+        <div class="modal-content" style="max-width: 520px;">
+            <div class="modal-header">
+                <h2><i class="fas fa-hand-holding-usd" style="color: #2ed573;"></i> Record Student Fee Payment</h2>
+                <span class="close" onclick="closeModal('recordUnpaidPaymentModal')">&times;</span>
+            </div>
+            <form id="recordUnpaidPaymentForm" onsubmit="submitNewStudentPayment(event)">
+                <input type="hidden" id="recordPaymentUserId">
+
+                <div style="background: rgba(46, 213, 115, 0.08); border-radius: 8px; padding: 12px 14px; margin-bottom: 16px; border-left: 4px solid #2ed573;">
+                    <div style="font-size: 11.5px; color: #94a3b8; text-transform: uppercase; font-weight: 700;">Student Details</div>
+                    <div id="recordPaymentStudentName" style="font-size: 16px; font-weight: 800; color: #fff; margin-top: 2px;">-</div>
+                    <div id="recordPaymentStudentRoom" style="font-size: 12.5px; color: #cbd5e1; margin-top: 2px;">-</div>
+                </div>
+
+                <!-- Quick Tier Selection -->
+                <div class="form-group">
+                    <label style="font-weight: 600; font-size: 13px; color: #cbd5e1; margin-bottom: 6px; display: block;">Select Payment Plan Tier</label>
+                    <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+                        <button type="button" class="btn btn-sm" id="recTierBtnFull" onclick="setRecordPaymentTier('FULL')" style="flex: 1; padding: 10px; border: 2px solid #2ed573; background: rgba(46, 213, 115, 0.15); color: #2ed573; font-weight: 700; border-radius: 8px; cursor: pointer;">
+                            <i class="fas fa-check-circle"></i> Full Payment<br><span style="font-size: 14px;">Rs. 2,000.00</span>
+                        </button>
+                        <button type="button" class="btn btn-sm" id="recTierBtnHalf" onclick="setRecordPaymentTier('HALF')" style="flex: 1; padding: 10px; border: 1.5px solid rgba(255, 165, 2, 0.4); background: rgba(255, 165, 2, 0.08); color: #ffa502; font-weight: 700; border-radius: 8px; cursor: pointer;">
+                            <i class="fas fa-adjust"></i> Half Payment<br><span style="font-size: 14px;">Rs. 1,000.00</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label>Amount (LKR) <span class="required-star">*</span></label>
+                        <input type="number" id="recordPaymentAmount" step="1" min="0" required value="2000" oninput="onRecordAmountChange()">
+                    </div>
+                    <div class="form-group">
+                        <label>Payment Status <span class="required-star">*</span></label>
+                        <select id="recordPaymentStatus" required>
+                            <option value="PAID" selected>PAID (Full Settlement)</option>
+                            <option value="PARTIAL">PARTIAL (Half / Installment)</option>
+                            <option value="PENDING">PENDING</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label>Billing Month <span class="required-star">*</span></label>
+                        <input type="text" id="recordPaymentMonth" required placeholder="e.g. March 2026">
+                    </div>
+                    <div class="form-group">
+                        <label>Payment Date <span class="required-star">*</span></label>
+                        <input type="date" id="recordPaymentDate" required>
+                    </div>
+                </div>
+
+                <div class="modal-actions" style="margin-top: 18px;">
+                    <button type="button" class="btn btn-dark btn-modal-cancel" onclick="closeModal('recordUnpaidPaymentModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-modal-submit" style="background: #2ed573; color: #121212; font-weight: 800;">
+                        <i class="fas fa-check"></i> Record Payment
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
