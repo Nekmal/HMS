@@ -27,8 +27,11 @@ function switchMaintenanceTab(tabId) {
         }
     });
 
-    if (tabId === 'repairs') {
-        document.getElementById('page-title').innerText = 'Room Equipment Damages & Repairs';
+    if (tabId === 'dashboard') {
+        document.getElementById('page-title').innerText = 'Maintenance Operations Dashboard';
+        loadDashboardData();
+    } else if (tabId === 'repairs') {
+        document.getElementById('page-title').innerText = 'Room Equipment Damages & Maintenance Tracker';
         loadRoomDamages();
     } else if (tabId === 'complaints') {
         document.getElementById('page-title').innerText = 'Student Maintenance Complaints';
@@ -40,6 +43,12 @@ function switchMaintenanceTab(tabId) {
         document.getElementById('page-title').innerText = 'Campus Notice Board';
         loadNotices();
     }
+}
+
+async function loadDashboardData() {
+    await loadRoomDamages();
+    await loadComplaints();
+    await loadMyAttendance();
 }
 
 // Confirmation Dialog Logic
@@ -123,6 +132,11 @@ async function loadRoomDamages() {
         const cEl = document.getElementById('stat-completed-repairs');
         if (pEl) pEl.innerText = pending;
         if (cEl) cEl.innerText = completed;
+
+        const tabPEl = document.getElementById('repairs-tab-active-cnt');
+        const tabCEl = document.getElementById('repairs-tab-fixed-cnt');
+        if (tabPEl) tabPEl.innerText = pending;
+        if (tabCEl) tabCEl.innerText = completed;
 
         // KPI Summary Cards
         const kpiPend = document.getElementById('kpi-pending-repairs');
@@ -260,9 +274,102 @@ function renderRepairsTable(list) {
 }
 
 function filterRepairsTable() {
-    const block = document.getElementById('repairBlockFilter').value;
-    const filtered = !block ? allDamages : allDamages.filter(d => d.room && d.room.blockName === block);
+    const block = document.getElementById('repairBlockFilter')?.value || '';
+    const query = (document.getElementById('repairSearchInput')?.value || '').toLowerCase();
+    let filtered = allDamages;
+    if (block) {
+        filtered = filtered.filter(d => d.room && d.room.blockName === block);
+    }
+    if (query) {
+        filtered = filtered.filter(d => {
+            const rNo = (d.room ? d.room.roomNumber : '').toLowerCase();
+            const bName = (d.room ? d.room.blockName : '').toLowerCase();
+            const item = (d.inventory ? d.inventory.itemName : '').toLowerCase();
+            const cat = (d.inventory ? d.inventory.category : '').toLowerCase();
+            const desc = (d.damageDescription || '').toLowerCase();
+            return rNo.includes(query) || bName.includes(query) || item.includes(query) || cat.includes(query) || desc.includes(query);
+        });
+    }
     renderRepairsTable(filtered);
+}
+
+function quickSearchRoomDamages() {
+    const input = document.getElementById('quickMaintSearchInput');
+    const resultBox = document.getElementById('quickMaintResultBox');
+    if (!input || !resultBox) return;
+
+    const val = input.value.trim().toLowerCase();
+    if (!val) {
+        showToast("Please enter a room number or equipment name to inspect.", "info");
+        return;
+    }
+
+    resultBox.style.display = 'block';
+
+    const matches = allDamages.filter(d => {
+        const rNo = (d.room ? d.room.roomNumber : '').toLowerCase();
+        const bName = (d.room ? d.room.blockName : '').toLowerCase();
+        const item = (d.inventory ? d.inventory.itemName : '').toLowerCase();
+        return rNo.includes(val) || bName.includes(val) || item.includes(val);
+    });
+
+    if (matches.length === 0) {
+        resultBox.innerHTML = `
+            <div style="background:#e8f8f0; border:1.5px solid #2ed573; border-radius:12px; padding:16px 20px; display:flex; align-items:center; gap:14px;">
+                <i class="fas fa-check-circle" style="color:#2ed573; font-size:26px;"></i>
+                <div>
+                    <h4 style="margin:0; color:#155724; font-size:16px;">All Clear - No Reported Damages!</h4>
+                    <p style="margin:4px 0 0 0; font-size:13.5px; color:#636e72;">No broken equipment records found for "<strong>${escapeQuote(val)}</strong>". All items in this room appear functional.</p>
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    let itemsHtml = matches.map(d => {
+        const isDone = d.status === 'REPAIRED';
+        const stBadge = isDone
+            ? '<span class="status paid"><i class="fas fa-check"></i> Fixed</span>'
+            : '<span class="status pending" style="background:#ff4757; color:#fff;"><i class="fas fa-wrench"></i> Needs Repair</span>';
+        const actBtn = isDone
+            ? ''
+            : `<button class="btn btn-primary btn-sm" onclick="completeRepair(${d.id})" style="background:#2ed573; color:#121212; font-weight:700; padding:4px 10px; border-radius:6px; cursor:pointer;"><i class="fas fa-check"></i> Mark Fixed</button>`;
+        return `
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid #eee; flex-wrap:wrap; gap:8px;">
+                <div>
+                    <strong><i class="fas fa-box" style="color:#e67e22; margin-right:6px;"></i> ${d.inventory ? d.inventory.itemName : 'Item'}</strong>
+                    <span style="font-size:12px; color:#747d8c; margin-left:8px;">Room: <strong>${d.room ? d.room.roomNumber + ' (' + d.room.blockName + ')' : '-'}</strong> | Qty: <strong>${d.brokenQuantity}</strong></span>
+                    <div style="font-size:12px; color:#636e72; margin-top:2px;">${d.damageDescription || 'No description'}</div>
+                </div>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    ${stBadge}
+                    ${actBtn}
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    resultBox.innerHTML = `
+        <div style="background:#fff8e7; border:1.5px solid #ffa502; border-radius:14px; padding:18px 22px; box-shadow:0 4px 12px rgba(0,0,0,0.04);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:10px;">
+                <h4 style="margin:0; font-size:16px; color:#856404;"><i class="fas fa-wrench"></i> Found ${matches.length} Record(s) for "${escapeQuote(val)}"</h4>
+                <button class="btn btn-dark btn-sm" onclick="switchMaintenanceTab('repairs')" style="padding:4px 12px; border-radius:6px; cursor:pointer;">
+                    <i class="fas fa-external-link-alt"></i> View All in Repairs
+                </button>
+            </div>
+            ${itemsHtml}
+        </div>
+    `;
+}
+
+function clearQuickMaintSearch() {
+    const input = document.getElementById('quickMaintSearchInput');
+    const resultBox = document.getElementById('quickMaintResultBox');
+    if (input) input.value = '';
+    if (resultBox) {
+        resultBox.innerHTML = '';
+        resultBox.style.display = 'none';
+    }
 }
 
 function completeRepair(id) {
@@ -545,22 +652,27 @@ async function loadMyAttendance() {
         const todayRecord = records.find(r => r.date === todayStr);
 
         const badge = document.getElementById('todayDutyStatusBadge');
+        const dashDuty = document.getElementById('dash-duty-status-text');
         const btnIn = document.getElementById('btnCheckIn');
         const btnOut = document.getElementById('btnCheckOut');
 
         if (todayRecord) {
             if (todayRecord.status === 'ABSENT') {
                 badge.innerHTML = `<span style="color:#d63031;"><i class="fas fa-exclamation-triangle"></i> <strong>Admin Marked Absence:</strong> ${todayRecord.remarks}</span>`;
+                if (dashDuty) dashDuty.innerHTML = `<span style="color:#d63031; font-weight:700;"><i class="fas fa-exclamation-triangle"></i> Status: ABSENT (${todayRecord.remarks || ''})</span>`;
                 btnIn.disabled = true;
             } else if (todayRecord.status === 'ON_LEAVE') {
                 badge.innerHTML = `<span style="color:#e67e22;"><i class="fas fa-calendar-minus"></i> <strong>Admin Marked Leave:</strong> ${todayRecord.remarks}</span>`;
+                if (dashDuty) dashDuty.innerHTML = `<span style="color:#e67e22; font-weight:700;"><i class="fas fa-calendar-minus"></i> Status: ON LEAVE (${todayRecord.remarks || ''})</span>`;
                 btnIn.disabled = true;
             } else {
                 badge.innerHTML = `<span style="color:#2ed573;"><i class="fas fa-check-circle"></i> Checked In Today at <strong>${todayRecord.checkInTime || '-'}</strong>${todayRecord.checkOutTime ? ' &bull; Checked Out at <strong>' + todayRecord.checkOutTime + '</strong>' : ' (On Duty)'}</span>`;
+                if (dashDuty) dashDuty.innerHTML = `<span style="color:#2ed573; font-weight:700;"><i class="fas fa-check-circle"></i> Checked In: ${todayRecord.checkInTime || '-'} ${todayRecord.checkOutTime ? '(Checked Out: ' + todayRecord.checkOutTime + ')' : '(Active Shift)'}</span>`;
                 if (todayRecord.checkOutTime) btnOut.disabled = true;
             }
         } else {
             badge.innerHTML = `<span style="color:#636e72;"><i class="fas fa-info-circle"></i> Attendance not marked for today yet.</span>`;
+            if (dashDuty) dashDuty.innerHTML = `<span style="color:#636e72;"><i class="fas fa-clock"></i> Not checked in yet today. Ready for duty.</span>`;
         }
 
         const tbody = document.getElementById('maintenance-attendance-tbody');
@@ -679,8 +791,11 @@ window.onload = () => {
     const userName = localStorage.getItem('userName') || 'Maintenance Specialist';
     document.getElementById('header-user-name').innerText = userName;
 
+    const todayDateFormatted = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     const todayDateEl = document.getElementById('today-date-str');
-    if (todayDateEl) todayDateEl.innerText = 'Date: ' + new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    if (todayDateEl) todayDateEl.innerText = 'Date: ' + todayDateFormatted;
+    const dashDuty = document.getElementById('dash-duty-status-text');
+    if (dashDuty) dashDuty.innerText = 'Date: ' + todayDateFormatted + ' | Checking duty status...';
 
-    loadRoomDamages();
+    switchMaintenanceTab('dashboard');
 };

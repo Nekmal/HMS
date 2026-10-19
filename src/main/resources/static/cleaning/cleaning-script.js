@@ -16,13 +16,19 @@ async function initCleaningPortal() {
     loadAttendanceRecords();
     renderCleaningChecklist();
     loadNotices();
+    switchCleaningTab('dashboard');
 }
 
 function setupDateTime() {
     const today = new Date();
+    const formatted = today.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     const dateStrEl = document.getElementById('today-date-str');
     if (dateStrEl) {
-        dateStrEl.innerText = `Date: ${today.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`;
+        dateStrEl.innerText = `Date: ${formatted}`;
+    }
+    const dashDuty = document.getElementById('dash-duty-status-text');
+    if (dashDuty) {
+        dashDuty.innerText = `Date: ${formatted} | Checking shift attendance...`;
     }
 }
 
@@ -53,7 +59,8 @@ function switchCleaningTab(tabId) {
 
     const pageTitle = document.getElementById('page-title');
     if (pageTitle) {
-        if (tabId === 'attendance') pageTitle.innerText = 'Cleaning Duty Attendance & Absence Tracker';
+        if (tabId === 'dashboard') pageTitle.innerText = 'Housekeeping & Sanitation Dashboard';
+        else if (tabId === 'attendance') pageTitle.innerText = 'Cleaning Duty Attendance & Absence Tracker';
         else if (tabId === 'schedule') pageTitle.innerText = 'Daily Hostel Room Sanitation Checklist';
         else if (tabId === 'notices') pageTitle.innerText = 'Campus Housekeeping Notices';
     }
@@ -101,6 +108,16 @@ async function loadCleaningSummary() {
     const statRate = document.getElementById('stat-sanitation-rate');
     if (statRate) statRate.innerText = `${compRate}%`;
 
+    const heroCleaned = document.getElementById('hero-sanitized-count');
+    if (heroCleaned) heroCleaned.innerText = grandCleaned;
+    const heroPending = document.getElementById('hero-pending-count');
+    if (heroPending) heroPending.innerText = grandPending;
+
+    const schedCleaned = document.getElementById('schedule-cleaned-cnt');
+    if (schedCleaned) schedCleaned.innerText = grandCleaned;
+    const schedPending = document.getElementById('schedule-pending-cnt');
+    if (schedPending) schedPending.innerText = grandPending;
+
     // Render Block Sanitation Summary Table
     const tbody = document.getElementById('cleaning-block-summary-tbody');
     if (tbody) {
@@ -132,6 +149,7 @@ async function loadCleaningSummary() {
 async function loadAttendanceRecords() {
     const tbody = document.getElementById('cleaning-attendance-tbody');
     const badge = document.getElementById('todayDutyStatusBadge');
+    const dashDuty = document.getElementById('dash-duty-status-text');
     const btnIn = document.getElementById('btnCheckIn');
     const btnOut = document.getElementById('btnCheckOut');
 
@@ -188,19 +206,22 @@ async function loadAttendanceRecords() {
         const elLeave = document.getElementById('kpi-leave-count');
         if (elLeave) elLeave.innerText = leaveDays;
 
-        // Today's status badge
+        // Today's status badge & dashboard status text
         if (todayLog) {
             if (todayLog.checkOutTime) {
                 if (badge) badge.innerHTML = `<span style="color:#10ac84;"><i class="fas fa-check-double"></i> Shift Completed: Checked in at ${todayLog.checkInTime.substring(11, 16)}, Checked out at ${todayLog.checkOutTime.substring(11, 16)}.</span>`;
+                if (dashDuty) dashDuty.innerHTML = `<span style="color:#10ac84;"><i class="fas fa-check-double"></i> Shift Completed today (In: ${todayLog.checkInTime.substring(11, 16)} | Out: ${todayLog.checkOutTime.substring(11, 16)})</span>`;
                 if (btnIn) btnIn.disabled = true;
                 if (btnOut) btnOut.disabled = true;
             } else {
                 if (badge) badge.innerHTML = `<span style="color:#2ed573;"><i class="fas fa-circle-check"></i> On Duty: Checked in at ${todayLog.checkInTime ? todayLog.checkInTime.substring(11, 16) : 'Shift Start'}. Active cleaning shift.</span>`;
+                if (dashDuty) dashDuty.innerHTML = `<span style="color:#2ed573;"><i class="fas fa-circle-check"></i> Currently ON DUTY (Checked in at ${todayLog.checkInTime ? todayLog.checkInTime.substring(11, 16) : 'Shift Start'})</span>`;
                 if (btnIn) btnIn.disabled = true;
                 if (btnOut) btnOut.disabled = false;
             }
         } else {
             if (badge) badge.innerHTML = `<span><i class="fas fa-clock"></i> Not Checked-In Yet for Today's Shift. Click 'Mark Check-In' to log duty start.</span>`;
+            if (dashDuty) dashDuty.innerHTML = `<span style="color:#e67e22;"><i class="fas fa-clock"></i> Not Checked In Yet for Today's Shift</span>`;
             if (btnIn) btnIn.disabled = false;
             if (btnOut) btnOut.disabled = true;
         }
@@ -247,12 +268,18 @@ function renderCleaningChecklist() {
     const sel = document.getElementById('cleaningBlockSelect');
     const block = sel ? sel.value : 'Block A';
     const letter = block.split(' ')[1] || 'A';
+    const searchQuery = (document.getElementById('cleaningRoomSearchInput')?.value || '').trim().toLowerCase();
     const tbody = document.getElementById('cleaning-checklist-tbody');
     if (!tbody) return;
 
     tbody.innerHTML = '';
+    let renderedCount = 0;
     for (let i = 1; i <= 25; i++) {
         const rNum = `${letter}-${100 + i}`;
+        if (searchQuery && !rNum.toLowerCase().includes(searchQuery)) {
+            continue;
+        }
+        renderedCount++;
         const isCleaned = cleaningDataStore[rNum] !== undefined ? cleaningDataStore[rNum] : (i <= 20);
 
         tbody.innerHTML += `
@@ -272,6 +299,9 @@ function renderCleaningChecklist() {
             </tr>
         `;
     }
+    if (renderedCount === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:#888;">No rooms found matching "${searchQuery}" in ${block}.</td></tr>`;
+    }
 }
 
 function toggleSanitation(roomNum) {
@@ -281,6 +311,98 @@ function toggleSanitation(roomNum) {
     showToast(`Room ${roomNum} status updated!`, 'success');
     renderCleaningChecklist();
     loadCleaningSummary();
+}
+
+function quickSearchRoomSanitation() {
+    const input = document.getElementById('quickCleanSearchInput');
+    const resultBox = document.getElementById('quickCleanResultBox');
+    if (!input || !resultBox) return;
+
+    const val = input.value.trim().toUpperCase();
+    if (!val) {
+        showToast("Please enter a room number to inspect.", "info");
+        return;
+    }
+
+    resultBox.style.display = 'block';
+
+    // Normalize input: e.g. "A-101", "101", "B105", "B-105"
+    let targetRoom = val;
+    let targetBlock = 'Block A';
+
+    if (/^[A-D]-\d{3}$/.test(val)) {
+        targetRoom = val;
+        targetBlock = `Block ${val.charAt(0)}`;
+    } else if (/^[A-D]\d{3}$/.test(val)) {
+        targetRoom = `${val.charAt(0)}-${val.substring(1)}`;
+        targetBlock = `Block ${val.charAt(0)}`;
+    } else if (/^\d{3}$/.test(val)) {
+        const sel = document.getElementById('cleaningBlockSelect')?.value || 'Block A';
+        const letter = sel.split(' ')[1] || 'A';
+        targetRoom = `${letter}-${val}`;
+        targetBlock = sel;
+    }
+
+    const isCleaned = cleaningDataStore[targetRoom] !== undefined ? cleaningDataStore[targetRoom] : true;
+
+    if (isCleaned) {
+        resultBox.innerHTML = `
+            <div style="background:#e8f8f0; border:1.5px solid #2ed573; border-radius:12px; padding:16px 20px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+                <div style="display:flex; align-items:center; gap:14px;">
+                    <i class="fas fa-check-circle" style="color:#2ed573; font-size:26px;"></i>
+                    <div>
+                        <div style="font-weight:700; color:#121212; font-size:15px;">Room ${targetRoom} (${targetBlock}) is <span style="color:#2ed573;">Cleaned & Sanitized</span> today!</div>
+                        <div style="color:#636e72; font-size:12.5px; margin-top:2px;">Swept, mopped, and waste bins cleared. Optimal hygiene verified.</div>
+                    </div>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button class="btn btn-secondary btn-sm" onclick="toggleSanitation('${targetRoom}'); quickSearchRoomSanitation();">
+                        <i class="fas fa-rotate-left"></i> Mark Pending
+                    </button>
+                    <button class="btn btn-primary btn-sm" onclick="selectAndOpenBlockChecklist('${targetBlock}')" style="background:#10ac84; border:none; color:#fff;">
+                        <i class="fas fa-arrow-right"></i> Open Checklist
+                    </button>
+                </div>
+            </div>
+        `;
+    } else {
+        resultBox.innerHTML = `
+            <div style="background:#fff8e7; border:1.5px solid #ffa502; border-radius:12px; padding:16px 20px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+                <div style="display:flex; align-items:center; gap:14px;">
+                    <i class="fas fa-exclamation-triangle" style="color:#ffa502; font-size:26px;"></i>
+                    <div>
+                        <div style="font-weight:700; color:#121212; font-size:15px;">Room ${targetRoom} (${targetBlock}) is <span style="color:#e67e22;">Pending Cleaning</span>!</div>
+                        <div style="color:#636e72; font-size:12.5px; margin-top:2px;">Requires daily sweeping, mopping, and waste disposal.</div>
+                    </div>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button class="btn btn-primary btn-sm" onclick="toggleSanitation('${targetRoom}'); quickSearchRoomSanitation();" style="background:#2ed573; border:none; color:#121212; font-weight:700;">
+                        <i class="fas fa-check"></i> Mark Cleaned Now
+                    </button>
+                    <button class="btn btn-secondary btn-sm" onclick="selectAndOpenBlockChecklist('${targetBlock}')">
+                        <i class="fas fa-arrow-right"></i> Open Checklist
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+}
+
+function selectAndOpenBlockChecklist(blockName) {
+    const sel = document.getElementById('cleaningBlockSelect');
+    if (sel) sel.value = blockName;
+    switchCleaningTab('schedule');
+    renderCleaningChecklist();
+}
+
+function clearQuickCleanSearch() {
+    const input = document.getElementById('quickCleanSearchInput');
+    const resultBox = document.getElementById('quickCleanResultBox');
+    if (input) input.value = '';
+    if (resultBox) {
+        resultBox.innerHTML = '';
+        resultBox.style.display = 'none';
+    }
 }
 
 // 4. Campus Notices

@@ -24,8 +24,9 @@
             </div>
         </div>
         <ul class="sidebar-menu">
-            <li class="active" onclick="switchCleaningTab('attendance')"><i class="fas fa-clock"></i> My Attendance</li>
-            <li onclick="switchCleaningTab('schedule')"><i class="fas fa-tasks"></i> Room Sanitation Checklist</li>
+            <li class="active" onclick="switchCleaningTab('dashboard')"><i class="fas fa-th-large"></i> Dashboard</li>
+            <li onclick="switchCleaningTab('schedule')"><i class="fas fa-broom"></i> Room Cleaning & Sanitation</li>
+            <li onclick="switchCleaningTab('attendance')"><i class="fas fa-clock"></i> My Attendance</li>
             <li onclick="switchCleaningTab('notices')"><i class="fas fa-bullhorn"></i> Campus Notices</li>
         </ul>
         
@@ -39,54 +40,59 @@
     <!-- Main Content -->
     <div class="main-content">
         <div class="header">
-            <h1 id="page-title">Cleaning Duty Attendance & Absence Tracker</h1>
+            <h1 id="page-title">Housekeeping & Sanitation Dashboard</h1>
             <div class="user-profile">
                 <span id="header-user-name">Cleaning Supervisor</span>
                 <img src="https://ui-avatars.com/api/?name=Cleaning+Supervisor&background=10ac84&color=ffffff" alt="Cleaning">
             </div>
         </div>
 
-        <!-- Hero Banner -->
-        <div class="dashboard-hero-banner" style="background-image: linear-gradient(90deg, rgba(16, 172, 132, 0.94) 0%, rgba(29, 209, 161, 0.82) 100%), url('../images/hostel_room_bg.jpg');">
-            <div class="hero-content">
-                <span class="hero-badge" style="background: rgba(255, 255, 255, 0.2); color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.4);">
-                    <i class="fas fa-sparkles"></i> HOUSEKEEPING & HYGIENE OPERATIONS
-                </span>
-                <h2>Hostel Housekeeping & Sanitation Service</h2>
-                <p>Log daily cleaning staff duty attendance, review admin absence notes, and monitor room sanitation across all 4 residential blocks.</p>
-                <div class="hero-stats-row">
-                    <div class="hero-stat-pill"><i class="fas fa-check-circle"></i> Present Days: <strong id="kpi-present-count">0</strong></div>
-                    <div class="hero-stat-pill"><i class="fas fa-times-circle"></i> Admin Absences: <strong id="kpi-absent-count">0</strong></div>
-                    <div class="hero-stat-pill"><i class="fas fa-calendar-minus"></i> Approved Leaves: <strong id="kpi-leave-count">0</strong></div>
-                    <div class="hero-stat-pill"><i class="fas fa-circle-check" style="color: #2ed573;"></i> Shift: On Duty</div>
+        <!-- ============================================== -->
+        <!-- Tab 1: Dedicated Cleaning Dashboard View -->
+        <!-- ============================================== -->
+        <div id="view-dashboard" class="view-section pop-up-animation">
+            <!-- Hero Banner -->
+            <div class="dashboard-hero-banner" style="background-image: linear-gradient(90deg, rgba(16, 172, 132, 0.94) 0%, rgba(29, 209, 161, 0.82) 100%), url('../images/hostel_room_bg.jpg');">
+                <div class="hero-content">
+                    <span class="hero-badge" style="background: rgba(255, 255, 255, 0.2); color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.4);">
+                        <i class="fas fa-sparkles"></i> HOUSEKEEPING & HYGIENE OPERATIONS
+                    </span>
+                    <h2>Hostel Housekeeping & Sanitation Command</h2>
+                    <p>Monitor daily room sanitation across all 4 residential blocks, inspect hygiene compliance, and log shift attendance.</p>
+                    <div class="hero-stats-row">
+                        <div class="hero-stat-pill"><i class="fas fa-bed"></i> <strong>100</strong> Hostel Rooms</div>
+                        <div class="hero-stat-pill"><i class="fas fa-check-circle"></i> Sanitized Today: <strong id="hero-sanitized-count">82</strong></div>
+                        <div class="hero-stat-pill"><i class="fas fa-broom"></i> Pending: <strong id="hero-pending-count">18</strong></div>
+                        <div class="hero-stat-pill"><i class="fas fa-shield-virus" style="color: #2ed573;"></i> Hygiene Certified</div>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Tab 1: My Attendance & Duty Check-in/out -->
-        <div id="view-attendance" class="view-section pop-up-animation">
             <!-- Housekeeping KPI Cards (4 Cards) -->
             <div class="cards-container">
-                <div class="card">
+                <div class="card" onclick="switchCleaningTab('schedule')" style="cursor: pointer; transition: transform 0.2s;" title="Click to view rooms checklist">
                     <div class="card-header-flex">
                         <h3>Total Hostel Rooms</h3>
                         <i class="fas fa-bed card-icon-yellow"></i>
                     </div>
                     <div class="value" id="stat-total-rooms">100</div>
+                    <span style="font-size: 12px; color: #10ac84; display: flex; align-items: center; gap: 4px; margin-top: 6px;"><i class="fas fa-building"></i> 4 Blocks (A, B, C, D)</span>
                 </div>
-                <div class="card">
+                <div class="card" onclick="switchCleaningTab('schedule')" style="cursor: pointer; transition: transform 0.2s;" title="Click to view sanitized rooms">
                     <div class="card-header-flex">
                         <h3>Sanitized Today</h3>
                         <i class="fas fa-check-circle" style="color:#2ed573; font-size:24px;"></i>
                     </div>
                     <div class="value" id="stat-cleaned-rooms" style="color:#2ed573;">82</div>
+                    <span style="font-size: 12px; color: #2ed573; display: flex; align-items: center; gap: 4px; margin-top: 6px;"><i class="fas fa-check-double"></i> Cleaned & verified</span>
                 </div>
-                <div class="card">
+                <div class="card" onclick="switchCleaningTab('schedule')" style="cursor: pointer; transition: transform 0.2s;" title="Click to view pending rooms">
                     <div class="card-header-flex">
                         <h3>Pending Cleaning</h3>
                         <i class="fas fa-broom" style="color:#ffa502; font-size:24px;"></i>
                     </div>
                     <div class="value" id="stat-pending-rooms" style="color:#ffa502;">18</div>
+                    <span style="font-size: 12px; color: #ffa502; display: flex; align-items: center; gap: 4px; margin-top: 6px;"><i class="fas fa-arrow-circle-right"></i> Requires sweeping</span>
                 </div>
                 <div class="card">
                     <div class="card-header-flex">
@@ -94,7 +100,33 @@
                         <i class="fas fa-shield-virus" style="color:#10ac84; font-size:24px;"></i>
                     </div>
                     <div class="value" id="stat-sanitation-rate">82%</div>
+                    <span style="font-size: 12px; color: #10ac84; display: flex; align-items: center; gap: 4px; margin-top: 6px;"><i class="fas fa-award"></i> Optimal hygiene</span>
                 </div>
+            </div>
+
+            <!-- Instant Room Sanitation Lookup Card -->
+            <div class="card" style="margin-bottom: 25px; padding: 22px 26px; background: #ffffff; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); border-left: 5px solid #10ac84;">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:15px; margin-bottom:10px;">
+                    <div>
+                        <div style="font-size:11.5px; font-weight:800; color:#10ac84; text-transform:uppercase; letter-spacing:1px;"><i class="fas fa-search-plus"></i> INSTANT SANITATION VERIFICATION</div>
+                        <h3 style="font-family:'Outfit', sans-serif; font-size:20px; margin:4px 0 0 0; color:#121212;">Quick Room Sanitation Status</h3>
+                    </div>
+                    <span style="font-size:12px; color:#10ac84; background:rgba(16,172,132,0.1); padding:5px 12px; border-radius:20px; font-weight:700;"><i class="fas fa-broom"></i> Housekeeping Desk</span>
+                </div>
+                <p style="color:#636e72; font-size:13.5px; margin-bottom:14px;">Quickly inspect whether a room has been swept and sanitized today by typing Room Number (e.g. A-101, B-105, 102).</p>
+                <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                    <div style="position:relative; flex:1; min-width:280px;">
+                        <i class="fas fa-door-open" style="position:absolute; left:14px; top:13px; color:#747d8c; font-size:15px;"></i>
+                        <input type="text" id="quickCleanSearchInput" placeholder="Enter Room Number (e.g. A-101, 105, B-102)..." style="width:100%; padding:11px 16px 11px 38px; border-radius:10px; border:1.5px solid #dcdde1; font-size:14px;" onkeypress="if(event.key==='Enter') quickSearchRoomSanitation()">
+                    </div>
+                    <button class="btn btn-primary" onclick="quickSearchRoomSanitation()" style="background:#10ac84; color:#fff; font-weight:700; padding:11px 22px; border-radius:10px; border:none; display:flex; align-items:center; gap:8px; cursor:pointer;">
+                        <i class="fas fa-search"></i> Check Sanitation
+                    </button>
+                    <button class="btn btn-secondary" onclick="clearQuickCleanSearch()" style="padding:11px 16px; border-radius:10px; font-weight:600; cursor:pointer;">
+                        Reset
+                    </button>
+                </div>
+                <div id="quickCleanResultBox" style="display:none; margin-top:16px;"></div>
             </div>
 
             <!-- Block Sanitation & Duty Summary Grid -->
@@ -103,7 +135,9 @@
                 <div class="table-container">
                     <div class="table-header-flex">
                         <h2 style="font-size: 18px; font-family: 'Outfit', sans-serif;"><i class="fas fa-building" style="color:#10ac84; margin-right: 8px;"></i>Block Sanitation Summary</h2>
-                        <button class="btn btn-dark btn-sm" onclick="switchCleaningTab('schedule')">Checklist View</button>
+                        <button class="btn btn-primary btn-sm" onclick="switchCleaningTab('schedule')" style="background:#10ac84; color:#fff; font-weight:700; border:none; padding:6px 12px; border-radius:6px; cursor:pointer;">
+                            <i class="fas fa-arrow-right"></i> Open Checklist
+                        </button>
                     </div>
                     <table>
                         <thead>
@@ -147,6 +181,51 @@
                 </div>
             </div>
 
+            <!-- Today's Duty Shift Quick Action Card -->
+            <div class="card" style="margin-top: 25px; padding: 22px 26px; background: #ffffff; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); border-left: 5px solid #2ed573;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                    <div>
+                        <span style="font-size: 11.5px; font-weight: 800; color: #2ed573; text-transform: uppercase; letter-spacing: 1px;"><i class="fas fa-calendar-check"></i> HOUSEKEEPING SHIFT PROTOCOL</span>
+                        <h3 style="font-family: 'Outfit', sans-serif; font-size: 19px; margin: 4px 0 2px 0; color: #121212;">Cleaning Duty Shift Check</h3>
+                        <p id="dash-duty-status-text" style="color: #636e72; font-size: 13.5px; margin: 0;">Date: Today</p>
+                    </div>
+                    <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                        <button class="btn btn-primary" onclick="markMyCheckIn()" style="background: #2ed573; border: none; color: #121212; font-weight: 700; padding: 10px 20px; border-radius: 8px;">
+                            <i class="fas fa-sign-in-alt"></i> Quick Check-In
+                        </button>
+                        <button class="btn btn-primary" onclick="markMyCheckOut()" style="background: #10ac84; border: none; color: #fff; font-weight: 700; padding: 10px 20px; border-radius: 8px;">
+                            <i class="fas fa-sign-out-alt"></i> Quick Check-Out
+                        </button>
+                        <button class="btn btn-secondary" onclick="switchCleaningTab('attendance')" style="padding: 10px 16px; border-radius: 8px; font-weight: 600;">
+                            <i class="fas fa-clock"></i> Full Duty Log
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================== -->
+        <!-- Tab 3: Dedicated Staff Attendance View -->
+        <!-- ============================================== -->
+        <div id="view-attendance" class="view-section" style="display: none;">
+            <!-- Attendance Hero Banner -->
+            <div class="dashboard-hero-banner" style="background-image: linear-gradient(90deg, rgba(16, 172, 132, 0.94) 0%, rgba(29, 209, 161, 0.82) 100%), url('../images/staff_banner_bg.jpg');">
+                <div class="hero-content">
+                    <span class="hero-badge" style="background: rgba(255, 255, 255, 0.2); color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.4);">
+                        <i class="fas fa-clock"></i> DUTY ATTENDANCE & SHIFT LOG
+                    </span>
+                    <h2>Cleaning Duty Attendance & Absence Tracker</h2>
+                    <p>Log daily cleaning staff duty attendance, review admin absence notes, and monitor your work record.</p>
+                    <div class="hero-stats-row">
+                        <div class="hero-stat-pill"><i class="fas fa-check-circle"></i> Present Days: <strong id="kpi-present-count">0</strong></div>
+                        <div class="hero-stat-pill"><i class="fas fa-times-circle"></i> Admin Absences: <strong id="kpi-absent-count">0</strong></div>
+                        <div class="hero-stat-pill"><i class="fas fa-calendar-minus"></i> Approved Leaves: <strong id="kpi-leave-count">0</strong></div>
+                        <div class="hero-stat-pill"><i class="fas fa-circle-check" style="color: #2ed573;"></i> Shift: On Duty</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Attendance Action Card -->
             <div class="card" style="margin-bottom: 25px; padding: 25px 30px; background: #ffffff; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); border-left: 6px solid #10ac84;">
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
                     <div>
@@ -197,9 +276,9 @@
                     <p>Track room-by-room sweeping, waste disposal, and deep sanitization across Blocks A, B, C, and D to maintain optimal hostel cleanliness.</p>
                     <div class="hero-stats-row">
                         <div class="hero-stat-pill"><i class="fas fa-bed"></i> 100 Hostel Rooms</div>
+                        <div class="hero-stat-pill"><i class="fas fa-check-circle"></i> <strong id="schedule-cleaned-cnt">0</strong> Sanitized</div>
+                        <div class="hero-stat-pill"><i class="fas fa-clock"></i> <strong id="schedule-pending-cnt">0</strong> Pending</div>
                         <div class="hero-stat-pill"><i class="fas fa-building"></i> Blocks A, B, C & D</div>
-                        <div class="hero-stat-pill"><i class="fas fa-check-circle"></i> Daily Sanitation Logs</div>
-                        <div class="hero-stat-pill"><i class="fas fa-sparkles"></i> Hygiene Certified</div>
                     </div>
                 </div>
             </div>
@@ -210,7 +289,8 @@
                         <h2><i class="fas fa-spray-can" style="color: #10ac84;"></i> Daily Room Sanitation Checklist (100 Rooms)</h2>
                         <p style="color: #7f8c8d; font-size: 13.5px; margin-top: 4px;">Track and mark daily cleaning completed across Blocks A, B, C, and D.</p>
                     </div>
-                    <div>
+                    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                        <input type="text" id="cleaningRoomSearchInput" placeholder="Filter room number..." onkeyup="renderCleaningChecklist()" style="padding: 10px 14px; border-radius: 8px; border: 1.5px solid #ddd; font-size: 13.5px; min-width: 180px;">
                         <select id="cleaningBlockSelect" onchange="renderCleaningChecklist()" style="padding: 10px 14px; border-radius: 8px; border: 1.5px solid #ddd; font-size: 13.5px;">
                             <option value="Block A">Block A (Rooms A-101 to A-125)</option>
                             <option value="Block B">Block B (Rooms B-101 to B-125)</option>
@@ -263,6 +343,6 @@
     <!-- Toast Notification Container -->
     <div id="toastContainer" class="toast-container"></div>
 
-    <script src="cleaning-script.js"></script>
+    <script src="cleaning-script.js?v=3.2"></script>
 </body>
 </html>
