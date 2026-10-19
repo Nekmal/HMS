@@ -764,21 +764,26 @@ async function loadMyAttendance() {
         const btnIn = document.getElementById('btnCheckIn');
         const btnOut = document.getElementById('btnCheckOut');
 
+        const dashDuty = document.getElementById('dash-duty-status-text');
         if (todayRecord) {
             if (todayRecord.status === 'ABSENT') {
                 statusBadge.innerHTML = `<span style="color:#d63031;"><i class="fas fa-exclamation-triangle"></i> <strong>Admin Marked Absence:</strong> ${todayRecord.remarks}</span>`;
+                if (dashDuty) dashDuty.innerHTML = `<span style="color:#d63031; font-weight:700;"><i class="fas fa-exclamation-triangle"></i> Status: ABSENT (${todayRecord.remarks || ''})</span>`;
                 btnIn.disabled = true;
             } else if (todayRecord.status === 'ON_LEAVE') {
                 statusBadge.innerHTML = `<span style="color:#e67e22;"><i class="fas fa-calendar-minus"></i> <strong>Admin Marked Leave:</strong> ${todayRecord.remarks}</span>`;
+                if (dashDuty) dashDuty.innerHTML = `<span style="color:#e67e22; font-weight:700;"><i class="fas fa-calendar-minus"></i> Status: ON LEAVE (${todayRecord.remarks || ''})</span>`;
                 btnIn.disabled = true;
             } else {
                 statusBadge.innerHTML = `<span style="color:#2ed573;"><i class="fas fa-check-circle"></i> Checked In Today at <strong>${todayRecord.checkInTime || '-'}</strong>${todayRecord.checkOutTime ? ' &bull; Checked Out at <strong>' + todayRecord.checkOutTime + '</strong>' : ' (Currently On Duty)'}</span>`;
+                if (dashDuty) dashDuty.innerHTML = `<span style="color:#2ed573; font-weight:700;"><i class="fas fa-check-circle"></i> Checked In: ${todayRecord.checkInTime || '-'} ${todayRecord.checkOutTime ? '(Checked Out: ' + todayRecord.checkOutTime + ')' : '(Active Duty)'}</span>`;
                 if (todayRecord.checkOutTime) {
                     btnOut.disabled = true;
                 }
             }
         } else {
             statusBadge.innerHTML = `<span style="color:#636e72;"><i class="fas fa-info-circle"></i> You have not marked duty attendance for today yet.</span>`;
+            if (dashDuty) dashDuty.innerHTML = `<span style="color:#636e72;"><i class="fas fa-clock"></i> Not checked in yet today. Ready for duty.</span>`;
         }
 
         renderAttendanceTable(myAttendanceRecords);
@@ -902,8 +907,11 @@ window.onload = () => {
     const heroName = document.getElementById('hero-officer-name');
     if (heroName) heroName.innerText = userName;
 
+    const todayDateFormatted = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     const todayDateEl = document.getElementById('today-date-str');
-    if (todayDateEl) todayDateEl.innerText = 'Date: ' + new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    if (todayDateEl) todayDateEl.innerText = 'Date: ' + todayDateFormatted;
+    const dashDuty = document.getElementById('dash-duty-status-text');
+    if (dashDuty) dashDuty.innerText = 'Date: ' + todayDateFormatted + ' | Checking attendance...';
 
-    loadGatePasses();
+    switchSecurityTab('dashboard');
 };
