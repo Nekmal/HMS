@@ -591,10 +591,22 @@ function renderUsersTables() {
                         <td><strong style="font-size:14px;">${s.fullName}</strong></td>
                         <td>${roomBadge}</td>
                         <td style="font-size:13px;">
-                            <div><i class="fas fa-envelope" style="color:#888; width:16px;"></i> ${emailDisplay}</div>
+                            <div>
+                                <a href="javascript:void(0)" onclick="openEmailModalForStudent(${s.id})" style="color:var(--primary-yellow); text-decoration:none; font-weight:600; display:inline-flex; align-items:center; gap:5px; transition: all 0.2s;" title="Click to send email to ${s.fullName}">
+                                    <i class="fas fa-envelope"></i> <span>${emailDisplay}</span>
+                                    <i class="fas fa-paper-plane" style="font-size:10px; opacity:0.8; margin-left:2px;"></i>
+                                </a>
+                            </div>
                             <div style="color:#aaa; margin-top:2px;"><i class="fas fa-phone-alt" style="color:#888; width:16px;"></i> ${phoneDisplay}</div>
                         </td>
-                        <td>${actionBtn}</td>
+                        <td>
+                            <div style="display:flex; gap:6px; align-items:center;">
+                                ${actionBtn}
+                                <button class="btn btn-sm" onclick="openEmailModalForStudent(${s.id})" style="background:rgba(255,215,0,0.12); border:1.5px solid rgba(255,215,0,0.35); color:var(--primary-yellow); padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:700;" title="Send Email to ${s.fullName}">
+                                    <i class="fas fa-envelope"></i> Email
+                                </button>
+                            </div>
+                        </td>
                     </tr>
                 `;
             });
@@ -649,7 +661,12 @@ function renderUsersTables() {
                         <td><strong style="font-size:14px;">${stf.fullName}</strong></td>
                         <td>${roleBadge}</td>
                         <td style="font-size:13px;">
-                            <div><i class="fas fa-envelope" style="color:#888; width:16px;"></i> ${stf.email || '-'}</div>
+                            <div>
+                                <a href="javascript:void(0)" onclick="openEmailModalForStaff(${stf.id})" style="color:#00d2d3; text-decoration:none; font-weight:600; display:inline-flex; align-items:center; gap:5px;" title="Click to send email to ${stf.fullName}">
+                                    <i class="fas fa-envelope"></i> ${stf.email || '-'}
+                                    <i class="fas fa-paper-plane" style="font-size:10px; opacity:0.8; margin-left:2px;"></i>
+                                </a>
+                            </div>
                             <div style="color:#aaa; margin-top:2px;"><i class="fas fa-phone-alt" style="color:#888; width:16px;"></i> ${stf.phone || '-'}</div>
                         </td>
                         <td>${attBadge}</td>
@@ -1143,7 +1160,13 @@ function renderAdminPaymentsTable() {
             const name = s.fullName || 'Resident Student';
             const roomStr = s.room ? `${s.room.roomNumber} (${s.room.blockName || 'Hostel'})` : '<span style="color:#888;">Unassigned</span>';
             const phoneStr = s.phone ? `<i class="fas fa-phone-alt" style="font-size:11px; color:#888;"></i> ${s.phone}` : '-';
-            const emailStr = s.email ? `<div style="font-size:11.5px; color:#94a3b8;"><i class="fas fa-envelope" style="font-size:11px;"></i> ${s.email}</div>` : '';
+            const emailDisplayStr = s.email || `${(s.studentId || 'student').replace(/\//g, '').toLowerCase()}@ruhuna.ac.lk`;
+            const emailLink = `<div style="font-size:11.5px; margin-top:2px;">
+                     <a href="javascript:void(0)" onclick="openEmailModalForStudent(${s.id}, 'FEE_REMINDER')" style="color:#ffa502; text-decoration:none; font-weight:600; display:inline-flex; align-items:center; gap:4px;" title="Send fee payment reminder email to ${name}">
+                       <i class="fas fa-envelope"></i> ${emailDisplayStr}
+                       <i class="fas fa-paper-plane" style="font-size:9.5px; opacity:0.85;"></i>
+                     </a>
+                   </div>`;
 
             rowsHtml += `
                 <tr>
@@ -1151,14 +1174,19 @@ function renderAdminPaymentsTable() {
                     <td><span style="background: rgba(255,255,255,0.06); padding: 3px 8px; border-radius: 4px; font-size: 12px; font-family: monospace; font-weight: 700; color: #ffa502;">${tg}</span></td>
                     <td style="font-weight: 700; color: #fff;">${name}</td>
                     <td><span style="font-weight: 600; color: #cbd5e1;">${roomStr}</span></td>
-                    <td><div>${phoneStr}</div>${emailStr}</td>
+                    <td><div>${phoneStr}</div>${emailLink}</td>
                     <td><span style="font-weight: 600; color: #cbd5e1;">${effectiveMonth}</span></td>
                     <td style="font-weight: 800; color: #ff4757;">Rs. 2,000.00</td>
                     <td><span class="status unpaid"><i class="fas fa-exclamation-circle"></i> UNPAID</span></td>
                     <td style="text-align: center;">
-                        <button class="btn btn-sm" onclick="openRecordPaymentForStudent(${s.id}, '${effectiveMonth}')" style="background: #2ed573; color: #121212; font-weight: 800; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; box-shadow: 0 2px 6px rgba(46,213,115,0.3);">
-                            <i class="fas fa-hand-holding-usd"></i> Record
-                        </button>
+                        <div style="display:inline-flex; gap:6px;">
+                            <button class="btn btn-sm" onclick="openRecordPaymentForStudent(${s.id}, '${effectiveMonth}')" style="background: #2ed573; color: #121212; font-weight: 800; border: none; padding: 6px 11px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(46,213,115,0.3);">
+                                <i class="fas fa-hand-holding-usd"></i> Record
+                            </button>
+                            <button class="btn btn-sm" onclick="openEmailModalForStudent(${s.id}, 'FEE_REMINDER')" style="background: rgba(255, 165, 2, 0.15); color: #ffa502; border: 1.5px solid rgba(255, 165, 2, 0.4); font-weight: 700; padding: 6px 9px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" title="Send fee payment reminder email to ${name}">
+                                <i class="fas fa-envelope"></i> Email
+                            </button>
+                        </div>
                     </td>
                 </tr>
             `;
@@ -4165,6 +4193,238 @@ function formatAdminTime(isoStr) {
 function logout() {
     localStorage.clear();
     window.location.href = '/hms/';
+}
+
+// ==========================================
+// Contact Student / Staff via Email Handlers
+// ==========================================
+let currentEmailTargetUser = null;
+let currentEmailTemplateType = 'FEE_REMINDER';
+
+function openEmailModalForStudent(userId, initialTemplate = 'FEE_REMINDER') {
+    const student = (allUsersData || []).find(u => u.id === userId);
+    if (!student) {
+        showToast("Student profile not found.", "error");
+        return;
+    }
+
+    currentEmailTargetUser = student;
+    const defaultEmail = student.email || `${(student.studentId || 'student').replace(/\//g, '').toLowerCase()}@ruhuna.ac.lk`;
+
+    document.getElementById('emailStudentUserId').value = student.id;
+    document.getElementById('emailRecipientName').innerText = student.fullName || 'Student';
+    
+    const tgNo = student.studentId || student.username || 'TG/2021/XXXX';
+    const roomStr = student.room ? `Room ${student.room.roomNumber} (${student.room.blockName || 'Hostel'})` : 'Room: Not Assigned';
+    document.getElementById('emailRecipientDetails').innerText = `TG: ${tgNo} | ${roomStr}`;
+    document.getElementById('emailRecipientBadge').innerText = tgNo;
+    document.getElementById('emailToAddress').value = defaultEmail;
+
+    applyEmailTemplate(initialTemplate);
+    openModal('sendEmailModal');
+}
+
+function openEmailModalForStaff(staffId) {
+    const staff = (allUsersData || []).find(u => u.id === staffId);
+    if (!staff) {
+        showToast("Staff profile not found.", "error");
+        return;
+    }
+
+    currentEmailTargetUser = staff;
+    const defaultEmail = staff.email || `${(staff.username || 'staff').toLowerCase()}@ruhuna.ac.lk`;
+
+    document.getElementById('emailStudentUserId').value = staff.id;
+    document.getElementById('emailRecipientName').innerText = `${staff.fullName} (${staff.role || 'Staff'})`;
+    document.getElementById('emailRecipientDetails').innerText = `ID: ${staff.studentId || staff.username} | Role: ${staff.role}`;
+    document.getElementById('emailRecipientBadge').innerText = staff.role || 'STAFF';
+    document.getElementById('emailToAddress').value = defaultEmail;
+
+    applyEmailTemplate('OFFICIAL_NOTICE');
+    openModal('sendEmailModal');
+}
+
+function applyEmailTemplate(tplType) {
+    currentEmailTemplateType = tplType;
+
+    // Highlight active template pill
+    ['FEE_REMINDER', 'ROOM_ALLOCATION', 'MAINTENANCE', 'OFFICIAL_NOTICE', 'CUSTOM'].forEach(t => {
+        const b = document.getElementById(`tplBtn-${t}`);
+        if (b) {
+            if (t === tplType) {
+                b.style.borderColor = 'rgba(255,215,0,0.6)';
+                b.style.background = 'rgba(255,215,0,0.18)';
+                b.style.color = 'var(--primary-yellow)';
+            } else {
+                b.style.borderColor = '#444';
+                b.style.background = 'rgba(255,255,255,0.05)';
+                b.style.color = '#cbd5e1';
+            }
+        }
+    });
+
+    const u = currentEmailTargetUser || {};
+    const name = u.fullName || 'Student';
+    const tgNo = u.studentId || u.username || 'Student ID';
+    const roomStr = u.room ? `Room ${u.room.roomNumber} (${u.room.blockName || 'Residential Block'})` : 'Assigned Hostel Room';
+    const currentMonth = typeof selectedPaymentMonth !== 'undefined' && selectedPaymentMonth !== 'ALL' ? selectedPaymentMonth : 'Current Term';
+
+    const subjInput = document.getElementById('emailSubject');
+    const bodyInput = document.getElementById('emailBodyText');
+    if (!subjInput || !bodyInput) return;
+
+    if (tplType === 'FEE_REMINDER') {
+        subjInput.value = `Hostel Fee Arrears Notice - ${tgNo} (${currentMonth})`;
+        bodyInput.value = 
+`Dear ${name} (${tgNo}),
+
+This is an official communication from the Sub Warden Office regarding your hostel accommodation fee payment for ${currentMonth}.
+
+Our financial records indicate that your monthly accommodation fee of Rs. 2,000.00 for ${roomStr} is currently outstanding.
+
+Kindly settle this payment at the Sub Warden Office or submit your payment verification slip via the Student Portal at your earliest convenience to avoid suspension of hostel residency.
+
+If you have already settled this fee, please disregard this notice or present your receipt to update our system.
+
+Thank you.
+
+Sincerely,
+Sub Warden Office
+Hostel Administration Complex
+University of Ruhuna`;
+
+    } else if (tplType === 'ROOM_ALLOCATION') {
+        subjInput.value = `Official Hostel Room Allocation Notification - ${name} (${tgNo})`;
+        bodyInput.value = 
+`Dear ${name} (${tgNo}),
+
+We are pleased to inform you that your hostel room allocation has been approved for the academic semester.
+
+Allocated Accommodation: ${roomStr}
+Hostel Policy: 4 Beds per room with personal study desk.
+
+Please visit the Sub Warden Office during working hours (08:30 AM - 04:30 PM) with your Student Identity Card to complete your check-in registration and collect your room key.
+
+Best regards,
+Sub Warden Office
+University of Ruhuna`;
+
+    } else if (tplType === 'MAINTENANCE') {
+        subjInput.value = `Hostel Room Maintenance & Inspection Schedule - ${roomStr}`;
+        bodyInput.value = 
+`Dear ${name} (${tgNo}),
+
+Please be advised that a scheduled facility inspection and equipment maintenance check will be conducted today for ${roomStr}.
+
+Our authorized Maintenance Staff will inspect electrical fixtures, ceiling fans, furniture, and plumbing. Kindly ensure your personal valuables are kept securely locked in your wardrobe.
+
+If you have any specific room repairs to report, please inform the team or submit a complaint via the HMS portal.
+
+Thank you for your cooperation.
+
+Sub Warden Office & Maintenance Crew
+University of Ruhuna`;
+
+    } else if (tplType === 'OFFICIAL_NOTICE') {
+        subjInput.value = `Official Notice from Sub Warden Office - University of Ruhuna`;
+        bodyInput.value = 
+`Dear ${name} (${tgNo}),
+
+This is an official administrative notice concerning hostel regulations and residential guidelines for ${roomStr}.
+
+Please ensure strict compliance with hostel curfew hours, campus cleanliness, and electrical appliance safety policies.
+
+If you require personal assistance or wish to discuss an accommodation matter, please visit the Sub Warden Office during inquiry hours.
+
+Sincerely,
+Sub Warden Office
+University of Ruhuna`;
+
+    } else if (tplType === 'CUSTOM') {
+        subjInput.value = `Message from Sub Warden Office - University of Ruhuna`;
+        bodyInput.value = 
+`Dear ${name},
+
+[Type your message here...]
+
+Best regards,
+Sub Warden Office
+University of Ruhuna`;
+    }
+}
+
+function openStudentEmailInGmail() {
+    const to = document.getElementById('emailToAddress')?.value || '';
+    const subject = document.getElementById('emailSubject')?.value || '';
+    const body = document.getElementById('emailBodyText')?.value || '';
+
+    if (!to) {
+        showToast("Please specify a recipient email address.", "warning");
+        return;
+    }
+
+    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(to)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.open(gmailUrl, '_blank');
+    showToast("Opened in Gmail web composer! You can review and click Send.", "success");
+}
+
+function openStudentEmailInClient() {
+    const to = document.getElementById('emailToAddress')?.value || '';
+    const subject = document.getElementById('emailSubject')?.value || '';
+    const body = document.getElementById('emailBodyText')?.value || '';
+
+    if (!to) {
+        showToast("Please specify a recipient email address.", "warning");
+        return;
+    }
+
+    const mailtoUrl = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.location.href = mailtoUrl;
+    showToast("Opened in your desktop mail client (Outlook / Windows Mail)!", "info");
+}
+
+async function submitSendEmail(e) {
+    e.preventDefault();
+    const to = document.getElementById('emailToAddress')?.value || '';
+    const subject = document.getElementById('emailSubject')?.value || '';
+    const body = document.getElementById('emailBodyText')?.value || '';
+
+    if (!to) {
+        showToast("Please enter a valid recipient email address.", "warning");
+        return;
+    }
+
+    const submitBtn = document.getElementById('btnSubmitSendEmail');
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Dispatching...';
+    }
+
+    try {
+        const res = await fetch(`${API_BASE}/email/send`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ to, subject, body })
+        });
+
+        if (res.ok) {
+            showToast(`Email dispatched successfully to ${to}!`, "success");
+        } else {
+            console.warn("Server email dispatch returned non-200, opening mail client fallback");
+            showToast(`Server dispatched alert for ${to}. Opening in Mail client.`, "info");
+            openStudentEmailInClient();
+        }
+    } catch(err) {
+        console.warn("Could not connect to /api/email/send, falling back to mail client:", err);
+        showToast(`Email prepared for ${to}. Opening in Mail client...`, "success");
+        openStudentEmailInClient();
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Email';
+        }
+        closeModal('sendEmailModal');
+    }
 }
 
 // Initial Load

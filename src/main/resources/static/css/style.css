@@ -857,3 +857,27 @@ tr:hover {
     border: 1px solid rgba(255, 71, 87, 0.35);
 }
 
+/* Student & Staff Email Interaction Styles */
+.email-clickable-link {
+    color: var(--primary-yellow, #FFD700);
+    text-decoration: none;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.email-clickable-link:hover {
+    color: #ffffff;
+    text-shadow: 0 0 8px rgba(255, 215, 0, 0.6);
+    transform: translateX(2px);
+}
+
+.email-tpl-btn:hover {
+    filter: brightness(1.2);
+    transform: translateY(-1px);
+}
+
+

@@ -1729,10 +1729,96 @@
         </div>
     </div>
 
+    <!-- Send Email to Student / User Modal -->
+    <div id="sendEmailModal" class="modal">
+        <div class="modal-content" style="max-width: 620px;">
+            <div class="modal-header">
+                <h2><i class="fas fa-envelope-open-text" style="color: var(--primary-yellow);"></i> Contact Student via Email</h2>
+                <span class="close" onclick="closeModal('sendEmailModal')">&times;</span>
+            </div>
+            <form id="sendEmailForm" onsubmit="submitSendEmail(event)">
+                <input type="hidden" id="emailStudentUserId">
+
+                <!-- Recipient Student Summary Card -->
+                <div style="background: rgba(255, 215, 0, 0.08); border-radius: 12px; padding: 14px 18px; margin-bottom: 16px; border-left: 5px solid var(--primary-yellow); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                    <div>
+                        <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 800; letter-spacing: 0.8px;"><i class="fas fa-user-graduate"></i> STUDENT RECIPIENT</div>
+                        <div id="emailRecipientName" style="font-size: 16.5px; font-weight: 800; color: #fff; margin-top: 3px;">Loading Student...</div>
+                        <div id="emailRecipientDetails" style="font-size: 12.5px; color: #cbd5e1; margin-top: 2px;">TG: - | Room: -</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <span id="emailRecipientBadge" style="background: rgba(255, 255, 255, 0.12); color: var(--primary-yellow); padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; font-family: monospace; display: inline-block;">-</span>
+                    </div>
+                </div>
+
+                <!-- Template Selector Pills -->
+                <div class="form-group" style="margin-bottom: 14px;">
+                    <label style="font-size: 12.5px; font-weight: 700; color: #cbd5e1; margin-bottom: 7px; display: block;">
+                        <i class="fas fa-magic" style="color: var(--primary-yellow);"></i> Quick Message Templates (Click to Auto-Fill):
+                    </label>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <button type="button" id="tplBtn-FEE_REMINDER" class="btn btn-sm email-tpl-btn" onclick="applyEmailTemplate('FEE_REMINDER')" style="padding: 7px 13px; border-radius: 7px; font-size: 12px; font-weight: 700; cursor: pointer; border: 1.5px solid rgba(255,215,0,0.5); background: rgba(255,215,0,0.15); color: var(--primary-yellow); transition: all 0.2s;">
+                            💰 Fee Reminder
+                        </button>
+                        <button type="button" id="tplBtn-ROOM_ALLOCATION" class="btn btn-sm email-tpl-btn" onclick="applyEmailTemplate('ROOM_ALLOCATION')" style="padding: 7px 13px; border-radius: 7px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid #444; background: rgba(255,255,255,0.05); color: #cbd5e1; transition: all 0.2s;">
+                            🚪 Room Notice
+                        </button>
+                        <button type="button" id="tplBtn-MAINTENANCE" class="btn btn-sm email-tpl-btn" onclick="applyEmailTemplate('MAINTENANCE')" style="padding: 7px 13px; border-radius: 7px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid #444; background: rgba(255,255,255,0.05); color: #cbd5e1; transition: all 0.2s;">
+                            🛠️ Repair / Inspection
+                        </button>
+                        <button type="button" id="tplBtn-OFFICIAL_NOTICE" class="btn btn-sm email-tpl-btn" onclick="applyEmailTemplate('OFFICIAL_NOTICE')" style="padding: 7px 13px; border-radius: 7px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid #444; background: rgba(255,255,255,0.05); color: #cbd5e1; transition: all 0.2s;">
+                            📢 Sub Warden Advisory
+                        </button>
+                        <button type="button" id="tplBtn-CUSTOM" class="btn btn-sm email-tpl-btn" onclick="applyEmailTemplate('CUSTOM')" style="padding: 7px 13px; border-radius: 7px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid #444; background: rgba(255,255,255,0.05); color: #cbd5e1; transition: all 0.2s;">
+                            ✍️ Blank Message
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Recipient Email Address <span class="required-star">*</span></label>
+                    <div style="position: relative;">
+                        <i class="fas fa-at" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--primary-yellow);"></i>
+                        <input type="email" id="emailToAddress" required placeholder="student@ruhuna.ac.lk" style="padding-left: 38px;">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Email Subject <span class="required-star">*</span></label>
+                    <input type="text" id="emailSubject" required placeholder="Subject of the email...">
+                </div>
+
+                <div class="form-group">
+                    <label>Email Body Message <span class="required-star">*</span></label>
+                    <textarea id="emailBodyText" rows="7" required placeholder="Type your message to the student here..." style="font-family: inherit; line-height: 1.55; font-size: 13.5px;"></textarea>
+                </div>
+
+                <!-- Action Buttons Row -->
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 22px;">
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <button type="button" class="btn btn-sm" onclick="openStudentEmailInGmail()" style="background: rgba(234, 67, 53, 0.15); border: 1.5px solid #ea4335; color: #ea4335; font-weight: 700; padding: 10px 14px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 6px;" title="Open directly in Gmail web with pre-filled message">
+                            <i class="fab fa-google"></i> Open in Gmail
+                        </button>
+                        <button type="button" class="btn btn-sm" onclick="openStudentEmailInClient()" style="background: rgba(0, 120, 212, 0.15); border: 1.5px solid #0078d4; color: #00a8ff; font-weight: 700; padding: 10px 14px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 6px;" title="Open in default desktop email app (Outlook, Windows Mail)">
+                            <i class="fas fa-paper-plane"></i> Mail App (Client)
+                        </button>
+                    </div>
+
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <button type="button" class="btn btn-dark btn-modal-cancel" onclick="closeModal('sendEmailModal')">Cancel</button>
+                        <button type="submit" id="btnSubmitSendEmail" class="btn btn-primary btn-modal-submit" style="background: linear-gradient(135deg, var(--primary-yellow), #e1b12c); color: #121212; font-weight: 800; border: none; padding: 10px 20px; border-radius: 8px; display: flex; align-items: center; gap: 6px;">
+                            <i class="fas fa-paper-plane"></i> Send Email
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Toast Notification Container -->
     <div id="toastContainer" class="toast-container"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="js/script.js?v=3.0"></script>
+    <script src="js/script.js?v=3.3"></script>
 </body>
 </html>
