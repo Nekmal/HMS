@@ -2227,10 +2227,7 @@ async function resolveComplaint(id) {
 }
 
 
-// ==========================================
-// 7. GATE PASSES & LEAVE CLEARANCE MANAGEMENT
-// Weekly & Monthly Summary System
-// ==========================================
+// Section 7: Gate Passes & Leave Clearance Management with Weekly & Monthly Summaries
 let allAdminGatePassesData = [];
 let gatePassPeriodMode = 'weekly'; // 'weekly' | 'monthly' | 'all'
 let selectedGatePassWeek = '';     // startStr_endStr e.g. '2026-10-12_2026-10-18'
@@ -3979,9 +3976,7 @@ function repairDamage(id) {
     });
 }
 
-// ==========================================
-// STAFF & ATTENDANCE / ABSENCE MANAGEMENT
-// ==========================================
+// Section 8: Staff & Attendance / Shift Absence Management
 let allStaffAttendanceData = [];
 
 async function loadStaffAttendanceManagement() {
@@ -4208,9 +4203,7 @@ function logout() {
     window.location.href = '/hms/';
 }
 
-// ==========================================
-// Contact Student / Staff via Email Handlers
-// ==========================================
+// Section 9: Student and Staff Direct Email Dispatch & Template Modal Handlers
 let currentEmailTargetUser = null;
 let currentEmailTemplateType = 'FEE_REMINDER';
 
