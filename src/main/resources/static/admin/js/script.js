@@ -587,22 +587,26 @@ function renderUsersTables() {
                 studentsTbody.innerHTML += `
                     <tr>
                         <td style="color:#777; font-weight:600;">${idx + 1}</td>
-                        <td><strong style="color:var(--primary-yellow); font-family:'Outfit', sans-serif;">${s.studentId}</strong></td>
-                        <td><strong style="font-size:14px;">${s.fullName}</strong></td>
+                        <td>
+                            <span style="font-family:'Outfit', monospace; font-size:13px; font-weight:700; color:#4338ca; background:#eef2ff; border:1px solid #c7d2fe; padding:4px 9px; border-radius:6px; letter-spacing:0.4px; display:inline-flex; align-items:center; gap:5px;">
+                                <i class="fas fa-id-badge" style="color:#6366f1; font-size:11.5px;"></i>${s.studentId}
+                            </span>
+                        </td>
+                        <td><strong style="font-size:14.5px; color:#1e293b;">${s.fullName}</strong></td>
                         <td>${roomBadge}</td>
                         <td style="font-size:13px;">
                             <div>
-                                <a href="javascript:void(0)" onclick="openEmailModalForStudent(${s.id})" style="color:var(--primary-yellow); text-decoration:none; font-weight:600; display:inline-flex; align-items:center; gap:5px; transition: all 0.2s;" title="Click to send email to ${s.fullName}">
-                                    <i class="fas fa-envelope"></i> <span>${emailDisplay}</span>
-                                    <i class="fas fa-paper-plane" style="font-size:10px; opacity:0.8; margin-left:2px;"></i>
+                                <a href="javascript:void(0)" onclick="openEmailModalForStudent(${s.id})" style="color:#0284c7; text-decoration:none; font-weight:600; display:inline-flex; align-items:center; gap:6px; transition: all 0.2s;" onmouseover="this.style.color='#0369a1'; this.style.textDecoration='underline';" onmouseout="this.style.color='#0284c7'; this.style.textDecoration='none';" title="Click to send email to ${s.fullName}">
+                                    <i class="fas fa-envelope" style="color:#0ea5e9;"></i> <span>${emailDisplay}</span>
+                                    <i class="fas fa-paper-plane" style="font-size:10px; opacity:0.85; margin-left:1px; color:#0ea5e9;"></i>
                                 </a>
                             </div>
-                            <div style="color:#aaa; margin-top:2px;"><i class="fas fa-phone-alt" style="color:#888; width:16px;"></i> ${phoneDisplay}</div>
+                            <div style="color:#64748b; margin-top:3px;"><i class="fas fa-phone-alt" style="color:#94a3b8; width:16px;"></i> ${phoneDisplay}</div>
                         </td>
                         <td>
                             <div style="display:flex; gap:6px; align-items:center;">
                                 ${actionBtn}
-                                <button class="btn btn-sm" onclick="openEmailModalForStudent(${s.id})" style="background:rgba(255,215,0,0.12); border:1.5px solid rgba(255,215,0,0.35); color:var(--primary-yellow); padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:700;" title="Send Email to ${s.fullName}">
+                                <button class="btn btn-sm" onclick="openEmailModalForStudent(${s.id})" style="background:rgba(2,132,199,0.08); border:1.5px solid rgba(2,132,199,0.3); color:#0284c7; padding:6px 11px; border-radius:6px; cursor:pointer; font-weight:700; display:inline-flex; align-items:center; gap:5px; transition:all 0.2s;" onmouseover="this.style.background='#0284c7'; this.style.color='#ffffff';" onmouseout="this.style.background='rgba(2,132,199,0.08)'; this.style.color='#0284c7';" title="Send Email to ${s.fullName}">
                                     <i class="fas fa-envelope"></i> Email
                                 </button>
                             </div>
@@ -657,23 +661,32 @@ function renderUsersTables() {
                 staffTbody.innerHTML += `
                     <tr>
                         <td style="color:#777; font-weight:600;">${idx + 1}</td>
-                        <td><strong style="color:#00d2d3; font-family:'Outfit', sans-serif; font-size:14px;">${stf.studentId}</strong></td>
-                        <td><strong style="font-size:14px;">${stf.fullName}</strong></td>
+                        <td>
+                            <span style="font-family:'Outfit', monospace; font-size:13px; font-weight:700; color:#0f766e; background:#f0fdfa; border:1px solid #99f6e4; padding:4px 9px; border-radius:6px; display:inline-flex; align-items:center; gap:5px;">
+                                <i class="fas fa-user-tag" style="color:#0d9488; font-size:11.5px;"></i>${stf.studentId}
+                            </span>
+                        </td>
+                        <td><strong style="font-size:14.5px; color:#1e293b;">${stf.fullName}</strong></td>
                         <td>${roleBadge}</td>
                         <td style="font-size:13px;">
                             <div>
-                                <a href="javascript:void(0)" onclick="openEmailModalForStaff(${stf.id})" style="color:#00d2d3; text-decoration:none; font-weight:600; display:inline-flex; align-items:center; gap:5px;" title="Click to send email to ${stf.fullName}">
-                                    <i class="fas fa-envelope"></i> ${stf.email || '-'}
-                                    <i class="fas fa-paper-plane" style="font-size:10px; opacity:0.8; margin-left:2px;"></i>
+                                <a href="javascript:void(0)" onclick="openEmailModalForStaff(${stf.id})" style="color:#0284c7; text-decoration:none; font-weight:600; display:inline-flex; align-items:center; gap:6px; transition:all 0.2s;" onmouseover="this.style.color='#0369a1'; this.style.textDecoration='underline';" onmouseout="this.style.color='#0284c7'; this.style.textDecoration='none';" title="Click to send email to ${stf.fullName}">
+                                    <i class="fas fa-envelope" style="color:#0ea5e9;"></i> <span>${stf.email || '-'}</span>
+                                    <i class="fas fa-paper-plane" style="font-size:10px; opacity:0.85; margin-left:1px; color:#0ea5e9;"></i>
                                 </a>
                             </div>
-                            <div style="color:#aaa; margin-top:2px;"><i class="fas fa-phone-alt" style="color:#888; width:16px;"></i> ${stf.phone || '-'}</div>
+                            <div style="color:#64748b; margin-top:3px;"><i class="fas fa-phone-alt" style="color:#94a3b8; width:16px;"></i> ${stf.phone || '-'}</div>
                         </td>
                         <td>${attBadge}</td>
                         <td>
-                            <button class="btn btn-dark btn-sm" onclick="switchTab('staff')" title="View Attendance in Staff Duty Tab">
-                                <i class="fas fa-user-clock"></i> Duty Logs
-                            </button>
+                            <div style="display:flex; gap:6px; align-items:center;">
+                                <button class="btn btn-dark btn-sm" onclick="switchTab('staff')" title="View Attendance in Staff Duty Tab">
+                                    <i class="fas fa-user-clock"></i> Duty Logs
+                                </button>
+                                <button class="btn btn-sm" onclick="openEmailModalForStaff(${stf.id})" style="background:rgba(2,132,199,0.08); border:1.5px solid rgba(2,132,199,0.3); color:#0284c7; padding:6px 11px; border-radius:6px; cursor:pointer; font-weight:700; display:inline-flex; align-items:center; gap:5px; transition:all 0.2s;" onmouseover="this.style.background='#0284c7'; this.style.color='#ffffff';" onmouseout="this.style.background='rgba(2,132,199,0.08)'; this.style.color='#0284c7';" title="Send Email to ${stf.fullName}">
+                                    <i class="fas fa-envelope"></i> Email
+                                </button>
+                            </div>
                         </td>
                     </tr>
                 `;
