@@ -2186,70 +2186,843 @@ async function resolveComplaint(id) {
 }
 
 
+// ==========================================
+// 7. GATE PASSES & LEAVE CLEARANCE MANAGEMENT
+// Weekly & Monthly Summary System
+// ==========================================
+let allAdminGatePassesData = [];
+let gatePassPeriodMode = 'weekly'; // 'weekly' | 'monthly' | 'all'
+let selectedGatePassWeek = '';     // startStr_endStr e.g. '2026-10-12_2026-10-18'
+let selectedGatePassMonth = '';    // YYYY-MM e.g. '2026-10'
+let selectedGatePassBlock = '';
+let selectedGatePassStatus = '';
+let gatePassSearchQuery = '';
+
+// Helper to compute ISO Week start (Monday) and end (Sunday)
+function getWeekRangeForDate(dStr) {
+    if (!dStr) return null;
+    const d = new Date(dStr + 'T00:00:00');
+    if (isNaN(d.getTime())) return null;
+    
+    // Day of week (0 is Sunday, 1 is Monday ... 6 is Saturday)
+    const day = d.getDay();
+    const diffToMonday = (day === 0 ? -6 : 1) - day;
+    
+    const monday = new Date(d);
+    monday.setDate(d.getDate() + diffToMonday);
+    
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    
+    const toYMD = (date) => {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const dt = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${dt}`;
+    };
+
+    const startStr = toYMD(monday);
+    const endStr = toYMD(sunday);
+
+    // Format readable label
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const mLabel = monthNames[monday.getMonth()];
+    const sLabel = monthNames[sunday.getMonth()];
+    const dateRangeLabel = (monday.getMonth() === sunday.getMonth())
+        ? `${mLabel} ${monday.getDate()} - ${sunday.getDate()}, ${monday.getFullYear()}`
+        : `${mLabel} ${monday.getDate()} - ${sLabel} ${sunday.getDate()}, ${sunday.getFullYear()}`;
+
+    return {
+        key: `${startStr}_${endStr}`,
+        startStr,
+        endStr,
+        monday,
+        sunday,
+        label: `Week of ${dateRangeLabel}`
+    };
+}
+
 async function loadAdminGatePasses() {
     try {
         const res = await fetch(`${API_BASE}/gatepasses`);
-        const passes = await res.json();
-        const tbody = document.getElementById('gatepasses-table-body-admin');
-        if (!tbody) return;
-        tbody.innerHTML = '';
-        if (passes.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:#888; padding:25px;">No student early departure or gate pass requests found.</td></tr>';
-            return;
-        }
-        passes.forEach(p => {
-            const stuName = p.user ? p.user.fullName : 'Unknown Student';
-            const stuId = p.user ? p.user.studentId : 'N/A';
-            const roomInfo = (p.user && p.user.room) ? `${p.user.room.roomNumber} (${p.user.room.blockName})` : 'Not Allocated';
-            
-            let statusBadge = '';
-            if (p.status === 'APPROVED') {
-                statusBadge = '<span class="status-badge" style="background: rgba(46, 213, 115, 0.15); color: #2ed573; border: 1px solid rgba(46, 213, 115, 0.3); font-weight: 700;"><i class="fas fa-check-circle"></i> APPROVED (Sent to Security)</span>';
-            } else if (p.status === 'REJECTED') {
-                statusBadge = '<span class="status-badge" style="background: rgba(255, 71, 87, 0.15); color: #ff4757; border: 1px solid rgba(255, 71, 87, 0.3); font-weight: 700;"><i class="fas fa-times-circle"></i> REJECTED</span>';
-            } else if (p.status === 'DEPARTED') {
-                statusBadge = '<span class="status-badge" style="background: rgba(47, 53, 66, 0.15); color: #2f3542; border: 1px solid rgba(47, 53, 66, 0.3); font-weight: 700;"><i class="fas fa-walking"></i> DEPARTED (At Gate)</span>';
-            } else {
-                statusBadge = '<span class="status-badge" style="background: rgba(255, 165, 2, 0.15); color: #ffa502; border: 1px solid rgba(255, 165, 2, 0.3); font-weight: 700;"><i class="fas fa-clock"></i> PENDING SUB WARDEN REVIEW</span>';
-            }
+        allAdminGatePassesData = await res.json();
+        
+        // Update Hero Banner KPIs (all time overview)
+        const total = allAdminGatePassesData.length;
+        const approved = allAdminGatePassesData.filter(p => p.status === 'APPROVED').length;
+        const departed = allAdminGatePassesData.filter(p => p.status === 'DEPARTED').length;
+        const pending = allAdminGatePassesData.filter(p => p.status === 'PENDING').length;
+        const overdue = allAdminGatePassesData.filter(p => p.status === 'OVERDUE_RETURN').length;
 
-            let actionHtml = '';
-            if (p.status === 'PENDING') {
-                actionHtml = `
-                    <div style="display: flex; gap: 6px;">
-                        <button class="btn btn-primary btn-sm" onclick="approveGatePass(${p.id})" style="background: #2ed573; color: #121212; font-weight: 700; padding: 5px 10px;">
-                            <i class="fas fa-check"></i> Approve
-                        </button>
-                        <button class="btn btn-dark btn-sm" onclick="rejectGatePass(${p.id})" style="background: #ff4757; color: #fff; font-weight: 700; padding: 5px 10px; border: none;">
-                            <i class="fas fa-times"></i> Reject
-                        </button>
-                    </div>
-                `;
-            } else if (p.status === 'APPROVED') {
-                actionHtml = `<span style="color: #2ed573; font-weight: 600; font-size: 13px;"><i class="fas fa-shield-alt"></i> Available for Security Clearance</span>`;
-            } else if (p.status === 'DEPARTED') {
-                actionHtml = `<span style="color: #57606f; font-weight: 600; font-size: 13px;"><i class="fas fa-check-double"></i> Verified at Gate</span>`;
-            } else {
-                actionHtml = `<span style="color: #ff4757; font-size: 13px;"><i class="fas fa-ban"></i> Request Declined</span>`;
-            }
-            
-            tbody.innerHTML += `
-                <tr>
-                    <td><strong>#${p.id}</strong></td>
-                    <td><strong>${stuName}</strong></td>
-                    <td><span class="badge" style="background: #f1f2f6; color: #2f3542;">${stuId}</span></td>
-                    <td><span class="status-badge" style="background: rgba(55, 66, 250, 0.1); color: #3742fa;"><i class="fas fa-door-closed"></i> ${roomInfo}</span></td>
-                    <td><strong>${p.reason}</strong></td>
-                    <td><span style="color: #1e3799; font-weight: 600;"><i class="fas fa-calendar-day"></i> ${p.fromDate}</span></td>
-                    <td><span style="color: #57606f;"><i class="fas fa-calendar-check"></i> ${p.toDate}</span></td>
-                    <td>${statusBadge}</td>
-                    <td>${actionHtml}</td>
-                </tr>
-            `;
-        });
-    } catch(e) {
+        const elTot = document.getElementById('gp-stat-total');
+        if (elTot) elTot.innerText = total;
+        const elApp = document.getElementById('gp-stat-approved');
+        if (elApp) elApp.innerText = approved;
+        const elDep = document.getElementById('gp-stat-departed');
+        if (elDep) elDep.innerText = departed;
+        const elPen = document.getElementById('gp-stat-pending');
+        if (elPen) elPen.innerText = pending;
+        const elOvd = document.getElementById('gp-stat-overdue');
+        if (elOvd) elOvd.innerText = overdue;
+
+        // Build Week and Month Options
+        populateGatePassDropdowns();
+
+        // Render current summary and table
+        renderGatePassSummaryAndTable();
+    } catch (e) {
         console.error("Error loading gate passes", e);
     }
+}
+
+function populateGatePassDropdowns() {
+    const weekSelect = document.getElementById('gpWeekSelect');
+    const monthSelect = document.getElementById('gpMonthSelect');
+    if (!weekSelect || !monthSelect) return;
+
+    // Collect all unique weeks based on fromDate
+    const weekMap = new Map();
+    const monthMap = new Map();
+
+    allAdminGatePassesData.forEach(p => {
+        if (p.fromDate) {
+            const wInfo = getWeekRangeForDate(p.fromDate);
+            if (wInfo && !weekMap.has(wInfo.key)) {
+                weekMap.set(wInfo.key, wInfo);
+            }
+
+            const mKey = p.fromDate.substring(0, 7); // YYYY-MM
+            if (mKey && !monthMap.has(mKey)) {
+                const dateObj = new Date(p.fromDate + 'T00:00:00');
+                const mLabel = dateObj.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                monthMap.set(mKey, mLabel);
+            }
+        }
+    });
+
+    // Also include today's week and month if not present
+    const todayStr = new Date().toISOString().split('T')[0];
+    const todayWeek = getWeekRangeForDate(todayStr);
+    if (todayWeek && !weekMap.has(todayWeek.key)) {
+        weekMap.set(todayWeek.key, todayWeek);
+    }
+    const todayMonth = todayStr.substring(0, 7);
+    if (!monthMap.has(todayMonth)) {
+        const dObj = new Date();
+        monthMap.set(todayMonth, dObj.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }));
+    }
+
+    // Sort weeks descending
+    const sortedWeeks = Array.from(weekMap.values()).sort((a, b) => b.startStr.localeCompare(a.startStr));
+    weekSelect.innerHTML = sortedWeeks.map((w, idx) => {
+        const isCurrent = (todayWeek && w.key === todayWeek.key);
+        const prefix = isCurrent ? '📍 [Current Week] ' : '';
+        return `<option value="${w.key}">${prefix}${w.label}</option>`;
+    }).join('');
+
+    if (!selectedGatePassWeek || !weekMap.has(selectedGatePassWeek)) {
+        selectedGatePassWeek = todayWeek ? todayWeek.key : (sortedWeeks[0] ? sortedWeeks[0].key : '');
+    }
+    weekSelect.value = selectedGatePassWeek;
+
+    // Sort months descending
+    const sortedMonths = Array.from(monthMap.keys()).sort().reverse();
+    monthSelect.innerHTML = sortedMonths.map(mKey => {
+        const isCurrent = (mKey === todayMonth);
+        const prefix = isCurrent ? '📍 [Current Month] ' : '';
+        return `<option value="${mKey}">${prefix}${monthMap.get(mKey)}</option>`;
+    }).join('');
+
+    if (!selectedGatePassMonth || !monthMap.has(selectedGatePassMonth)) {
+        selectedGatePassMonth = todayMonth;
+    }
+    monthSelect.value = selectedGatePassMonth;
+}
+
+function setGatePassPeriodMode(mode) {
+    gatePassPeriodMode = mode;
+
+    const btnWeekly = document.getElementById('btnGpModeWeekly');
+    const btnMonthly = document.getElementById('btnGpModeMonthly');
+    const btnAll = document.getElementById('btnGpModeAll');
+
+    const weekWrap = document.getElementById('gpWeekSelectorWrap');
+    const monthWrap = document.getElementById('gpMonthSelectorWrap');
+
+    [btnWeekly, btnMonthly, btnAll].forEach(b => {
+        if (b) {
+            b.style.background = 'transparent';
+            b.style.color = '#57606f';
+        }
+    });
+
+    if (mode === 'weekly') {
+        if (btnWeekly) {
+            btnWeekly.style.background = 'var(--primary-yellow)';
+            btnWeekly.style.color = '#121212';
+        }
+        if (weekWrap) weekWrap.style.display = 'flex';
+        if (monthWrap) monthWrap.style.display = 'none';
+    } else if (mode === 'monthly') {
+        if (btnMonthly) {
+            btnMonthly.style.background = 'var(--primary-yellow)';
+            btnMonthly.style.color = '#121212';
+        }
+        if (weekWrap) weekWrap.style.display = 'none';
+        if (monthWrap) monthWrap.style.display = 'flex';
+    } else {
+        if (btnAll) {
+            btnAll.style.background = 'var(--primary-yellow)';
+            btnAll.style.color = '#121212';
+        }
+        if (weekWrap) weekWrap.style.display = 'none';
+        if (monthWrap) monthWrap.style.display = 'none';
+    }
+
+    renderGatePassSummaryAndTable();
+}
+
+function onGatePassPeriodChange() {
+    const wSelect = document.getElementById('gpWeekSelect');
+    if (wSelect) selectedGatePassWeek = wSelect.value;
+    const mSelect = document.getElementById('gpMonthSelect');
+    if (mSelect) selectedGatePassMonth = mSelect.value;
+    renderGatePassSummaryAndTable();
+}
+
+function onGatePassFilterChange() {
+    const bSelect = document.getElementById('gpBlockFilter');
+    if (bSelect) selectedGatePassBlock = bSelect.value;
+    const sSelect = document.getElementById('gpStatusFilter');
+    if (sSelect) selectedGatePassStatus = sSelect.value;
+    const sInput = document.getElementById('gpSearchInput');
+    if (sInput) gatePassSearchQuery = sInput.value.toLowerCase().trim();
+    renderGatePassSummaryAndTable();
+}
+
+function renderGatePassSummaryAndTable() {
+    let periodList = allAdminGatePassesData;
+    let periodLabel = 'All Time';
+
+    if (gatePassPeriodMode === 'weekly') {
+        if (selectedGatePassWeek) {
+            const [startStr, endStr] = selectedGatePassWeek.split('_');
+            periodList = allAdminGatePassesData.filter(p => p.fromDate && p.fromDate >= startStr && p.fromDate <= endStr);
+            const wSelect = document.getElementById('gpWeekSelect');
+            periodLabel = wSelect ? wSelect.options[wSelect.selectedIndex]?.text.replace('📍 [Current Week] ', '') : 'Weekly';
+        }
+    } else if (gatePassPeriodMode === 'monthly') {
+        if (selectedGatePassMonth) {
+            periodList = allAdminGatePassesData.filter(p => p.fromDate && p.fromDate.startsWith(selectedGatePassMonth));
+            const mSelect = document.getElementById('gpMonthSelect');
+            periodLabel = mSelect ? mSelect.options[mSelect.selectedIndex]?.text.replace('📍 [Current Month] ', '') : 'Monthly';
+        }
+    }
+
+    // Period KPI metrics
+    const pTotal = periodList.length;
+    const pApproved = periodList.filter(p => p.status === 'APPROVED').length;
+    const pDeparted = periodList.filter(p => p.status === 'DEPARTED').length;
+    const pPending = periodList.filter(p => p.status === 'PENDING').length;
+    const pOverdue = periodList.filter(p => p.status === 'OVERDUE_RETURN').length;
+    const pRejected = periodList.filter(p => p.status === 'REJECTED').length;
+    const pRate = pTotal > 0 ? Math.round(((pApproved + pDeparted) / pTotal) * 100) : 0;
+
+    const kpiLbl = document.getElementById('kpi-gp-period-label');
+    if (kpiLbl) kpiLbl.innerText = periodLabel;
+    const kpiTot = document.getElementById('kpi-gp-total');
+    if (kpiTot) kpiTot.innerText = pTotal;
+    const kpiApp = document.getElementById('kpi-gp-approved');
+    if (kpiApp) kpiApp.innerText = `${pApproved} (${pRate}%)`;
+    const kpiDep = document.getElementById('kpi-gp-departed');
+    if (kpiDep) kpiDep.innerText = pDeparted;
+    const kpiPen = document.getElementById('kpi-gp-pending');
+    if (kpiPen) kpiPen.innerText = pPending;
+    const kpiOvd = document.getElementById('kpi-gp-overdue-rejected');
+    if (kpiOvd) kpiOvd.innerText = pOverdue + pRejected;
+    const kpiSub = document.getElementById('kpi-gp-overdue-sub');
+    if (kpiSub) kpiSub.innerText = `${pOverdue} Late / ${pRejected} Rejected`;
+    const kpiRate = document.getElementById('kpi-gp-approval-rate');
+    if (kpiRate) kpiRate.innerText = `${pRate}% Rate`;
+
+    // Render Panel 1: Temporal Departure Distribution
+    renderTemporalBreakdownPanel(periodList);
+
+    // Render Panel 2: Block Breakdown
+    renderBlockBreakdownPanel(periodList);
+
+    // Apply secondary filters (Block, Status, Search) to student manifest table
+    let tableList = periodList;
+    if (selectedGatePassBlock) {
+        tableList = tableList.filter(p => p.user && p.user.room && p.user.room.blockName === selectedGatePassBlock);
+    }
+    if (selectedGatePassStatus) {
+        tableList = tableList.filter(p => p.status === selectedGatePassStatus);
+    }
+    if (gatePassSearchQuery) {
+        tableList = tableList.filter(p => {
+            const sName = (p.user && p.user.fullName) ? p.user.fullName.toLowerCase() : '';
+            const sId = (p.user && p.user.studentId) ? p.user.studentId.toLowerCase() : '';
+            const rNo = (p.user && p.user.room) ? p.user.room.roomNumber.toLowerCase() : '';
+            const reason = (p.reason || '').toLowerCase();
+            const idStr = String(p.id);
+            return sName.includes(gatePassSearchQuery) || sId.includes(gatePassSearchQuery) ||
+                   rNo.includes(gatePassSearchQuery) || reason.includes(gatePassSearchQuery) ||
+                   idStr.includes(gatePassSearchQuery);
+        });
+    }
+
+    const tCountEl = document.getElementById('gp-table-count');
+    if (tCountEl) tCountEl.innerText = `${tableList.length} of ${pTotal}`;
+    const subTitleEl = document.getElementById('gp-table-subtitle');
+    if (subTitleEl) subTitleEl.innerText = `Showing departure passes for ${periodLabel}.`;
+
+    renderGatePassTableRows(tableList);
+}
+
+function renderTemporalBreakdownPanel(list) {
+    const headingEl = document.getElementById('gp-temporal-heading');
+    const badgeEl = document.getElementById('gp-temporal-badge');
+    const container = document.getElementById('gp-temporal-bars');
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    if (gatePassPeriodMode === 'weekly') {
+        if (headingEl) headingEl.innerText = 'Departure Flow by Day of Week';
+        if (badgeEl) badgeEl.innerText = 'Weekly Day Analysis';
+
+        const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+        const dayCounts = { Monday: 0, Tuesday: 0, Wednesday: 0, Thursday: 0, Friday: 0, Saturday: 0, Sunday: 0 };
+
+        list.forEach(p => {
+            if (p.fromDate) {
+                const d = new Date(p.fromDate + 'T00:00:00');
+                const dayIndex = (d.getDay() + 6) % 7; // Monday = 0, Sunday = 6
+                const dayName = dayNames[dayIndex];
+                if (dayCounts[dayName] !== undefined) dayCounts[dayName]++;
+            }
+        });
+
+        const maxDay = Math.max(...Object.values(dayCounts), 1);
+
+        dayNames.forEach(day => {
+            const cnt = dayCounts[day];
+            const pct = Math.round((cnt / maxDay) * 100);
+            const isWeekend = (day === 'Saturday' || day === 'Sunday' || day === 'Friday');
+            const barColor = isWeekend ? 'linear-gradient(90deg, #ffa502, #e67e22)' : 'linear-gradient(90deg, #3742fa, #70a1ff)';
+
+            container.innerHTML += `
+                <div style="display: flex; align-items: center; gap: 12px; font-size: 13px;">
+                    <div style="width: 85px; font-weight: 600; color: #2f3542;">${day}</div>
+                    <div style="flex: 1; background: #f1f2f6; height: 10px; border-radius: 5px; overflow: hidden;">
+                        <div style="background: ${barColor}; width: ${cnt > 0 ? pct : 0}%; height: 100%; border-radius: 5px; transition: width 0.4s ease;"></div>
+                    </div>
+                    <div style="width: 50px; text-align: right; font-weight: 700; color: ${cnt > 0 ? '#121212' : '#888'};">
+                        ${cnt} <span style="font-size: 11px; font-weight: normal; color: #888;">passes</span>
+                    </div>
+                </div>
+            `;
+        });
+    } else {
+        if (headingEl) headingEl.innerText = 'Weekly Departure Breakdown';
+        if (badgeEl) badgeEl.innerText = 'Monthly Breakdown';
+
+        // Group into Weeks of the Month
+        const weekBreakdown = { 'Week 1 (Days 1-7)': 0, 'Week 2 (Days 8-14)': 0, 'Week 3 (Days 15-21)': 0, 'Week 4 (Days 22-28)': 0, 'Week 5 (Days 29+)': 0 };
+
+        list.forEach(p => {
+            if (p.fromDate) {
+                const dayNum = parseInt(p.fromDate.split('-')[2], 10);
+                if (dayNum <= 7) weekBreakdown['Week 1 (Days 1-7)']++;
+                else if (dayNum <= 14) weekBreakdown['Week 2 (Days 8-14)']++;
+                else if (dayNum <= 21) weekBreakdown['Week 3 (Days 15-21)']++;
+                else if (dayNum <= 28) weekBreakdown['Week 4 (Days 22-28)']++;
+                else weekBreakdown['Week 5 (Days 29+)']++;
+            }
+        });
+
+        const maxW = Math.max(...Object.values(weekBreakdown), 1);
+
+        Object.keys(weekBreakdown).forEach(wk => {
+            const cnt = weekBreakdown[wk];
+            const pct = Math.round((cnt / maxW) * 100);
+
+            container.innerHTML += `
+                <div style="display: flex; align-items: center; gap: 12px; font-size: 13px;">
+                    <div style="width: 140px; font-weight: 600; color: #2f3542;">${wk}</div>
+                    <div style="flex: 1; background: #f1f2f6; height: 10px; border-radius: 5px; overflow: hidden;">
+                        <div style="background: linear-gradient(90deg, var(--primary-yellow), #e67e22); width: ${cnt > 0 ? pct : 0}%; height: 100%; border-radius: 5px; transition: width 0.4s ease;"></div>
+                    </div>
+                    <div style="width: 50px; text-align: right; font-weight: 700; color: ${cnt > 0 ? '#121212' : '#888'};">
+                        ${cnt} <span style="font-size: 11px; font-weight: normal; color: #888;">passes</span>
+                    </div>
+                </div>
+            `;
+        });
+    }
+}
+
+function renderBlockBreakdownPanel(list) {
+    const tbody = document.getElementById('gp-block-breakdown-tbody');
+    if (!tbody) return;
+
+    tbody.innerHTML = '';
+    const blocks = ['Block A', 'Block B', 'Block C', 'Block D'];
+    const blockMap = {};
+    blocks.forEach(b => blockMap[b] = { total: 0, approved: 0, departed: 0, overdue: 0 });
+
+    list.forEach(p => {
+        const b = (p.user && p.user.room && p.user.room.blockName) ? p.user.room.blockName : 'Block A';
+        if (!blockMap[b]) blockMap[b] = { total: 0, approved: 0, departed: 0, overdue: 0 };
+        blockMap[b].total++;
+        if (p.status === 'APPROVED') blockMap[b].approved++;
+        else if (p.status === 'DEPARTED') blockMap[b].departed++;
+        else if (p.status === 'OVERDUE_RETURN') blockMap[b].overdue++;
+    });
+
+    blocks.forEach(b => {
+        const s = blockMap[b];
+        tbody.innerHTML += `
+            <tr>
+                <td><strong>${b}</strong></td>
+                <td><strong>${s.total}</strong> requests</td>
+                <td><span style="color: #2ed573; font-weight: 700;"><i class="fas fa-check-circle"></i> ${s.approved}</span></td>
+                <td><span style="color: #ffa502; font-weight: 700;"><i class="fas fa-person-walking-arrow-right"></i> ${s.departed}</span></td>
+                <td><span style="color: ${s.overdue > 0 ? '#ff4757' : '#888'}; font-weight: 700;">${s.overdue}</span></td>
+            </tr>
+        `;
+    });
+}
+
+function renderGatePassTableRows(list) {
+    const tbody = document.getElementById('gatepasses-table-body-admin');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    if (list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:#888; padding:35px;"><i class="fas fa-id-badge" style="font-size:28px; color:#ccc; display:block; margin-bottom:8px;"></i>No gate pass requests found matching this summary criteria.</td></tr>';
+        return;
+    }
+
+    list.forEach(p => {
+        const stuName = p.user ? p.user.fullName : 'Unknown Student';
+        const stuId = p.user ? p.user.studentId : 'N/A';
+        const stuPhone = (p.user && p.user.phone) ? p.user.phone : '-';
+        const roomInfo = (p.user && p.user.room) ? `${p.user.room.roomNumber} (${p.user.room.blockName})` : 'Not Allocated';
+        
+        // Calculate Duration
+        let durationStr = '-';
+        if (p.fromDate && p.toDate) {
+            const d1 = new Date(p.fromDate);
+            const d2 = new Date(p.toDate);
+            const diffTime = Math.abs(d2 - d1);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+            durationStr = `${diffDays} Day${diffDays > 1 ? 's' : ''}`;
+        }
+
+        let statusBadge = '';
+        if (p.status === 'APPROVED') {
+            statusBadge = '<span class="status-badge" style="background: rgba(46, 213, 115, 0.15); color: #2ed573; border: 1px solid rgba(46, 213, 115, 0.3); font-weight: 700; padding: 4px 8px; border-radius: 6px;"><i class="fas fa-check-circle"></i> APPROVED (At Gate)</span>';
+        } else if (p.status === 'REJECTED') {
+            statusBadge = '<span class="status-badge" style="background: rgba(255, 71, 87, 0.15); color: #ff4757; border: 1px solid rgba(255, 71, 87, 0.3); font-weight: 700; padding: 4px 8px; border-radius: 6px;"><i class="fas fa-times-circle"></i> REJECTED</span>';
+        } else if (p.status === 'DEPARTED') {
+            statusBadge = '<span class="status-badge" style="background: rgba(255, 165, 2, 0.15); color: #e67e22; border: 1px solid rgba(255, 165, 2, 0.3); font-weight: 700; padding: 4px 8px; border-radius: 6px;"><i class="fas fa-walking"></i> DEPARTED (Away)</span>';
+        } else if (p.status === 'OVERDUE_RETURN') {
+            statusBadge = '<span class="status-badge" style="background: #ff4757; color: #ffffff; font-weight: 800; padding: 4px 8px; border-radius: 6px; box-shadow: 0 2px 6px rgba(255,71,87,0.3);"><i class="fas fa-triangle-exclamation"></i> OVERDUE RETURN</span>';
+        } else {
+            statusBadge = '<span class="status-badge" style="background: rgba(112, 161, 255, 0.15); color: #70a1ff; border: 1px solid rgba(112, 161, 255, 0.3); font-weight: 700; padding: 4px 8px; border-radius: 6px;"><i class="fas fa-clock"></i> PENDING REVIEW</span>';
+        }
+
+        let actionHtml = '';
+        if (p.status === 'PENDING') {
+            actionHtml = `
+                <div style="display: flex; gap: 6px;">
+                    <button class="btn btn-primary btn-sm" onclick="approveGatePass(${p.id})" style="background: #2ed573; color: #121212; font-weight: 700; padding: 5px 10px;">
+                        <i class="fas fa-check"></i> Approve
+                    </button>
+                    <button class="btn btn-dark btn-sm" onclick="rejectGatePass(${p.id})" style="background: #ff4757; color: #fff; font-weight: 700; padding: 5px 10px; border: none;">
+                        <i class="fas fa-times"></i> Reject
+                    </button>
+                </div>
+            `;
+        } else if (p.status === 'APPROVED') {
+            actionHtml = `<span style="color: #2ed573; font-weight: 600; font-size: 13px;"><i class="fas fa-shield-alt"></i> Gate Cleared</span>`;
+        } else if (p.status === 'DEPARTED') {
+            actionHtml = `<span style="color: #e67e22; font-weight: 600; font-size: 13px;"><i class="fas fa-walking"></i> Exited Campus</span>`;
+        } else if (p.status === 'OVERDUE_RETURN') {
+            actionHtml = `<span style="color: #ff4757; font-weight: 700; font-size: 13px;"><i class="fas fa-bell"></i> Return Alert</span>`;
+        } else {
+            actionHtml = `<span style="color: #888; font-size: 13px;"><i class="fas fa-ban"></i> Declined</span>`;
+        }
+        
+        tbody.innerHTML += `
+            <tr style="${p.status === 'OVERDUE_RETURN' ? 'background: #fff8f8;' : ''}">
+                <td><strong>#${p.id}</strong></td>
+                <td>
+                    <strong>${stuName}</strong>
+                    <div style="font-size: 11.5px; color: #636e72;">
+                        <span class="badge" style="background: #f1f2f6; color: #2f3542; margin-right: 4px;">${stuId}</span>
+                        ${stuPhone !== '-' ? `<i class="fas fa-phone-alt" style="font-size: 10px; color: #888;"></i> ${stuPhone}` : ''}
+                    </div>
+                </td>
+                <td><span class="status-badge" style="background: rgba(55, 66, 250, 0.1); color: #3742fa; font-weight: 600;"><i class="fas fa-door-closed"></i> ${roomInfo}</span></td>
+                <td style="max-width: 220px; font-size: 13px; color: #2f3542;"><strong>${p.reason}</strong></td>
+                <td><span style="color: #1e3799; font-weight: 600;"><i class="fas fa-calendar-day"></i> ${p.fromDate}</span></td>
+                <td><span style="color: #57606f;"><i class="fas fa-calendar-check"></i> ${p.toDate}</span></td>
+                <td><span style="background: #f1f2f6; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 12px; color: #2f3542;">${durationStr}</span></td>
+                <td>${statusBadge}</td>
+                <td>${actionHtml}</td>
+            </tr>
+        `;
+    });
+}
+
+// Download CSV Summary Report
+function downloadGatePassCSV() {
+    let list = allAdminGatePassesData;
+    let periodTitle = 'All Time';
+
+    if (gatePassPeriodMode === 'weekly') {
+        if (selectedGatePassWeek) {
+            const [startStr, endStr] = selectedGatePassWeek.split('_');
+            list = allAdminGatePassesData.filter(p => p.fromDate && p.fromDate >= startStr && p.fromDate <= endStr);
+            const wSelect = document.getElementById('gpWeekSelect');
+            periodTitle = wSelect ? wSelect.options[wSelect.selectedIndex]?.text.replace('📍 [Current Week] ', '') : 'Weekly';
+        }
+    } else if (gatePassPeriodMode === 'monthly') {
+        if (selectedGatePassMonth) {
+            list = allAdminGatePassesData.filter(p => p.fromDate && p.fromDate.startsWith(selectedGatePassMonth));
+            const mSelect = document.getElementById('gpMonthSelect');
+            periodTitle = mSelect ? mSelect.options[mSelect.selectedIndex]?.text.replace('📍 [Current Month] ', '') : 'Monthly';
+        }
+    }
+
+    if (selectedGatePassBlock) {
+        list = list.filter(p => p.user && p.user.room && p.user.room.blockName === selectedGatePassBlock);
+    }
+    if (selectedGatePassStatus) {
+        list = list.filter(p => p.status === selectedGatePassStatus);
+    }
+
+    const total = list.length;
+    const approved = list.filter(p => p.status === 'APPROVED').length;
+    const departed = list.filter(p => p.status === 'DEPARTED').length;
+    const overdue = list.filter(p => p.status === 'OVERDUE_RETURN').length;
+    const pending = list.filter(p => p.status === 'PENDING').length;
+    const rejected = list.filter(p => p.status === 'REJECTED').length;
+    const rate = total > 0 ? Math.round(((approved + departed) / total) * 100) : 0;
+
+    let csv = '\uFEFF'; // UTF-8 BOM
+    csv += '"UNIVERSITY OF RUHUNA - HOSTEL MANAGEMENT SYSTEM"\r\n';
+    csv += `"STUDENT GATE PASS & LEAVE SUMMARY REPORT - ${periodTitle.toUpperCase()}"\r\n`;
+    csv += `"Generated At:","${new Date().toLocaleString()}"\r\n`;
+    csv += `"Total Requests:","${total}","Approved:","${approved}","Departed/Away:","${departed}","Pending:","${pending}","Overdue:","${overdue}","Rejected:","${rejected}","Approval Rate:","${rate}%"\r\n\r\n`;
+
+    csv += '"#","Pass ID","Student Name","Student ID","Phone","Room","Block","Departure Date","Expected Return","Duration","Reason / Destination","Status"\r\n';
+
+    list.forEach((p, idx) => {
+        const passId = `GP-${p.id}`;
+        const stuName = (p.user ? (p.user.fullName || 'Student') : 'Unknown').replace(/"/g, '""');
+        const stuId = (p.user ? (p.user.studentId || '-') : '-').replace(/"/g, '""');
+        const phone = (p.user && p.user.phone ? p.user.phone : '-').replace(/"/g, '""');
+        const roomNo = (p.user && p.user.room ? p.user.room.roomNumber : '-').replace(/"/g, '""');
+        const blockName = (p.user && p.user.room ? p.user.room.blockName : '-').replace(/"/g, '""');
+        const fDate = (p.fromDate || '-').replace(/"/g, '""');
+        const tDate = (p.toDate || '-').replace(/"/g, '""');
+        const reason = (p.reason || '-').replace(/"/g, '""');
+        const status = (p.status || 'PENDING').replace(/"/g, '""');
+        
+        let dur = '-';
+        if (p.fromDate && p.toDate) {
+            const d1 = new Date(p.fromDate);
+            const d2 = new Date(p.toDate);
+            const diffTime = Math.abs(d2 - d1);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+            dur = `${diffDays} Day${diffDays > 1 ? 's' : ''}`;
+        }
+
+        csv += `"${idx + 1}","${passId}","${stuName}","${stuId}","${phone}","${roomNo}","${blockName}","${fDate}","${tDate}","${dur}","${reason}","${status}"\r\n`;
+    });
+
+    const fileSafe = periodTitle.replace(/[^a-zA-Z0-9]/g, '_');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `Ruhuna_Hostel_GatePass_${fileSafe}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    if (typeof showToast === 'function') {
+        showToast(`Downloaded Gate Pass Summary CSV for ${periodTitle}!`, 'success');
+    }
+}
+
+// Print / PDF Gate Pass Statement
+function printGatePassSummaryReport() {
+    let list = allAdminGatePassesData;
+    let periodTitle = 'All Time';
+
+    if (gatePassPeriodMode === 'weekly') {
+        if (selectedGatePassWeek) {
+            const [startStr, endStr] = selectedGatePassWeek.split('_');
+            list = allAdminGatePassesData.filter(p => p.fromDate && p.fromDate >= startStr && p.fromDate <= endStr);
+            const wSelect = document.getElementById('gpWeekSelect');
+            periodTitle = wSelect ? wSelect.options[wSelect.selectedIndex]?.text.replace('📍 [Current Week] ', '') : 'Weekly';
+        }
+    } else if (gatePassPeriodMode === 'monthly') {
+        if (selectedGatePassMonth) {
+            list = allAdminGatePassesData.filter(p => p.fromDate && p.fromDate.startsWith(selectedGatePassMonth));
+            const mSelect = document.getElementById('gpMonthSelect');
+            periodTitle = mSelect ? mSelect.options[mSelect.selectedIndex]?.text.replace('📍 [Current Month] ', '') : 'Monthly';
+        }
+    }
+
+    if (selectedGatePassBlock) {
+        list = list.filter(p => p.user && p.user.room && p.user.room.blockName === selectedGatePassBlock);
+    }
+    if (selectedGatePassStatus) {
+        list = list.filter(p => p.status === selectedGatePassStatus);
+    }
+
+    const printWindow = window.open('', '_blank', 'width=1100,height=800');
+    if (!printWindow) {
+        alert('Please allow popups to print/save the gate pass summary PDF.');
+        return;
+    }
+
+    const total = list.length;
+    const approved = list.filter(p => p.status === 'APPROVED').length;
+    const departed = list.filter(p => p.status === 'DEPARTED').length;
+    const overdue = list.filter(p => p.status === 'OVERDUE_RETURN').length;
+    const pending = list.filter(p => p.status === 'PENDING').length;
+    const rejected = list.filter(p => p.status === 'REJECTED').length;
+    const rate = total > 0 ? Math.round(((approved + departed) / total) * 100) : 0;
+
+    let rowsHtml = '';
+    list.forEach((p, idx) => {
+        const stuName = p.user ? (p.user.fullName || 'Student') : 'Unknown';
+        const stuId = p.user ? (p.user.studentId || '-') : '-';
+        const roomNo = (p.user && p.user.room) ? `${p.user.room.roomNumber} (${p.user.room.blockName})` : '-';
+        const reason = p.reason || '-';
+        const fDate = p.fromDate || '-';
+        const tDate = p.toDate || '-';
+        const status = p.status || 'PENDING';
+
+        let badgeBg = '#f1f2f6';
+        let badgeColor = '#2f3542';
+        if (status === 'APPROVED') { badgeBg = '#dcfce7'; badgeColor = '#166534'; }
+        else if (status === 'DEPARTED') { badgeBg = '#fef3c7'; badgeColor = '#92400e'; }
+        else if (status === 'OVERDUE_RETURN') { badgeBg = '#fee2e2'; badgeColor = '#991b1b'; }
+        else if (status === 'REJECTED') { badgeBg = '#fee2e2'; badgeColor = '#b91c1c'; }
+
+        rowsHtml += `
+            <tr style="border-bottom: 1px solid #e2e8f0; font-size: 12.5px;">
+                <td style="padding: 8px 6px; text-align: center; color: #64748b;">${idx + 1}</td>
+                <td style="padding: 8px 6px; font-weight: 700; font-family: monospace;">#${p.id}</td>
+                <td style="padding: 8px 6px; font-weight: 600;">${stuName}</td>
+                <td style="padding: 8px 6px; font-family: monospace;">${stuId}</td>
+                <td style="padding: 8px 6px;">${roomNo}</td>
+                <td style="padding: 8px 6px;">${reason}</td>
+                <td style="padding: 8px 6px; text-align: center;">${fDate}</td>
+                <td style="padding: 8px 6px; text-align: center;">${tDate}</td>
+                <td style="padding: 8px 6px; text-align: center;">
+                    <span style="background: ${badgeBg}; color: ${badgeColor}; font-weight: 700; padding: 2px 8px; border-radius: 10px; font-size: 11px;">
+                        ${status}
+                    </span>
+                </td>
+            </tr>
+        `;
+    });
+
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <title>Gate Pass Summary Report - ${periodTitle} - University of Ruhuna</title>
+            <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+            <style>
+                @page { size: A4 landscape; margin: 12mm; }
+                body {
+                    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+                    color: #1e293b;
+                    margin: 0;
+                    padding: 20px;
+                    background: #ffffff;
+                }
+                .report-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    border-bottom: 2.5px solid #0f172a;
+                    padding-bottom: 14px;
+                    margin-bottom: 16px;
+                }
+                .header-left h1 {
+                    font-family: 'Outfit', sans-serif;
+                    font-size: 22px;
+                    margin: 0 0 4px 0;
+                    color: #0f172a;
+                    letter-spacing: -0.5px;
+                }
+                .header-left p {
+                    margin: 0;
+                    font-size: 12.5px;
+                    color: #64748b;
+                }
+                .meta-box {
+                    text-align: right;
+                    font-size: 12px;
+                    color: #475569;
+                }
+                .meta-box strong {
+                    color: #0f172a;
+                }
+                .kpi-row {
+                    display: grid;
+                    grid-template-columns: repeat(5, 1fr);
+                    gap: 12px;
+                    margin-bottom: 18px;
+                }
+                .kpi-box {
+                    background: #f8fafc;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 8px;
+                    padding: 10px 14px;
+                }
+                .kpi-box .lbl {
+                    font-size: 11px;
+                    font-weight: 700;
+                    color: #64748b;
+                    text-transform: uppercase;
+                }
+                .kpi-box .val {
+                    font-size: 18px;
+                    font-weight: 800;
+                    color: #0f172a;
+                    margin-top: 4px;
+                }
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-bottom: 24px;
+                }
+                thead th {
+                    background: #0f172a;
+                    color: #ffffff;
+                    font-size: 11.5px;
+                    font-weight: 700;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    padding: 8px 6px;
+                    text-align: left;
+                }
+                .sign-row {
+                    display: flex;
+                    justify-content: space-between;
+                    margin-top: 36px;
+                    padding-top: 14px;
+                }
+                .sign-box {
+                    width: 28%;
+                    text-align: center;
+                    border-top: 1.5px dashed #94a3b8;
+                    padding-top: 6px;
+                    font-size: 12px;
+                    color: #334155;
+                }
+                @media print {
+                    .no-print { display: none !important; }
+                    body { padding: 0; }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="no-print" style="margin-bottom: 15px; padding: 10px 16px; background: #fef3c7; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 13px; font-weight: 600; color: #92400e;">🖨️ Ready to print or save as PDF. Click the button on the right:</span>
+                <button onclick="window.print()" style="background: #0f172a; color: #fff; border: none; padding: 6px 14px; border-radius: 6px; font-weight: 700; cursor: pointer;">
+                    Print Document
+                </button>
+            </div>
+
+            <div class="report-header">
+                <div class="header-left">
+                    <h1>UNIVERSITY OF RUHUNA - HOSTEL MANAGEMENT SYSTEM</h1>
+                    <p>Official Student Early Home Departure & Gate Pass Summary Statement</p>
+                </div>
+                <div class="meta-box">
+                    <div>Summary Period: <strong>${periodTitle}</strong></div>
+                    <div>Generated: <strong>${new Date().toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}</strong></div>
+                    <div>Authority: <strong>Sub Warden & Security Control</strong></div>
+                </div>
+            </div>
+
+            <div class="kpi-row">
+                <div class="kpi-box">
+                    <div class="lbl">Total Passes</div>
+                    <div class="val">${total}</div>
+                </div>
+                <div class="kpi-box" style="border-left: 3px solid #16a34a;">
+                    <div class="lbl">Approved & Cleared</div>
+                    <div class="val" style="color: #16a34a;">${approved} (${rate}%)</div>
+                </div>
+                <div class="kpi-box" style="border-left: 3px solid #d97706;">
+                    <div class="lbl">Departed (Away)</div>
+                    <div class="val" style="color: #d97706;">${departed}</div>
+                </div>
+                <div class="kpi-box" style="border-left: 3px solid #dc2626;">
+                    <div class="lbl">Overdue Return</div>
+                    <div class="val" style="color: #dc2626;">${overdue}</div>
+                </div>
+                <div class="kpi-box">
+                    <div class="lbl">Pending / Rejected</div>
+                    <div class="val">${pending} / ${rejected}</div>
+                </div>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th style="text-align: center; width: 35px;">#</th>
+                        <th style="width: 60px;">Pass ID</th>
+                        <th>Student Name</th>
+                        <th style="width: 100px;">TG Number</th>
+                        <th>Hostel Room & Block</th>
+                        <th>Reason / Destination</th>
+                        <th style="text-align: center; width: 90px;">Departure</th>
+                        <th style="text-align: center; width: 90px;">Expected Return</th>
+                        <th style="text-align: center; width: 110px;">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${rowsHtml}
+                </tbody>
+            </table>
+
+            <div class="sign-row">
+                <div class="sign-box">
+                    <strong>Prepared By</strong><br>
+                    Sub Warden Administration Office
+                </div>
+                <div class="sign-box">
+                    <strong>Verified By</strong><br>
+                    Chief Security Officer (Main Gate)
+                </div>
+                <div class="sign-box">
+                    <strong>Authorized By</strong><br>
+                    Warden / Senior Student Counselor
+                </div>
+            </div>
+
+            <script>
+                setTimeout(() => { window.print(); }, 400);
+            </script>
+        </body>
+        </html>
+    `);
+    printWindow.document.close();
 }
 
 async function loadAdminNotices() {
