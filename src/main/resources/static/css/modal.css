@@ -1,8 +1,4 @@
-/* ===================================================
-   RUHUNA Hostel Management System - Modal Stylesheet
-   File: modal.css
-   Spacious, modern, and accessible modal popups (720px)
-   =================================================== */
+/* RUHUNA Hostel Management System - Modal Stylesheet: Spacious, modern, accessible popup modals (720px width) */
 
 .modal {
     display: none;
@@ -313,10 +309,7 @@
     margin-bottom: 5px;
 }
 
-/* ===================================================
-   Custom Toast & Modern In-App Popup Dialog Styles
-   (Eliminates browser native 'localhost says:' alert/confirm)
-   =================================================== */
+/* Custom Toast Notifications & Modern In-App Confirmation Dialog Styles (Replaces browser native alerts) */
 
 .toast-container {
     position: fixed;
