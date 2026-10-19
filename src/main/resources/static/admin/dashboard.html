@@ -808,24 +808,225 @@
                     <h2>Student Gate Pass & Leave Clearance Command</h2>
                     <p>Review student requests for early home departures and weekend leave. Approvals automatically sync to the Security Main Gate.</p>
                     <div class="hero-stats-row">
-                        <div class="hero-stat-pill"><i class="fas fa-person-walking-arrow-right"></i> Early Home Departures</div>
-                        <div class="hero-stat-pill"><i class="fas fa-shield-alt"></i> Security Gate Clearance</div>
-                        <div class="hero-stat-pill"><i class="fas fa-clock"></i> Departure & Return Verification</div>
-                        <div class="hero-stat-pill"><i class="fas fa-signature"></i> Sub Warden Approval</div>
+                        <div class="hero-stat-pill"><i class="fas fa-id-card"></i> <strong id="gp-stat-total">0</strong> Total Passes</div>
+                        <div class="hero-stat-pill"><i class="fas fa-check-circle" style="color: #2ed573;"></i> <strong id="gp-stat-approved">0</strong> Approved</div>
+                        <div class="hero-stat-pill"><i class="fas fa-person-walking-arrow-right" style="color: #ffa502;"></i> <strong id="gp-stat-departed">0</strong> Away at Home</div>
+                        <div class="hero-stat-pill"><i class="fas fa-clock" style="color: #70a1ff;"></i> <strong id="gp-stat-pending">0</strong> Pending Review</div>
+                        <div class="hero-stat-pill"><i class="fas fa-triangle-exclamation" style="color: #ff4757;"></i> <strong id="gp-stat-overdue">0</strong> Overdue Return</div>
                     </div>
                 </div>
             </div>
 
+            <!-- Gate Pass Summary Control Bar (Weekly / Monthly / All) -->
+            <div class="card" style="margin-bottom: 25px; padding: 22px 26px; background: #ffffff; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); border-top: 4px solid var(--primary-yellow);">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 18px; border-bottom: 1.5px solid #f1f2f6; padding-bottom: 16px;">
+                    <div>
+                        <div style="font-size: 11.5px; font-weight: 800; color: #747d8c; text-transform: uppercase; letter-spacing: 1px;"><i class="fas fa-chart-pie"></i> LEAVE ANALYTICS & TIME SUMMARY</div>
+                        <h3 style="font-family: 'Outfit', sans-serif; font-size: 21px; margin: 4px 0 0 0; color: #121212;">Gate Pass Weekly & Monthly Summary</h3>
+                    </div>
+                    
+                    <!-- Mode Switcher Tabs (Weekly / Monthly / All) -->
+                    <div style="display: flex; gap: 8px; background: #f1f2f6; padding: 4px; border-radius: 10px;">
+                        <button id="btnGpModeWeekly" class="btn btn-sm" onclick="setGatePassPeriodMode('weekly')" style="background: var(--primary-yellow); color: #121212; font-weight: 700; border-radius: 7px; padding: 7px 18px; border: none; cursor: pointer; transition: all 0.2s;">
+                            <i class="fas fa-calendar-week"></i> Weekly Summary
+                        </button>
+                        <button id="btnGpModeMonthly" class="btn btn-sm" onclick="setGatePassPeriodMode('monthly')" style="background: transparent; color: #57606f; font-weight: 700; border-radius: 7px; padding: 7px 18px; border: none; cursor: pointer; transition: all 0.2s;">
+                            <i class="fas fa-calendar-alt"></i> Monthly Summary
+                        </button>
+                        <button id="btnGpModeAll" class="btn btn-sm" onclick="setGatePassPeriodMode('all')" style="background: transparent; color: #57606f; font-weight: 700; border-radius: 7px; padding: 7px 18px; border: none; cursor: pointer; transition: all 0.2s;">
+                            <i class="fas fa-list"></i> All Records
+                        </button>
+                    </div>
+
+                    <!-- Export & Download Buttons -->
+                    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                        <button class="btn btn-primary" onclick="downloadGatePassCSV()" style="background: #2ed573; color: #121212; font-weight: 700; padding: 9px 18px; border-radius: 8px; border: none; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-file-csv"></i> Download CSV Summary
+                        </button>
+                        <button class="btn btn-dark" onclick="printGatePassSummaryReport()" style="background: #121212; color: #fff; font-weight: 700; padding: 9px 18px; border-radius: 8px; border: 1.5px solid #2f3542; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-print" style="color: var(--primary-yellow);"></i> Print / Save PDF
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Selectors & Filter Row -->
+                <div style="display: flex; gap: 14px; align-items: center; flex-wrap: wrap;">
+                    <!-- Weekly Selector Container -->
+                    <div id="gpWeekSelectorWrap" style="display: flex; align-items: center; gap: 8px;">
+                        <label style="font-size: 13px; font-weight: 700; color: #2f3542; white-space: nowrap;"><i class="fas fa-calendar-day"></i> Select Week:</label>
+                        <select id="gpWeekSelect" onchange="onGatePassPeriodChange()" style="padding: 9px 14px; border-radius: 8px; border: 1.5px solid #ddd; font-size: 13.5px; font-weight: 600; min-width: 270px; background: #fff;">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+
+                    <!-- Monthly Selector Container -->
+                    <div id="gpMonthSelectorWrap" style="display: none; align-items: center; gap: 8px;">
+                        <label style="font-size: 13px; font-weight: 700; color: #2f3542; white-space: nowrap;"><i class="fas fa-calendar"></i> Select Month:</label>
+                        <select id="gpMonthSelect" onchange="onGatePassPeriodChange()" style="padding: 9px 14px; border-radius: 8px; border: 1.5px solid #ddd; font-size: 13.5px; font-weight: 600; min-width: 220px; background: #fff;">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+
+                    <!-- Block Filter -->
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <select id="gpBlockFilter" onchange="onGatePassFilterChange()" style="padding: 9px 14px; border-radius: 8px; border: 1.5px solid #ddd; font-size: 13.5px; background: #fff;">
+                            <option value="">All Residential Blocks</option>
+                            <option value="Block A">Block A</option>
+                            <option value="Block B">Block B</option>
+                            <option value="Block C">Block C</option>
+                            <option value="Block D">Block D</option>
+                        </select>
+                    </div>
+
+                    <!-- Status Filter -->
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <select id="gpStatusFilter" onchange="onGatePassFilterChange()" style="padding: 9px 14px; border-radius: 8px; border: 1.5px solid #ddd; font-size: 13.5px; background: #fff;">
+                            <option value="">All Statuses</option>
+                            <option value="PENDING">Pending Review</option>
+                            <option value="APPROVED">Approved (Gate Cleared)</option>
+                            <option value="DEPARTED">Departed (At Home)</option>
+                            <option value="OVERDUE_RETURN">Overdue Return Alert</option>
+                            <option value="REJECTED">Declined / Rejected</option>
+                        </select>
+                    </div>
+
+                    <!-- Search Input -->
+                    <div style="flex: 1; min-width: 220px;">
+                        <input type="text" id="gpSearchInput" oninput="onGatePassFilterChange()" placeholder="Search student, TG no, room, destination..." style="width: 100%; padding: 9px 14px; border-radius: 8px; border: 1.5px solid #ddd; font-size: 13.5px;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dynamic Period KPI Cards -->
+            <div class="cards-container" style="margin-bottom: 25px;">
+                <div class="card" style="border-left: 5px solid #3742fa;">
+                    <div class="card-header-flex">
+                        <div>
+                            <h3 style="font-size: 14px; color: #57606f;">Period Requests</h3>
+                            <span id="kpi-gp-period-label" style="font-size: 11px; font-weight: 700; color: #3742fa; text-transform: uppercase;">Current Week</span>
+                        </div>
+                        <i class="fas fa-ticket-alt" style="color: #3742fa; font-size: 24px;"></i>
+                    </div>
+                    <div class="value" id="kpi-gp-total" style="color: #121212; margin-top: 6px;">0</div>
+                </div>
+
+                <div class="card" style="border-left: 5px solid #2ed573;">
+                    <div class="card-header-flex">
+                        <div>
+                            <h3 style="font-size: 14px; color: #57606f;">Approved Leaves</h3>
+                            <span id="kpi-gp-approval-rate" style="font-size: 11px; font-weight: 700; color: #2ed573;">0% Rate</span>
+                        </div>
+                        <i class="fas fa-check-circle" style="color: #2ed573; font-size: 24px;"></i>
+                    </div>
+                    <div class="value" id="kpi-gp-approved" style="color: #2ed573; margin-top: 6px;">0</div>
+                </div>
+
+                <div class="card" style="border-left: 5px solid #ffa502;">
+                    <div class="card-header-flex">
+                        <div>
+                            <h3 style="font-size: 14px; color: #57606f;">Currently Away</h3>
+                            <span style="font-size: 11px; font-weight: 700; color: #ffa502;">Departed at Gate</span>
+                        </div>
+                        <i class="fas fa-person-walking-arrow-right" style="color: #ffa502; font-size: 24px;"></i>
+                    </div>
+                    <div class="value" id="kpi-gp-departed" style="color: #ffa502; margin-top: 6px;">0</div>
+                </div>
+
+                <div class="card" style="border-left: 5px solid #70a1ff;">
+                    <div class="card-header-flex">
+                        <div>
+                            <h3 style="font-size: 14px; color: #57606f;">Pending Review</h3>
+                            <span style="font-size: 11px; font-weight: 700; color: #70a1ff;">Action Required</span>
+                        </div>
+                        <i class="fas fa-clock" style="color: #70a1ff; font-size: 24px;"></i>
+                    </div>
+                    <div class="value" id="kpi-gp-pending" style="color: #70a1ff; margin-top: 6px;">0</div>
+                </div>
+
+                <div class="card" style="border-left: 5px solid #ff4757;">
+                    <div class="card-header-flex">
+                        <div>
+                            <h3 style="font-size: 14px; color: #57606f;">Overdue / Rejected</h3>
+                            <span id="kpi-gp-overdue-sub" style="font-size: 11px; font-weight: 700; color: #ff4757;">0 Late</span>
+                        </div>
+                        <i class="fas fa-exclamation-triangle" style="color: #ff4757; font-size: 24px;"></i>
+                    </div>
+                    <div class="value" id="kpi-gp-overdue-rejected" style="color: #ff4757; margin-top: 6px;">0</div>
+                </div>
+            </div>
+
+            <!-- Visual Summary Breakdown Grid -->
+            <div class="summary-grid-2" style="margin-bottom: 25px;">
+                <!-- Panel 1: Temporal Distribution (Day-of-Week or Week-of-Month) -->
+                <div class="table-container" style="background: #ffffff; border-radius: 16px; padding: 20px;">
+                    <div class="table-header-flex" style="margin-bottom: 15px;">
+                        <div>
+                            <h3 style="font-family: 'Outfit', sans-serif; font-size: 17px; margin: 0; color: #121212;">
+                                <i class="fas fa-chart-column" style="color: var(--primary-yellow); margin-right: 8px;"></i>
+                                <span id="gp-temporal-heading">Departure Flow by Day of Week</span>
+                            </h3>
+                            <p style="font-size: 12.5px; color: #747d8c; margin: 3px 0 0 0;">Volume of students leaving hostel during this period</p>
+                        </div>
+                        <span id="gp-temporal-badge" style="font-size: 11.5px; font-weight: 700; color: #2f3542; background: #f1f2f6; padding: 4px 10px; border-radius: 6px;">Active</span>
+                    </div>
+                    <div id="gp-temporal-bars" style="display: flex; flex-direction: column; gap: 10px;">
+                        <!-- Loaded dynamically -->
+                    </div>
+                </div>
+
+                <!-- Panel 2: Residential Block Breakdown -->
+                <div class="table-container" style="background: #ffffff; border-radius: 16px; padding: 20px;">
+                    <div class="table-header-flex" style="margin-bottom: 15px;">
+                        <div>
+                            <h3 style="font-family: 'Outfit', sans-serif; font-size: 17px; margin: 0; color: #121212;">
+                                <i class="fas fa-building" style="color: #3742fa; margin-right: 8px;"></i>
+                                Block-wise Student Leave Breakdown
+                            </h3>
+                            <p style="font-size: 12.5px; color: #747d8c; margin: 3px 0 0 0;">Student departures grouped across Blocks A, B, C, D</p>
+                        </div>
+                        <span style="font-size: 11.5px; font-weight: 700; color: #3742fa; background: rgba(55, 66, 250, 0.1); padding: 4px 10px; border-radius: 6px;">4 Blocks</span>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Hostel Block</th>
+                                <th>Total Requests</th>
+                                <th>Approved</th>
+                                <th>Away (Departed)</th>
+                                <th>Overdue</th>
+                            </tr>
+                        </thead>
+                        <tbody id="gp-block-breakdown-tbody">
+                            <!-- Loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Student Leave Manifest Table -->
             <div class="table-container">
-                <div class="table-header-flex">
+                <div class="table-header-flex" style="flex-wrap: wrap; gap: 15px; margin-bottom: 15px;">
                     <div>
                         <h2><i class="fas fa-id-card" style="color: var(--primary-yellow);"></i> Student Early Home Departures & Gate Passes</h2>
-                        <p style="color: #7f8c8d; font-size: 13.5px; margin-top: 4px;">Review student requests for early departure / weekend home visits. Approvals are sent directly to the Security Gate for student exit verification.</p>
+                        <p id="gp-table-subtitle" style="color: #7f8c8d; font-size: 13.5px; margin-top: 4px;">Review student requests for early departure / weekend home visits. Approvals sync directly to Security Gate.</p>
+                    </div>
+                    <div style="font-size: 13px; font-weight: 700; color: #57606f;">
+                        Total Records: <span id="gp-table-count" style="color: #121212; font-size: 15px;">0</span>
                     </div>
                 </div>
                 <table>
                     <thead>
-                        <tr><th>Pass ID</th><th>Student Name</th><th>Student ID</th><th>Room & Block</th><th>Reason / Destination</th><th>Departure Date</th><th>Expected Return</th><th>Status</th><th>Sub Warden Decision</th></tr>
+                        <tr>
+                            <th>Pass ID</th>
+                            <th>Student Name & ID</th>
+                            <th>Room & Block</th>
+                            <th>Reason / Destination</th>
+                            <th>Departure Date</th>
+                            <th>Expected Return</th>
+                            <th>Duration</th>
+                            <th>Status</th>
+                            <th>Sub Warden Decision</th>
+                        </tr>
                     </thead>
                     <tbody id="gatepasses-table-body-admin">
                         <!-- Loaded dynamically -->
