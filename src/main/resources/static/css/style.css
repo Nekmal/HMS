@@ -631,9 +631,7 @@ tr:hover {
     overflow-y: auto;
 }
 
-/* ===================================================
-   User Management: Students & Staff Segmented Subtabs
-   =================================================== */
+/* User Management: Segmented controls for switching between Students and Staff subtabs */
 .user-subtab-container {
     display: flex;
     justify-content: space-between;
