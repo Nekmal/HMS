@@ -1,24 +1,19 @@
--- ============================================================================
--- ADVANCE DATABASE MANAGEMENT SYSTEMS (ADBMS) - MINI PROJECT
--- UNIVERSITY OF RUHUNA - HOSTEL MANAGEMENT SYSTEM (HMS)
--- ============================================================================
--- MEMBER 2 CONTRIBUTION SCRIPT
--- DOMAIN: HOSTEL TREASURY, LOGISTICS, ASSETS & REPAIRS, STAFF OPERATIONS
--- ============================================================================
--- COMPONENTS IMPLEMENTED (4 of each):
+-- Advance Database Management Systems (ADBMS) - Mini Project
+-- University of Ruhuna - Hostel Management System (HMS)
+-- Member 2 Contribution Script
+-- Domain: Hostel Treasury, Monthly Payments, Inventory Logistics, Asset Repairs, and Staff Attendance
+-- Components Implemented (4 of each):
 -- 1. Stored Procedures (4) - Multi-table operations across 3 to 4 tables
--- 2. Database Triggers (4)
--- 3. Stored Functions / UDFs (4) - Multi-table queries
--- 4. Analytical Views (4) - Complex joins across 3 to 4 tables
--- 5. Performance Indexes (4)
--- 6. Scheduled Events (4)
--- ============================================================================
+-- 2. Database Triggers (4) - Automated financial and inventory constraints
+-- 3. Stored Functions / UDFs (4) - Reusable financial and stock calculation routines
+-- 4. Analytical Views (4) - Complex analytical joins across 3 to 4 tables
+-- 5. Performance Indexes (4) - Composite indexes for reporting and fast lookups
+-- 6. Scheduled Events (4) - Periodic billing reminders, staff absence markers, and cleanup
 
 USE hms_db;
 
--- ----------------------------------------------------------------------------
--- PREREQUISITE AUDIT & ALERT TABLES FOR MEMBER 2
--- ----------------------------------------------------------------------------
+-- Prerequisite Table 1: Payment Audit Trail
+-- Tracks financial payment transactions, student invoice numbers, and settled amounts
 CREATE TABLE IF NOT EXISTS payment_audit_log (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     payment_id BIGINT,
@@ -29,6 +24,8 @@ CREATE TABLE IF NOT EXISTS payment_audit_log (
     logged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Prerequisite Table 2: Warehouse Inventory Alert Log
+-- Records low-stock warnings when inventory items drop below reorder thresholds
 CREATE TABLE IF NOT EXISTS inventory_alert_log (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     item_id BIGINT,
@@ -38,14 +35,17 @@ CREATE TABLE IF NOT EXISTS inventory_alert_log (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- ============================================================================
--- SECTION 1: STORED PROCEDURES (MEMBER 2 - 4 PROCEDURES)
--- ============================================================================
 
+-- SECTION 1: STORED PROCEDURES (MEMBER 2 - 4 PROCEDURES)
 DELIMITER //
 
--- Procedure 1.1: Multi-table payment processing
+-- Procedure 1.1: Multi-table payment processing and invoice settlement
 -- Tables involved: users, rooms, payments, payment_audit_log (4 tables)
+-- Validations:
+-- 1. Validates student existence from users table
+-- 2. Enforces strictly positive payment amount
+-- 3. Verifies student has not already paid fees for the given month
+-- 4. Generates unique invoice number, records payment, and writes audit record
 DROP PROCEDURE IF EXISTS sp_RecordStudentPayment //
 CREATE PROCEDURE sp_RecordStudentPayment(
     IN p_student_id VARCHAR(50),
@@ -61,7 +61,7 @@ proc_label: BEGIN
     DECLARE v_already_paid INT DEFAULT 0;
     DECLARE v_new_invoice VARCHAR(50);
 
-    -- Multi-table query: Join users and rooms
+    -- Multi-table query: Join users and rooms to retrieve student details
     SELECT u.id, u.full_name, IFNULL(r.room_number, 'UNASSIGNED'), IFNULL(r.block_name, 'GENERAL')
     INTO v_user_id, v_student_name, v_room_no, v_block
     FROM users u 
@@ -69,11 +69,13 @@ proc_label: BEGIN
     WHERE u.student_id = p_student_id 
     LIMIT 1;
 
+    -- Verify student exists
     IF v_user_id IS NULL THEN
         SET p_invoice_no = 'ERROR: Student ID not found.';
         LEAVE proc_label;
     END IF;
 
+    -- Enforce positive amount
     IF p_amount <= 0 THEN
         SET p_invoice_no = 'ERROR: Payment amount must be greater than zero.';
         LEAVE proc_label;
@@ -89,9 +91,10 @@ proc_label: BEGIN
         LEAVE proc_label;
     END IF;
 
-    -- Generate invoice number
+    -- Generate unique invoice number
     SET v_new_invoice = CONCAT('INV-', FLOOR(100000 + (RAND() * 900000)));
 
+    -- Atomic payment transaction
     START TRANSACTION;
         INSERT INTO payments (amount, invoice_no, month, payment_date, status, user_id)
         VALUES (p_amount, v_new_invoice, p_month, CURRENT_DATE, 'PAID', v_user_id);
@@ -109,8 +112,14 @@ proc_label: BEGIN
     SET p_invoice_no = v_new_invoice;
 END //
 
--- Procedure 1.2: Multi-table room damage reporting
+-- Procedure 1.2: Multi-table room damage reporting and inventory adjustment
 -- Tables involved: rooms, inventory, room_inventory, complaints (4 tables)
+-- Validations:
+-- 1. Checks that room number is valid in rooms table
+-- 2. Checks that item name matches an item in warehouse inventory
+-- 3. Inserts broken item record into room_inventory
+-- 4. Decrements available stock in inventory and increments broken quantity
+-- 5. Links matching pending complaints to 'IN_PROGRESS'
 DROP PROCEDURE IF EXISTS sp_ReportRoomDamage //
 CREATE PROCEDURE sp_ReportRoomDamage(
     IN p_room_number VARCHAR(50),
@@ -124,14 +133,14 @@ proc_label: BEGIN
     DECLARE v_inv_id BIGINT;
     DECLARE v_avail INT;
 
-    -- Query rooms
+    -- Query rooms table to find room_id
     SELECT id INTO v_room_id FROM rooms WHERE room_number = p_room_number LIMIT 1;
     IF v_room_id IS NULL THEN
         SET p_damage_id = -1;
         LEAVE proc_label;
     END IF;
 
-    -- Query inventory
+    -- Query inventory table to locate the equipment item
     SELECT id, available_quantity INTO v_inv_id, v_avail 
     FROM inventory 
     WHERE LOWER(item_name) LIKE LOWER(CONCAT('%', p_item_name, '%')) 
@@ -142,20 +151,21 @@ proc_label: BEGIN
         LEAVE proc_label;
     END IF;
 
+    -- Atomic damage reporting transaction
     START TRANSACTION;
-        -- Insert into room_inventory
+        -- Record damage in room_inventory
         INSERT INTO room_inventory (room_id, inventory_id, broken_quantity, damage_description, reported_date, status)
         VALUES (v_room_id, v_inv_id, p_broken_qty, p_description, CURRENT_DATE, 'BROKEN');
 
         SET p_damage_id = LAST_INSERT_ID();
 
-        -- Update inventory warehouse stock
+        -- Update warehouse stock counts
         UPDATE inventory 
         SET broken_quantity = broken_quantity + p_broken_qty,
             available_quantity = GREATEST(0, available_quantity - p_broken_qty)
         WHERE id = v_inv_id;
 
-        -- Cross-table update on complaints: If a matching student complaint exists, link status to IN_PROGRESS
+        -- Cross-table update on complaints: link matching student complaint to IN_PROGRESS
         UPDATE complaints
         SET status = 'IN_PROGRESS'
         WHERE room_number = p_room_number 
@@ -166,6 +176,12 @@ END //
 
 -- Procedure 1.3: Multi-table room repair completion & complaint resolution
 -- Tables involved: room_inventory, inventory, rooms, complaints (4 tables)
+-- Validations:
+-- 1. Checks that damage record exists in room_inventory
+-- 2. Checks that asset has not already been repaired
+-- 3. Marks damage status as 'REPAIRED'
+-- 4. Restores warehouse available stock and reduces broken quantity
+-- 5. Auto-resolves matching student complaints for this room and item
 DROP PROCEDURE IF EXISTS sp_CompleteRoomRepair //
 CREATE PROCEDURE sp_CompleteRoomRepair(
     IN p_damage_id BIGINT,
@@ -188,16 +204,19 @@ proc_label: BEGIN
     WHERE ri.id = p_damage_id 
     LIMIT 1;
 
+    -- Verify damage record exists
     IF v_inv_id IS NULL THEN
         SET p_status = 'ERROR: Damage record not found.';
         LEAVE proc_label;
     END IF;
 
+    -- Verify not already repaired
     IF v_curr_status = 'REPAIRED' THEN
         SET p_status = 'INFO: Asset has already been repaired.';
         LEAVE proc_label;
     END IF;
 
+    -- Atomic repair completion transaction
     START TRANSACTION;
         -- 1. Update room_inventory status
         UPDATE room_inventory 
@@ -221,8 +240,12 @@ proc_label: BEGIN
     SET p_status = CONCAT('SUCCESS: Asset #', p_damage_id, ' (', v_item_name, ' in Room ', v_room_no, ') marked as REPAIRED. Stock restored & complaints resolved.');
 END //
 
--- Procedure 1.4: Multi-table staff shift registration
+-- Procedure 1.4: Multi-table staff shift registration and check-in
 -- Tables involved: users, staff_attendance, user_audit_log (3 tables)
+-- Validations:
+-- 1. Validates that staff ID exists and has a staff role (SECURITY, MAINTENANCE, or CLEANING)
+-- 2. Checks if staff has already checked in for today to prevent duplicates
+-- 3. Inserts attendance record and logs audit entry
 DROP PROCEDURE IF EXISTS sp_RecordStaffCheckIn //
 CREATE PROCEDURE sp_RecordStaffCheckIn(
     IN p_staff_id VARCHAR(50),
@@ -242,12 +265,13 @@ proc_label: BEGIN
     WHERE student_id = p_staff_id AND role IN ('SECURITY', 'MAINTENANCE', 'CLEANING') 
     LIMIT 1;
 
+    -- Validate staff authorization
     IF v_user_id IS NULL THEN
         SET p_status = 'ERROR: Staff ID not found or unauthorized role.';
         LEAVE proc_label;
     END IF;
 
-    -- Check staff_attendance table
+    -- Check if already clocked in for today
     SELECT id INTO v_existing_att 
     FROM staff_attendance 
     WHERE user_id = v_user_id AND date = CURRENT_DATE 
@@ -258,8 +282,9 @@ proc_label: BEGIN
         LEAVE proc_label;
     END IF;
 
+    -- Atomic check-in transaction
     START TRANSACTION;
-        -- Insert attendance
+        -- Insert attendance record
         INSERT INTO staff_attendance (user_id, date, status, check_in_time, marked_by, remarks)
         VALUES (v_user_id, CURRENT_DATE, 'PRESENT', DATE_FORMAT(NOW(), '%H:%i:%s'), p_marked_by, CONCAT('Duty started [', v_department, ']'));
 
@@ -279,13 +304,15 @@ END //
 
 DELIMITER ;
 
--- ============================================================================
--- SECTION 2: DATABASE TRIGGERS (MEMBER 2 - 4 TRIGGERS)
--- ============================================================================
 
+-- SECTION 2: DATABASE TRIGGERS (MEMBER 2 - 4 TRIGGERS)
 DELIMITER //
 
 -- Trigger 2.1: Log audit entry on every new payment settlement
+-- Target Table: payments
+-- Trigger Timing: AFTER INSERT
+-- Description: Automatically extracts the student_id from users table and creates an audit
+-- trail record in payment_audit_log for every settled invoice.
 DROP TRIGGER IF EXISTS trg_AfterPaymentInsertAudit //
 CREATE TRIGGER trg_AfterPaymentInsertAudit
 AFTER INSERT ON payments
@@ -299,6 +326,10 @@ BEGIN
 END //
 
 -- Trigger 2.2: Ensure payment amount is positive before saving
+-- Target Table: payments
+-- Trigger Timing: BEFORE INSERT
+-- Description: Financial integrity constraint. Rejects non-positive payments (amount <= 0)
+-- with SQLSTATE 45000, and auto-populates payment date with today's date if missing.
 DROP TRIGGER IF EXISTS trg_BeforePaymentValidateAmount //
 CREATE TRIGGER trg_BeforePaymentValidateAmount
 BEFORE INSERT ON payments
@@ -314,6 +345,10 @@ BEGIN
 END //
 
 -- Trigger 2.3: Keep warehouse available quantity consistent with broken quantity
+-- Target Table: inventory
+-- Trigger Timing: BEFORE UPDATE
+-- Description: Maintains stock consistency: ensures available_quantity + broken_quantity does not
+-- exceed total_quantity, preventing stock inflation errors.
 DROP TRIGGER IF EXISTS trg_BeforeInventoryStockUpdate //
 CREATE TRIGGER trg_BeforeInventoryStockUpdate
 BEFORE UPDATE ON inventory
@@ -325,6 +360,10 @@ BEGIN
 END //
 
 -- Trigger 2.4: Validate staff checkout time is recorded properly
+-- Target Table: staff_attendance
+-- Trigger Timing: BEFORE UPDATE
+-- Description: Automatically applies default remarks ('Shift completed & signed out.') when staff
+-- records checkout time if the remarks field was left empty.
 DROP TRIGGER IF EXISTS trg_BeforeStaffCheckOutUpdate //
 CREATE TRIGGER trg_BeforeStaffCheckOutUpdate
 BEFORE UPDATE ON staff_attendance
@@ -339,13 +378,14 @@ END //
 
 DELIMITER ;
 
--- ============================================================================
--- SECTION 3: STORED FUNCTIONS / UDFs (MEMBER 2 - 4 FUNCTIONS)
--- ============================================================================
 
+-- SECTION 3: STORED FUNCTIONS / UDFs (MEMBER 2 - 4 FUNCTIONS)
 DELIMITER //
 
--- Function 3.1: Calculate total verified fee revenue for month (joins payments and users)
+-- Function 3.1: Calculate total verified fee revenue for month
+-- Joins: payments and users
+-- Parameters: p_month (VARCHAR)
+-- Returns: DOUBLE sum of verified payments collected for that month
 DROP FUNCTION IF EXISTS fn_CalculateMonthlyTotalRevenue //
 CREATE FUNCTION fn_CalculateMonthlyTotalRevenue(p_month VARCHAR(50))
 RETURNS DOUBLE
@@ -354,6 +394,7 @@ READS SQL DATA
 BEGIN
     DECLARE v_total DOUBLE DEFAULT 0.0;
 
+    -- Query verified payments for students in the specified month
     SELECT IFNULL(SUM(p.amount), 0.0) INTO v_total
     FROM payments p
     JOIN users u ON p.user_id = u.id
@@ -362,7 +403,10 @@ BEGIN
     RETURN v_total;
 END //
 
--- Function 3.2: Return current available stock subtracting room damages (joins inventory and room_inventory)
+-- Function 3.2: Return current available stock subtracting room damages
+-- Joins: inventory and room_inventory
+-- Parameters: p_item_id (BIGINT)
+-- Returns: INT actual available stock in warehouse minus broken room assets
 DROP FUNCTION IF EXISTS fn_GetItemAvailableStock //
 CREATE FUNCTION fn_GetItemAvailableStock(p_item_id BIGINT)
 RETURNS INT
@@ -380,7 +424,10 @@ BEGIN
     RETURN IFNULL(v_avail, 0);
 END //
 
--- Function 3.3: Calculate staff monthly present days (joins users and staff_attendance)
+-- Function 3.3: Calculate staff monthly present days
+-- Joins: users and staff_attendance
+-- Parameters: p_user_id (BIGINT), p_year (INT), p_month (INT)
+-- Returns: INT count of days present in the month
 DROP FUNCTION IF EXISTS fn_GetStaffMonthlyPresentDays //
 CREATE FUNCTION fn_GetStaffMonthlyPresentDays(
     p_user_id BIGINT,
@@ -404,7 +451,10 @@ BEGIN
     RETURN v_present_days;
 END //
 
--- Function 3.4: Calculate student fee arrears (joins users, rooms, and payments)
+-- Function 3.4: Calculate student fee arrears
+-- Joins: users and payments
+-- Parameters: p_user_id (BIGINT)
+-- Returns: DOUBLE outstanding balance (Expected 6,000.00 minus total paid)
 DROP FUNCTION IF EXISTS fn_CalculateStudentFeeArrears //
 CREATE FUNCTION fn_CalculateStudentFeeArrears(p_user_id BIGINT)
 RETURNS DOUBLE
@@ -428,12 +478,13 @@ END //
 
 DELIMITER ;
 
--- ============================================================================
+
 -- SECTION 4: ANALYTICAL & REPORTING VIEWS (MEMBER 2 - 4 VIEWS)
--- ============================================================================
 
 -- View 4.1: Monthly Treasury Invoicing & Revenue Collection Summary
 -- Joins 3 tables: payments, users, rooms
+-- Purpose: Financial summary showing total invoices, paid count, pending count,
+-- total LKR collected, and average fee amount per block and month.
 CREATE OR REPLACE VIEW vw_MonthlyRevenueSummary AS
 SELECT 
     p.month AS billing_month,
@@ -452,6 +503,8 @@ ORDER BY p.month DESC, hostel_block ASC;
 
 -- View 4.2: Warehouse Inventory Health & Active Damage Monitor
 -- Joins 3 tables: inventory, room_inventory, complaints
+-- Purpose: Logistics health dashboard showing item stock, broken quantities in rooms,
+-- related student complaints, and overall damage rate percentage.
 CREATE OR REPLACE VIEW vw_InventoryHealthStatus AS
 SELECT 
     inv.id AS item_id,
@@ -489,6 +542,8 @@ LEFT JOIN (
 
 -- View 4.3: Real-time Room Damages, Spare Parts & Occupant Tracker
 -- Joins 4 tables: room_inventory, rooms, inventory, users
+-- Purpose: Actionable maintenance tracking view linking broken furniture to room location,
+-- spare part stock in warehouse, and resident student contact info.
 CREATE OR REPLACE VIEW vw_RoomDamagesTracker AS
 SELECT 
     ri.id AS damage_id,
@@ -510,6 +565,8 @@ GROUP BY ri.id, r.room_number, r.block_name, inv.item_name, inv.category, ri.bro
 
 -- View 4.4: Staff Duty Attendance & Operations Log Summary
 -- Joins 3 tables: users, staff_attendance, user_audit_log
+-- Purpose: Supervisor view aggregating total shifts, present/absent counts, attendance rate %,
+-- and audit actions performed per staff member.
 CREATE OR REPLACE VIEW vw_StaffDutyAttendanceSummary AS
 SELECT 
     u.id AS staff_user_id,
@@ -528,29 +585,40 @@ LEFT JOIN user_audit_log ual ON u.student_id = ual.performed_by OR u.full_name =
 WHERE u.role IN ('SECURITY', 'MAINTENANCE', 'CLEANING')
 GROUP BY u.id, u.student_id, u.full_name, u.role;
 
--- ============================================================================
--- SECTION 5: PERFORMANCE INDEXES (MEMBER 2 - 4 INDEXES)
--- ============================================================================
 
--- Index 5.1: Composite index on payments(month, status) for monthly revenue queries
+-- SECTION 5: PERFORMANCE INDEXES (MEMBER 2 - 4 INDEXES)
+
+-- Index 5.1: Composite index on payments(month, status)
+-- Table: payments
+-- Indexed Columns: month, status
+-- Purpose: Speeds up monthly revenue aggregations and fee collection queries.
 CREATE INDEX IF NOT EXISTS idx_payments_month_status ON payments(month, status);
 
--- Index 5.2: Composite index on payments(user_id, payment_date) for student fee statements
+-- Index 5.2: Composite index on payments(user_id, payment_date)
+-- Table: payments
+-- Indexed Columns: user_id, payment_date
+-- Purpose: Speeds up student fee history lookups and chronologically ordered invoice statements.
 CREATE INDEX IF NOT EXISTS idx_payments_user_date ON payments(user_id, payment_date);
 
--- Index 5.3: Composite index on inventory(category, available_quantity) for logistics stock filters
+-- Index 5.3: Composite index on inventory(category, available_quantity)
+-- Table: inventory
+-- Indexed Columns: category, available_quantity
+-- Purpose: Speeds up warehouse stock filtering by category and low-stock alerting queries.
 CREATE INDEX IF NOT EXISTS idx_inventory_category_avail ON inventory(category, available_quantity);
 
--- Index 5.4: Composite index on staff_attendance(user_id, date, status) for attendance audits
+-- Index 5.4: Composite index on staff_attendance(user_id, date, status)
+-- Table: staff_attendance
+-- Indexed Columns: user_id, date, status
+-- Purpose: Speeds up staff duty roster audits, monthly attendance percentages, and daily check-in validation.
 CREATE INDEX IF NOT EXISTS idx_staff_att_user_date ON staff_attendance(user_id, date, status);
 
--- ============================================================================
--- SECTION 6: SCHEDULED EVENTS (MEMBER 2 - 4 EVENTS)
--- ============================================================================
 
+-- SECTION 6: SCHEDULED EVENTS (MEMBER 2 - 4 EVENTS)
 DELIMITER //
 
 -- Event 6.1: Monthly fee billing reminder announcement on the 1st of every month
+-- Frequency: Every 1 Month
+-- Purpose: Automatically posts an official notice for students reminding them of fee payment deadline.
 DROP EVENT IF EXISTS evt_MonthlyFeeBillingReminder //
 CREATE EVENT evt_MonthlyFeeBillingReminder
 ON SCHEDULE EVERY 1 MONTH
@@ -567,6 +635,8 @@ BEGIN
 END //
 
 -- Event 6.2: Auto-mark absent for staff who have not checked in by 18:30 daily
+-- Frequency: Every 1 Day at 18:30
+-- Purpose: Scans for staff members with no attendance record today and marks them as 'ABSENT'.
 DROP EVENT IF EXISTS evt_DailyStaffAbsenceMarker //
 CREATE EVENT evt_DailyStaffAbsenceMarker
 ON SCHEDULE EVERY 1 DAY
@@ -585,6 +655,8 @@ BEGIN
 END //
 
 -- Event 6.3: Weekly check for warehouse inventory low stock alerts (< 5 units)
+-- Frequency: Every 1 Week
+-- Purpose: Scans warehouse stock and writes low-stock warning records into inventory_alert_log.
 DROP EVENT IF EXISTS evt_WeeklyInventoryRestockAlert //
 CREATE EVENT evt_WeeklyInventoryRestockAlert
 ON SCHEDULE EVERY 1 WEEK
@@ -598,6 +670,8 @@ BEGIN
 END //
 
 -- Event 6.4: Monthly housekeeping purge of old audit logs (> 180 days)
+-- Frequency: Every 1 Month
+-- Purpose: Deletes audit entries older than 6 months (180 days) to keep database storage optimized.
 DROP EVENT IF EXISTS evt_PurgeOldAuditLogs //
 CREATE EVENT evt_PurgeOldAuditLogs
 ON SCHEDULE EVERY 1 MONTH
