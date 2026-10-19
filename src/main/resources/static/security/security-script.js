@@ -7,6 +7,52 @@ let allGatePasses = [];
 let allStudents = [];
 let myAttendanceRecords = [];
 
+// Gate Pass Period Summary Mode ('weekly' | 'monthly' | 'all')
+let securityGpPeriodMode = 'weekly';
+let selectedSecurityGpPeriod = '';
+let currentGatePassFilter = 'APPROVED'; // default to showing Sub Warden approved departures
+let pendingConfirmCallback = null;
+
+// Helper to compute Week start (Monday) and end (Sunday)
+function getWeekRangeForDate(dStr) {
+    if (!dStr) return null;
+    const d = new Date(dStr + 'T00:00:00');
+    if (isNaN(d.getTime())) return null;
+    
+    const day = d.getDay();
+    const diffToMonday = (day === 0 ? -6 : 1) - day;
+    
+    const monday = new Date(d);
+    monday.setDate(d.getDate() + diffToMonday);
+    
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    
+    const toYMD = (date) => {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const dt = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${dt}`;
+    };
+
+    const startStr = toYMD(monday);
+    const endStr = toYMD(sunday);
+
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const mLabel = monthNames[monday.getMonth()];
+    const sLabel = monthNames[sunday.getMonth()];
+    const dateRangeLabel = (monday.getMonth() === sunday.getMonth())
+        ? `${mLabel} ${monday.getDate()} - ${sunday.getDate()}, ${monday.getFullYear()}`
+        : `${mLabel} ${monday.getDate()} - ${sLabel} ${sunday.getDate()}, ${sunday.getFullYear()}`;
+
+    return {
+        key: `${startStr}_${endStr}`,
+        startStr,
+        endStr,
+        label: `Week of ${dateRangeLabel}`
+    };
+}
+
 // Tab switching
 function switchSecurityTab(tabId) {
     document.querySelectorAll('.view-section').forEach(sec => {
@@ -29,8 +75,11 @@ function switchSecurityTab(tabId) {
         }
     });
 
-    if (tabId === 'gatepasses') {
-        document.getElementById('page-title').innerText = 'Gate Permissions & Campus Security';
+    if (tabId === 'dashboard') {
+        document.getElementById('page-title').innerText = 'Security Command Dashboard';
+        loadDashboardData();
+    } else if (tabId === 'gatepasses') {
+        document.getElementById('page-title').innerText = 'Student Gate Passes & Early Home Departures';
         loadGatePasses();
     } else if (tabId === 'students') {
         document.getElementById('page-title').innerText = 'Student & Hostel Room Directory';
@@ -42,6 +91,11 @@ function switchSecurityTab(tabId) {
         document.getElementById('page-title').innerText = 'Campus Notice Board';
         loadNotices();
     }
+}
+
+function openGatePassesFiltered(filter) {
+    switchSecurityTab('gatepasses');
+    setGatePassFilter(filter);
 }
 
 // Toast notification
@@ -75,10 +129,13 @@ function showToast(message, type = 'success') {
     }, 4000);
 }
 
-let currentGatePassFilter = 'APPROVED'; // default to showing Sub Warden approved departures
-let pendingConfirmCallback = null;
+// Dashboard Data Loading
+async function loadDashboardData() {
+    await loadGatePasses();
+    await loadMyAttendance();
+}
 
-// 1. Gate Passes
+// 1. Gate Passes & Overview Data
 async function loadGatePasses() {
     try {
         const [gpRes, usersRes] = await Promise.all([
@@ -93,6 +150,7 @@ async function loadGatePasses() {
         const departedCount = allGatePasses.filter(p => p.status === 'DEPARTED').length;
         const pendingCount = allGatePasses.filter(p => p.status === 'PENDING').length;
 
+        // Gate Pass Tab Count Badges
         const countAppEl = document.getElementById('count-approved-passes');
         if (countAppEl) countAppEl.innerText = approvedCount;
         const countAllEl = document.getElementById('count-all-passes');
@@ -102,10 +160,19 @@ async function loadGatePasses() {
         const countPenEl = document.getElementById('count-pending-passes');
         if (countPenEl) countPenEl.innerText = pendingCount;
 
+        // Gate Pass Dedicated Hero Stats
+        const gpHeroApp = document.getElementById('gp-hero-approved');
+        if (gpHeroApp) gpHeroApp.innerText = approvedCount;
+        const gpHeroDep = document.getElementById('gp-hero-departed');
+        if (gpHeroDep) gpHeroDep.innerText = departedCount;
+        const gpHeroPen = document.getElementById('gp-hero-pending');
+        if (gpHeroPen) gpHeroPen.innerText = pendingCount;
+
+        // Dashboard Hero Stat
         const activeEl = document.getElementById('stat-active-gatepasses');
         if (activeEl) activeEl.innerText = approvedCount;
 
-        // KPI Summary Cards
+        // Dashboard KPI Summary Cards
         const kpiTot = document.getElementById('kpi-total-gatepasses');
         if (kpiTot) kpiTot.innerText = allGatePasses.length;
         const kpiApp = document.getElementById('kpi-approved-gatepasses');
@@ -184,10 +251,166 @@ async function loadGatePasses() {
             });
         }
 
+        // Populate weekly/monthly dropdown and render gate passes
+        populateSecurityGatePassPeriodDropdown();
         filterAndRenderGatePasses();
     } catch (e) {
         console.error("Failed to load gate passes", e);
     }
+}
+
+// Period Summary Mode Switching
+function setSecurityGatePassPeriodMode(mode) {
+    securityGpPeriodMode = mode;
+    const btnWeekly = document.getElementById('btnGpModeWeekly');
+    const btnMonthly = document.getElementById('btnGpModeMonthly');
+    const btnAll = document.getElementById('btnGpModeAll');
+    const selWrap = document.getElementById('gpPeriodSelectorWrap');
+
+    [btnWeekly, btnMonthly, btnAll].forEach(b => {
+        if (b) {
+            b.style.background = 'transparent';
+            b.style.color = '#57606f';
+        }
+    });
+
+    if (mode === 'weekly') {
+        if (btnWeekly) {
+            btnWeekly.style.background = 'var(--primary-yellow)';
+            btnWeekly.style.color = '#121212';
+        }
+        if (selWrap) selWrap.style.display = 'flex';
+    } else if (mode === 'monthly') {
+        if (btnMonthly) {
+            btnMonthly.style.background = 'var(--primary-yellow)';
+            btnMonthly.style.color = '#121212';
+        }
+        if (selWrap) selWrap.style.display = 'flex';
+    } else {
+        if (btnAll) {
+            btnAll.style.background = 'var(--primary-yellow)';
+            btnAll.style.color = '#121212';
+        }
+        if (selWrap) selWrap.style.display = 'none';
+    }
+
+    populateSecurityGatePassPeriodDropdown();
+    filterAndRenderGatePasses();
+}
+
+function populateSecurityGatePassPeriodDropdown() {
+    const sel = document.getElementById('gpPeriodSelect');
+    if (!sel) return;
+
+    if (securityGpPeriodMode === 'all') {
+        return;
+    }
+
+    if (securityGpPeriodMode === 'weekly') {
+        const weekMap = new Map();
+        allGatePasses.forEach(p => {
+            if (p.fromDate) {
+                const w = getWeekRangeForDate(p.fromDate);
+                if (w && !weekMap.has(w.key)) weekMap.set(w.key, w);
+            }
+        });
+        const todayStr = new Date().toISOString().split('T')[0];
+        const todayWeek = getWeekRangeForDate(todayStr);
+        if (todayWeek && !weekMap.has(todayWeek.key)) {
+            weekMap.set(todayWeek.key, todayWeek);
+        }
+        const sortedWeeks = Array.from(weekMap.values()).sort((a, b) => b.startStr.localeCompare(a.startStr));
+        sel.innerHTML = sortedWeeks.map(w => {
+            const isCur = todayWeek && w.key === todayWeek.key;
+            return `<option value="${w.key}">${isCur ? '📍 [This Week] ' : ''}${w.label}</option>`;
+        }).join('');
+        if (!selectedSecurityGpPeriod || !weekMap.has(selectedSecurityGpPeriod)) {
+            selectedSecurityGpPeriod = todayWeek ? todayWeek.key : (sortedWeeks[0] ? sortedWeeks[0].key : '');
+        }
+        sel.value = selectedSecurityGpPeriod;
+    } else if (securityGpPeriodMode === 'monthly') {
+        const monthMap = new Map();
+        allGatePasses.forEach(p => {
+            if (p.fromDate) {
+                const mKey = p.fromDate.substring(0, 7);
+                if (mKey && !monthMap.has(mKey)) {
+                    const dObj = new Date(p.fromDate + 'T00:00:00');
+                    monthMap.set(mKey, dObj.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }));
+                }
+            }
+        });
+        const todayMonth = new Date().toISOString().substring(0, 7);
+        if (!monthMap.has(todayMonth)) {
+            monthMap.set(todayMonth, new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }));
+        }
+        const sortedMonths = Array.from(monthMap.keys()).sort().reverse();
+        sel.innerHTML = sortedMonths.map(mKey => {
+            const isCur = mKey === todayMonth;
+            return `<option value="${mKey}">${isCur ? '📍 [This Month] ' : ''}${monthMap.get(mKey)}</option>`;
+        }).join('');
+        if (!selectedSecurityGpPeriod || !monthMap.has(selectedSecurityGpPeriod)) {
+            selectedSecurityGpPeriod = todayMonth;
+        }
+        sel.value = selectedSecurityGpPeriod;
+    }
+}
+
+function onSecurityGatePassPeriodChange() {
+    const sel = document.getElementById('gpPeriodSelect');
+    if (sel) {
+        selectedSecurityGpPeriod = sel.value;
+    }
+    filterAndRenderGatePasses();
+}
+
+function getPeriodFilteredGatePasses() {
+    let list = allGatePasses;
+    if (securityGpPeriodMode === 'weekly' && selectedSecurityGpPeriod) {
+        const parts = selectedSecurityGpPeriod.split('_');
+        if (parts.length === 2) {
+            const start = parts[0];
+            const end = parts[1];
+            list = list.filter(p => {
+                if (!p.fromDate) return false;
+                return p.fromDate >= start && p.fromDate <= end;
+            });
+        }
+    } else if (securityGpPeriodMode === 'monthly' && selectedSecurityGpPeriod) {
+        list = list.filter(p => {
+            if (!p.fromDate) return false;
+            return p.fromDate.startsWith(selectedSecurityGpPeriod);
+        });
+    }
+    return list;
+}
+
+function downloadSecurityGatePassCSV() {
+    const list = getPeriodFilteredGatePasses();
+    if (list.length === 0) {
+        showToast("No gate pass records to download in this period.", "info");
+        return;
+    }
+    let csv = "Pass ID,Student ID,Student Name,Room,Block,Reason,Departure Date,Return Date,Status\n";
+    list.forEach(p => {
+        const sId = p.user ? (p.user.studentId || '') : '';
+        const sName = (p.user ? (p.user.fullName || '') : '').replace(/,/g, ' ');
+        const rNum = (p.user && p.user.room ? p.user.room.roomNumber : '');
+        const blk = (p.user && p.user.room ? p.user.room.blockName : '');
+        const rsn = (p.reason || '').replace(/,/g, ' ');
+        csv += `${p.id},"${sId}","${sName}","${rNum}","${blk}","${rsn}","${p.fromDate || ''}","${p.toDate || ''}","${p.status}"\n`;
+    });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute("download", `security_gatepass_summary_${securityGpPeriodMode}_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast("Gate pass CSV summary downloaded successfully!", "success");
+}
+
+function printSecurityGatePassSummary() {
+    window.print();
 }
 
 function setGatePassFilter(filter, btn) {
@@ -197,6 +420,9 @@ function setGatePassFilter(filter, btn) {
         b.style.background = '#6c757d';
         b.style.color = '#fff';
     });
+    if (!btn) {
+        btn = document.querySelector(`.gp-filter-btn[data-filter="${filter}"]`);
+    }
     if (btn) {
         btn.classList.add('active');
         btn.style.background = '#2ed573';
@@ -206,20 +432,30 @@ function setGatePassFilter(filter, btn) {
 }
 
 function filterAndRenderGatePasses() {
-    const query = (document.getElementById('gatePassSearch')?.value || '').toLowerCase();
-    
-    let filtered = allGatePasses;
+    const periodList = getPeriodFilteredGatePasses();
+
+    // Update period badges
+    const pTot = document.getElementById('gpPeriodTotalCount');
+    if (pTot) pTot.innerText = periodList.length;
+    const pApp = document.getElementById('gpPeriodApprovedCount');
+    if (pApp) pApp.innerText = periodList.filter(p => p.status === 'APPROVED').length;
+    const pDep = document.getElementById('gpPeriodDepartedCount');
+    if (pDep) pDep.innerText = periodList.filter(p => p.status === 'DEPARTED').length;
+
+    let filtered = periodList;
     if (currentGatePassFilter !== 'ALL') {
         filtered = filtered.filter(p => p.status === currentGatePassFilter);
     }
 
+    const query = (document.getElementById('gatePassSearch')?.value || '').toLowerCase();
     if (query) {
         filtered = filtered.filter(p => {
             const sId = (p.user ? p.user.studentId : '').toLowerCase();
             const sName = (p.user ? p.user.fullName : '').toLowerCase();
             const reason = (p.reason || '').toLowerCase();
             const room = (p.user && p.user.room ? p.user.room.roomNumber : '').toLowerCase();
-            return sId.includes(query) || sName.includes(query) || reason.includes(query) || room.includes(query);
+            const idStr = String(p.id);
+            return sId.includes(query) || sName.includes(query) || reason.includes(query) || room.includes(query) || idStr.includes(query);
         });
     }
 
@@ -228,6 +464,131 @@ function filterAndRenderGatePasses() {
 
 function filterGatePasses() {
     filterAndRenderGatePasses();
+}
+
+// Quick Verification on Dashboard
+function quickVerifyStudentOrPass() {
+    const input = document.getElementById('quickVerifyInput');
+    const resultBox = document.getElementById('quickVerifyResult');
+    if (!input || !resultBox) return;
+
+    const val = input.value.trim().toLowerCase();
+    if (!val) {
+        showToast("Please enter a Student ID or Pass ID to verify.", "info");
+        return;
+    }
+
+    resultBox.style.display = 'block';
+
+    // Search pass first
+    let matchedPass = allGatePasses.find(p => String(p.id) === val);
+    let matchedStudent = null;
+
+    if (!matchedPass) {
+        // Search by student ID or name
+        matchedStudent = allStudents.find(s => (s.studentId && s.studentId.toLowerCase() === val) || (s.fullName && s.fullName.toLowerCase().includes(val)));
+        if (matchedStudent) {
+            const studentPasses = allGatePasses.filter(p => p.user && (p.user.id === matchedStudent.id || p.user.studentId === matchedStudent.studentId));
+            if (studentPasses.length > 0) {
+                matchedPass = studentPasses[studentPasses.length - 1];
+            }
+        }
+    } else {
+        matchedStudent = matchedPass.user;
+    }
+
+    if (!matchedStudent && !matchedPass) {
+        resultBox.innerHTML = `
+            <div style="background:#fff0f3; border:1.5px solid #ff4757; border-radius:12px; padding:16px 20px; display:flex; align-items:center; gap:14px;">
+                <i class="fas fa-times-circle" style="color:#ff4757; font-size:26px;"></i>
+                <div>
+                    <h4 style="margin:0; color:#d63031; font-size:16px;">No Resident or Pass Found</h4>
+                    <p style="margin:4px 0 0 0; font-size:13.5px; color:#636e72;">No student or gate pass matched "<strong>${escapeQuote(val)}</strong>". Verify ID card spelling or register student.</p>
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    const sName = matchedStudent ? (matchedStudent.fullName || matchedStudent.studentId) : (matchedPass.user ? matchedPass.user.fullName : 'Student');
+    const sId = matchedStudent ? (matchedStudent.studentId || 'N/A') : (matchedPass.user ? matchedPass.user.studentId : 'N/A');
+    const roomInfo = (matchedStudent && matchedStudent.room) ? `${matchedStudent.room.roomNumber} (${matchedStudent.room.blockName})` : ((matchedPass && matchedPass.user && matchedPass.user.room) ? `${matchedPass.user.room.roomNumber} (${matchedPass.user.room.blockName})` : 'Not Allocated');
+
+    let passStatusCard = '';
+    if (matchedPass) {
+        if (matchedPass.status === 'APPROVED') {
+            passStatusCard = `
+                <div style="background:#e8f8f0; border:1.5px solid #2ed573; border-radius:12px; padding:16px 20px; margin-top:12px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                        <div>
+                            <span class="status-badge" style="background:#2ed573; color:#121212; font-weight:800; font-size:12.5px;"><i class="fas fa-check-circle"></i> SUB WARDEN APPROVED EXIT PASS (#${matchedPass.id})</span>
+                            <div style="margin-top:8px; font-size:14px; color:#155724;">
+                                <strong>Reason:</strong> ${matchedPass.reason || 'Leave'} | <strong>Departure:</strong> ${matchedPass.fromDate} &rarr; <strong>Return:</strong> ${matchedPass.toDate}
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" onclick="promptMarkGateExit(${matchedPass.id}, '${escapeQuote(sName)}', '${escapeQuote(roomInfo)}', '${escapeQuote(matchedPass.reason)}')" style="background:#2ed573; color:#121212; font-weight:700; padding:10px 18px; border-radius:8px; border:none; cursor:pointer;">
+                            <i class="fas fa-walking"></i> Authorize Gate Exit
+                        </button>
+                    </div>
+                </div>
+            `;
+        } else if (matchedPass.status === 'DEPARTED') {
+            passStatusCard = `
+                <div style="background:#f1f2f6; border:1.5px solid #2f3542; border-radius:12px; padding:16px 20px; margin-top:12px; color:#2f3542;">
+                    <span class="status-badge" style="background:#2f3542; color:#fff; font-weight:800;"><i class="fas fa-walking"></i> CURRENTLY DEPARTED (Away from Campus)</span>
+                    <div style="margin-top:6px; font-size:13.5px;">Pass #${matchedPass.id}: ${matchedPass.reason || 'Leave'} (${matchedPass.fromDate} to ${matchedPass.toDate}).</div>
+                </div>
+            `;
+        } else if (matchedPass.status === 'PENDING') {
+            passStatusCard = `
+                <div style="background:#fff8e7; border:1.5px solid #ffa502; border-radius:12px; padding:16px 20px; margin-top:12px; color:#856404;">
+                    <span class="status-badge" style="background:#ffa502; color:#fff; font-weight:800;"><i class="fas fa-clock"></i> PENDING SUB WARDEN APPROVAL</span>
+                    <div style="margin-top:6px; font-size:13.5px;">Student has requested leave (Pass #${matchedPass.id}) but Sub Warden has NOT approved it yet. <strong>Do not allow exit.</strong></div>
+                </div>
+            `;
+        } else if (matchedPass.status === 'REJECTED') {
+            passStatusCard = `
+                <div style="background:#fff0f3; border:1.5px solid #ff4757; border-radius:12px; padding:16px 20px; margin-top:12px; color:#721c24;">
+                    <span class="status-badge" style="background:#ff4757; color:#fff; font-weight:800;"><i class="fas fa-ban"></i> LEAVE REQUEST REJECTED</span>
+                    <div style="margin-top:6px; font-size:13.5px;">Sub Warden has rejected Pass #${matchedPass.id}. Student is NOT permitted to exit.</div>
+                </div>
+            `;
+        }
+    } else {
+        passStatusCard = `
+            <div style="background:#fff8e7; border:1.5px solid #ffa502; border-radius:12px; padding:14px 18px; margin-top:12px; color:#856404;">
+                <i class="fas fa-exclamation-triangle"></i> <strong>No Active Gate Pass on File:</strong> This student currently does NOT have an approved leave pass. Student cannot leave hostel campus without Sub Warden permission.
+            </div>
+        `;
+    }
+
+    resultBox.innerHTML = `
+        <div style="background:#f8f9fa; border:1.5px solid #e2e8f0; border-radius:14px; padding:20px; box-shadow:0 4px 12px rgba(0,0,0,0.04);">
+            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+                <div style="display:flex; align-items:center; gap:14px;">
+                    <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(sName)}&background=1e3799&color=ffffff&size=54" style="border-radius:50%; width:50px; height:50px;" alt="Avatar">
+                    <div>
+                        <h4 style="margin:0; font-size:17px; font-family:'Outfit', sans-serif; color:#121212;">${sName}</h4>
+                        <div style="font-size:13px; color:#636e72; margin-top:2px;">ID: <strong>${sId}</strong> | Assigned Room: <strong>${roomInfo}</strong></div>
+                    </div>
+                </div>
+                <button class="btn btn-dark btn-sm" onclick="switchSecurityTab('gatepasses')" style="padding:6px 14px; border-radius:8px; cursor:pointer;">
+                    <i class="fas fa-external-link-alt"></i> View in Gate Passes
+                </button>
+            </div>
+            ${passStatusCard}
+        </div>
+    `;
+}
+
+function clearQuickVerify() {
+    const input = document.getElementById('quickVerifyInput');
+    const resultBox = document.getElementById('quickVerifyResult');
+    if (input) input.value = '';
+    if (resultBox) {
+        resultBox.innerHTML = '';
+        resultBox.style.display = 'none';
+    }
 }
 
 function renderGatePassesTable(list) {
