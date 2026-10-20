@@ -10,6 +10,7 @@ import com.ruhuna.hms.repository.RoomRepository;
 import com.ruhuna.hms.service.RoomInventoryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -19,6 +20,7 @@ import java.util.List;
  * with master inventory stock counters.
  */
 @Service
+@Transactional
 public class RoomInventoryServiceImpl implements RoomInventoryService {
 
     private final RoomInventoryRepository roomInventoryRepository;
