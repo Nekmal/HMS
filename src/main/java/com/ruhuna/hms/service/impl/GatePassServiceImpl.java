@@ -6,6 +6,7 @@ import com.ruhuna.hms.repository.GatePassRepository;
 import com.ruhuna.hms.service.GatePassService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -13,6 +14,7 @@ import java.util.List;
  * Implementation of GatePassService managing gate pass business logic and status transitions.
  */
 @Service
+@Transactional
 public class GatePassServiceImpl implements GatePassService {
 
     private final GatePassRepository gatePassRepository;
