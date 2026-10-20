@@ -168,6 +168,30 @@ GROUP BY TABLE_NAME, INDEX_NAME;
 
 ---
 
+## 🔒 Database Transactions & ACID Compliance (8 Stored Procedures)
+All 8 Stored Procedures are engineered with full **ACID Transaction Control**:
+1. **Atomicity (All-or-Nothing):** Multi-table updates are wrapped in `START TRANSACTION; ... COMMIT;`.
+2. **Error Recovery (Rollback):** Every procedure contains an explicit `DECLARE EXIT HANDLER FOR SQLEXCEPTION` that triggers `ROLLBACK;` automatically if an error or constraint violation occurs.
+3. **Application Layer:** Spring Boot services (`PaymentServiceImpl`, `UserServiceImpl`, `RoomInventoryServiceImpl`, `ComplaintServiceImpl`, `GatePassServiceImpl`, `StaffAttendanceServiceImpl`) are annotated with `@Transactional`.
+
+Dedicated standalone transactions script:  
+👉 [`src/main/resources/adbms_transactions_and_stored_procedures.sql`](src/main/resources/adbms_transactions_and_stored_procedures.sql)
+
+### Quick Verification in MySQL / phpMyAdmin:
+```sql
+-- 1. Test Payment Transaction (Atomically creates payment + audit record)
+CALL sp_RecordStudentPayment('TG/2021/0001', 'December 2026', 1500.00, @inv);
+SELECT @inv AS generated_invoice;
+SELECT * FROM payment_audit_log ORDER BY id DESC LIMIT 1;
+
+-- 2. Test Room Allocation Transaction (Atomically updates users, rooms, and audit log)
+CALL sp_AllocateStudentRoom('TG/2021/0001', 'A-102', @alloc_status);
+SELECT @alloc_status AS allocation_status;
+SELECT * FROM user_audit_log ORDER BY id DESC LIMIT 1;
+```
+
+---
+
 ## 🚀 Setup & Execution Guide
 
 ### 1. Prerequisites
