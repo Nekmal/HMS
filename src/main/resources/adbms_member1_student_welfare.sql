@@ -65,6 +65,13 @@ proc_label: BEGIN
     DECLARE v_payments_count INT;
     DECLARE v_broken_items INT;
 
+    -- Error handler: If SQLEXCEPTION occurs, rollback transaction and report error
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        SET p_status = 'ERROR: Database transaction failed during room allocation. Changes rolled back.';
+    END;
+
     -- Multi-table query: Find student and join current room details
     SELECT u.id, u.full_name, u.room_id, r.room_number 
     INTO v_user_id, v_student_name, v_current_room, v_current_room_no
@@ -161,6 +168,13 @@ proc_label: BEGIN
     DECLARE v_room_no VARCHAR(50);
     DECLARE v_pending_complaints INT DEFAULT 0;
 
+    -- Error handler: If SQLEXCEPTION occurs, rollback transaction and report error
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        SET p_status = 'ERROR: Database transaction failed during room deallocation. Changes rolled back.';
+    END;
+
     -- Multi-table query: Join users and rooms
     SELECT u.id, u.full_name, u.room_id, r.room_number
     INTO v_user_id, v_student_name, v_room_id, v_room_no
@@ -233,6 +247,13 @@ proc_label: BEGIN
     DECLARE v_student_name VARCHAR(100);
     DECLARE v_room_number VARCHAR(50);
 
+    -- Error handler: If SQLEXCEPTION occurs, rollback transaction and report error
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        SET p_result = 'ERROR: Database transaction failed during gate pass review. Changes rolled back.';
+    END;
+
     -- Multi-table query joining gate_passes, users, and rooms
     SELECT gp.status, gp.user_id, u.student_id, u.full_name, IFNULL(r.room_number, 'UNASSIGNED')
     INTO v_current_status, v_user_id, v_student_id, v_student_name, v_room_number
@@ -254,20 +275,23 @@ proc_label: BEGIN
         LEAVE proc_label;
     END IF;
 
-    -- Update gate pass decision
-    UPDATE gate_passes 
-    SET status = p_decision 
-    WHERE id = p_pass_id;
+    -- Atomic pass review transaction
+    START TRANSACTION;
+        -- Update gate pass decision
+        UPDATE gate_passes 
+        SET status = p_decision 
+        WHERE id = p_pass_id;
 
-    -- Multi-table audit logging
-    INSERT INTO user_audit_log (user_id, action_type, old_value, new_value, performed_by)
-    VALUES (
-        v_user_id, 
-        'GATE_PASS_DECISION', 
-        CONCAT('Pass #', p_pass_id, ' was ', v_current_status), 
-        CONCAT(p_decision, ' [Student: ', v_student_id, ', Room: ', v_room_number, ']'), 
-        p_reviewer
-    );
+        -- Multi-table audit logging
+        INSERT INTO user_audit_log (user_id, action_type, old_value, new_value, performed_by)
+        VALUES (
+            v_user_id, 
+            'GATE_PASS_DECISION', 
+            CONCAT('Pass #', p_pass_id, ' was ', v_current_status), 
+            CONCAT(p_decision, ' [Student: ', v_student_id, ', Room: ', v_room_number, ']'), 
+            p_reviewer
+        );
+    COMMIT;
 
     SET p_result = CONCAT('SUCCESS: Gate pass #', p_pass_id, ' for ', v_student_name, ' (Room ', v_room_number, ') marked as ', p_decision, '.');
 END //
@@ -292,6 +316,13 @@ proc_label: BEGIN
     DECLARE v_student_name VARCHAR(100);
     DECLARE v_allocated_room VARCHAR(50);
     DECLARE v_inv_avail INT DEFAULT 0;
+
+    -- Error handler: If SQLEXCEPTION occurs, rollback transaction and report error
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        SET p_complaint_id = -999;
+    END;
 
     -- Multi-table query: Join users and rooms
     SELECT u.id, u.full_name, r.room_number 
