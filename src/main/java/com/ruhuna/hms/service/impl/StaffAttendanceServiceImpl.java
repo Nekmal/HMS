@@ -8,6 +8,7 @@ import com.ruhuna.hms.repository.UserRepository;
 import com.ruhuna.hms.service.StaffAttendanceService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -18,6 +19,7 @@ import java.util.*;
  * Service implementation for staff duty attendance tracking and Sub Warden absence recording.
  */
 @Service
+@Transactional
 public class StaffAttendanceServiceImpl implements StaffAttendanceService {
 
     private final StaffAttendanceRepository staffAttendanceRepository;
