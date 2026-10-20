@@ -61,6 +61,13 @@ proc_label: BEGIN
     DECLARE v_already_paid INT DEFAULT 0;
     DECLARE v_new_invoice VARCHAR(50);
 
+    -- Error handler: If SQLEXCEPTION occurs, rollback transaction and report error
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        SET p_invoice_no = 'ERROR: Database transaction failed during payment recording. Changes rolled back.';
+    END;
+
     -- Multi-table query: Join users and rooms to retrieve student details
     SELECT u.id, u.full_name, IFNULL(r.room_number, 'UNASSIGNED'), IFNULL(r.block_name, 'GENERAL')
     INTO v_user_id, v_student_name, v_room_no, v_block
@@ -133,6 +140,13 @@ proc_label: BEGIN
     DECLARE v_inv_id BIGINT;
     DECLARE v_avail INT;
 
+    -- Error handler: If SQLEXCEPTION occurs, rollback transaction and report error
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        SET p_damage_id = -999;
+    END;
+
     -- Query rooms table to find room_id
     SELECT id INTO v_room_id FROM rooms WHERE room_number = p_room_number LIMIT 1;
     IF v_room_id IS NULL THEN
@@ -194,6 +208,13 @@ proc_label: BEGIN
     DECLARE v_item_name VARCHAR(100);
     DECLARE v_qty INT;
     DECLARE v_curr_status VARCHAR(50);
+
+    -- Error handler: If SQLEXCEPTION occurs, rollback transaction and report error
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        SET p_status = 'ERROR: Database transaction failed during repair completion. Changes rolled back.';
+    END;
 
     -- Multi-table query: Join room_inventory, rooms, and inventory
     SELECT ri.inventory_id, ri.room_id, r.room_number, inv.item_name, ri.broken_quantity, ri.status 
@@ -257,6 +278,13 @@ proc_label: BEGIN
     DECLARE v_staff_name VARCHAR(100);
     DECLARE v_department VARCHAR(50);
     DECLARE v_existing_att BIGINT;
+
+    -- Error handler: If SQLEXCEPTION occurs, rollback transaction and report error
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        SET p_status = 'ERROR: Database transaction failed during staff check-in. Changes rolled back.';
+    END;
 
     -- Query users table for staff profile
     SELECT id, full_name, role 
