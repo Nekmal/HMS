@@ -6,6 +6,7 @@ import com.ruhuna.hms.repository.ComplaintRepository;
 import com.ruhuna.hms.service.ComplaintService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -14,6 +15,7 @@ import java.util.List;
  * Service implementation for managing complaint workflow, persistence, and status updates.
  */
 @Service
+@Transactional
 public class ComplaintServiceImpl implements ComplaintService {
 
     private final ComplaintRepository complaintRepository;
