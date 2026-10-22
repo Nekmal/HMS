@@ -4,63 +4,115 @@ import jakarta.persistence.*;
 import java.time.LocalDate;
 
 /**
- * JPA entity representing a resident complaint or reported hostel issue.
+ * ============================================================================
+ * Complaint Entity (Student Maintenance & Issue Tickets)
+ * ============================================================================
+ * Database Table: complaints
+ * 
+ * Represents a maintenance or repair ticket filed by a resident student regarding
+ * defective room furnishings, sanitary fixtures, or electrical appliances.
+ * 
+ * Lifecycle States:
+ * - PENDING: Newly filed ticket awaiting administrative dispatch.
+ * - IN_PROGRESS: Dispatched to maintenance technician with assigned due date.
+ * - RESOLVED: Repair completed and tested. Triggers 'trg_AfterComplaintResolvedLog'.
+ * 
+ * Performance Indexes:
+ * - 'idx_complaints_status_room' on (status, room_number)
+ * ============================================================================
  */
 @Entity
 @Table(name = "complaints")
 public class Complaint {
 
+    /**
+     * Primary key auto-increment ID.
+     */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Student who filed the complaint
+    /**
+     * Foreign key relationship referencing the resident student who filed this complaint.
+     */
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    /**
+     * Detailed problem description submitted by student (e.g., "Fan regulator smoking").
+     */
     private String description;
     
-    // Status: PENDING or RESOLVED
+    /**
+     * Ticket resolution status: 'PENDING', 'IN_PROGRESS', or 'RESOLVED'.
+     */
     private String status;
     
+    /**
+     * Date when the complaint was initially submitted by the student.
+     */
     private LocalDate createdAt;
 
-    // Room number where issue occurred (e.g., C-112, A-105, Common Bathroom)
+    /**
+     * Physical room location where the issue occurred (e.g. "C-112", "A-105").
+     */
     @Column(name = "room_number")
     private String roomNumber;
 
-    // Item/Fixture needing maintenance (e.g., Ceiling Fan, Study Table, Bed, Light Bulb, Window Latch, Tap)
+    /**
+     * Defective equipment name (e.g. "Ceiling Fan", "Study Table", "LED Bulb", "Water Tap").
+     */
     @Column(name = "item")
     private String item;
 
-    // Date when Sub Warden/Admin dispatched notification to maintenance
+    /**
+     * Timestamp when the Sub Warden dispatched this ticket to maintenance.
+     */
     @Column(name = "notified_at")
     private LocalDate notifiedAt;
 
-    // Assigned maintenance personnel (e.g. Sunil Rathnayake - Maintenance Specialist)
+    /**
+     * Name of the assigned maintenance technician (e.g. "Sunil Rathnayake").
+     */
     @Column(name = "assigned_to")
     private String assignedTo;
 
-    // Priority: NORMAL, HIGH, URGENT
+    /**
+     * Repair priority level: 'LOW', 'NORMAL', 'HIGH', or 'URGENT'.
+     */
     @Column(name = "priority")
     private String priority = "NORMAL";
 
-    // Escalation count (how many times admin reminded / escalated due to delay)
+    /**
+     * Count tracking how many times administration escalated this ticket due to delays.
+     */
     @Column(name = "escalation_count")
     private Integer escalationCount = 0;
 
-    // Target completion due date
+    /**
+     * Target resolution due date set by the Sub Warden.
+     */
     @Column(name = "due_date")
     private LocalDate dueDate;
 
-    // Admin notes or escalation comments
+    /**
+     * Administrative instructions, escalation logs, or technician notes.
+     */
     @Column(name = "admin_notes", columnDefinition = "TEXT")
     private String adminNotes;
 
+    /**
+     * Default no-argument constructor required by Hibernate ORM.
+     */
     public Complaint() {}
 
-    // Overdue helper for JSON serialization
+    /**
+     * Dynamic business helper determining if this ticket has breached service SLAs.
+     * Evaluates against target dueDate, dispatch notifiedAt (+2 days), or createdAt (+3 days).
+     *
+     * @return true if resolution is overdue, false otherwise.
+     */
     public boolean isOverdue() {
         if ("RESOLVED".equalsIgnoreCase(this.status)) {
             return false;
@@ -78,7 +130,11 @@ public class Complaint {
         return false;
     }
 
-    // Days late helper
+    /**
+     * Calculates elapsed days past the expected completion SLA.
+     *
+     * @return Number of days overdue (0 if on schedule or resolved).
+     */
     public long getDaysLate() {
         if (!isOverdue()) return 0;
         LocalDate today = LocalDate.now();
@@ -87,7 +143,10 @@ public class Complaint {
         return days > 0 ? days : 1;
     }
 
-    // Getters and Setters
+    // ==========================================
+    // Standard Getters and Setters
+    // ==========================================
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -127,3 +186,4 @@ public class Complaint {
     public String getAdminNotes() { return adminNotes; }
     public void setAdminNotes(String adminNotes) { this.adminNotes = adminNotes; }
 }
+
