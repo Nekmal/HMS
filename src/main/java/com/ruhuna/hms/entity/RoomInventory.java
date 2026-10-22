@@ -4,38 +4,78 @@ import jakarta.persistence.*;
 import java.time.LocalDate;
 
 /**
- * JPA entity mapping damaged inventory items to specific hostel rooms.
+ * ============================================================================
+ * RoomInventory Entity (Room Damage & Asset Dispatches)
+ * ============================================================================
+ * Database Table: room_inventory
+ * 
+ * Maps damaged warehouse equipment items directly to individual hostel rooms.
+ * Serves as the junction entity between physical rooms and warehouse stock.
+ * 
+ * Repair Lifecycle:
+ * - BROKEN: Defect reported by resident student or room inspector.
+ * - IN_REPAIR: Spare parts dispatched; work initiated by maintenance technician.
+ * - REPAIRED: Restored to working condition.
+ * 
+ * Database Integration:
+ * - Enforces trigger 'trg_PreventRoomCheckoutWithDamages' preventing student room
+ *   deallocation if unsettled damaged equipment exists.
+ * ============================================================================
  */
 @Entity
 @Table(name = "room_inventory")
 public class RoomInventory {
 
+    /**
+     * Primary key auto-increment ID.
+     */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Room where the damage occurred
+    /**
+     * Foreign key relationship referencing the room containing the damaged item.
+     */
     @ManyToOne
     @JoinColumn(name = "room_id", nullable = false)
     private Room room;
 
-    // Damaged inventory equipment item
+    /**
+     * Foreign key relationship referencing the warehouse inventory equipment category.
+     */
     @ManyToOne
     @JoinColumn(name = "inventory_id", nullable = false)
     private Inventory inventory;
 
+    /**
+     * Number of defective units of this equipment item inside the room.
+     */
     private int brokenQuantity;
 
+    /**
+     * Physical defect observation notes (e.g. "Fan blade bent, capacitor blown").
+     */
     @Column(length = 500)
     private String damageDescription;
 
-    // Repair lifecycle status: BROKEN, IN_REPAIR, REPAIRED
+    /**
+     * Restoration status: 'BROKEN', 'IN_REPAIR', or 'REPAIRED'.
+     */
     private String status;
 
+    /**
+     * Calendar date when damage was officially recorded.
+     */
     private LocalDate reportedDate;
 
+    /**
+     * Default no-argument constructor required by Hibernate ORM.
+     */
     public RoomInventory() {}
 
+    /**
+     * Parameterized constructor for equipment issue creation.
+     */
     public RoomInventory(Room room, Inventory inventory, int brokenQuantity, String damageDescription, String status, LocalDate reportedDate) {
         this.room = room;
         this.inventory = inventory;
@@ -45,7 +85,10 @@ public class RoomInventory {
         this.reportedDate = reportedDate;
     }
 
-    // Getters and Setters
+    // ==========================================
+    // Standard Getters and Setters
+    // ==========================================
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -67,3 +110,4 @@ public class RoomInventory {
     public LocalDate getReportedDate() { return reportedDate; }
     public void setReportedDate(LocalDate reportedDate) { this.reportedDate = reportedDate; }
 }
+

@@ -4,33 +4,63 @@ import jakarta.persistence.*;
 import java.time.LocalDate;
 
 /**
- * JPA entity representing an official hostel bulletin announcement.
+ * ============================================================================
+ * Notice Entity (Administrative Circulars & Public Bulletin Board)
+ * ============================================================================
+ * Database Table: notices
+ * 
+ * Represents an official announcement or circular published by the Sub Warden
+ * to disseminate critical hostel information to residents and staff.
+ * 
+ * Content Examples:
+ * - Hostel fee payment settlement deadlines.
+ * - Scheduled power cuts and water tank cleaning shutdowns.
+ * - Security gate curfew reminders and leave pass policies.
+ * - Disciplinary rules and hostel inspection schedules.
+ * ============================================================================
  */
 @Entity
 @Table(name = "notices")
 public class Notice {
 
+    /**
+     * Primary key auto-increment ID.
+     */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Notice title or header
+    /**
+     * Bold headline of the announcement (e.g. "Water Supply Maintenance Shutdown").
+     */
     private String title;
     
-    // Notice body text / announcement content
+    /**
+     * Full detailed bulletin text body formatted as long-form content.
+     */
     @Column(columnDefinition = "TEXT")
     private String content;
     
-    // Date posted by Sub Warden
+    /**
+     * Calendar date when this notice was authored and posted by the Sub Warden.
+     */
     private LocalDate datePosted;
 
-    // Target Audience: ALL, STUDENTS, STAFF
+    /**
+     * Target stakeholder audience: 'ALL', 'STUDENTS', 'STAFF', or 'SECURITY'.
+     */
     @Column(name = "target_audience")
     private String targetAudience = "ALL";
 
+    /**
+     * Default no-argument constructor required by Hibernate ORM.
+     */
     public Notice() {}
 
-    // Getters and Setters
+    // ==========================================
+    // Standard Getters and Setters
+    // ==========================================
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -46,3 +76,4 @@ public class Notice {
     public String getTargetAudience() { return targetAudience; }
     public void setTargetAudience(String targetAudience) { this.targetAudience = targetAudience; }
 }
+
