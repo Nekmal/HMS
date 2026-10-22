@@ -9,24 +9,53 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Global exception interceptor providing standardized HTTP error responses across all REST controllers.
+ * ============================================================================
+ * Global REST Exception Interceptor & Handler
+ * ============================================================================
+ * Centralized exception translation aspect annotated with {@link RestControllerAdvice}.
+ * 
+ * Purpose:
+ * Intercepts uncaught runtime exceptions originating from any REST controller
+ * in the application and converts them into standardized, clean HTTP error responses.
+ *
+ * Handled Exception Types:
+ * 1. {@link ResourceNotFoundException} -> Translates to HTTP 404 (Not Found)
+ * 2. {@link BadRequestException} -> Translates to HTTP 400 (Bad Request)
+ * 3. {@link Exception} (Generic unhandled) -> Translates to HTTP 500 (Internal Server Error)
+ * ============================================================================
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    // Handles 404 Not Found exceptions
+    /**
+     * Intercepts ResourceNotFoundException when queried records are missing from MySQL.
+     *
+     * @param ex The captured ResourceNotFoundException instance.
+     * @return HTTP 404 response with plaintext or localized message.
+     */
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<String> handleResourceNotFoundException(ResourceNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
     }
 
-    // Handles 400 Bad Request validation errors
+    /**
+     * Intercepts BadRequestException when input data violates business validation rules.
+     *
+     * @param ex The captured BadRequestException instance.
+     * @return HTTP 400 response with descriptive validation failure message.
+     */
     @ExceptionHandler(BadRequestException.class)
     public ResponseEntity<String> handleBadRequestException(BadRequestException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
     }
 
-    // Handles unhandled server exceptions (HTTP 500)
+    /**
+     * Catch-all handler for unexpected system exceptions and runtime errors.
+     * Prevents stack traces from leaking to client frontend portals.
+     *
+     * @param ex The unexpected generic exception.
+     * @return HTTP 500 response containing structured JSON error payload.
+     */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGenericException(Exception ex) {
         Map<String, Object> response = new HashMap<>();
@@ -35,3 +64,4 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
 }
+
