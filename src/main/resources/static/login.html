@@ -33,26 +33,26 @@
             <button type="submit" class="btn btn-primary btn-login-submit">Login</button>
         </form>
 
-        <!-- Quick Demo Credentials Helper & Theme Switcher -->
+        <!-- Role Theme Switcher (Theme preview without credential exposure) -->
         <div class="quick-role-wrapper">
-            <p class="quick-role-title">Quick Role Login & Theme Switcher</p>
+            <p class="quick-role-title">Portal Theme Switcher</p>
             <div class="quick-role-grid">
-                <button type="button" class="role-btn role-admin" onclick="fillCreds('admin', 'admin123', 'admin', this)">
+                <button type="button" class="role-btn role-admin" onclick="selectRoleTheme('admin', this)">
                     <i class="fas fa-user-shield"></i> Sub Warden
                 </button>
-                <button type="button" class="role-btn role-security" onclick="fillCreds('SEC001', 'security123', 'security', this)">
+                <button type="button" class="role-btn role-security" onclick="selectRoleTheme('security', this)">
                     <i class="fas fa-shield-alt"></i> Security
                 </button>
-                <button type="button" class="role-btn role-maintenance" onclick="fillCreds('MNT001', 'maintenance123', 'maintenance', this)">
+                <button type="button" class="role-btn role-maintenance" onclick="selectRoleTheme('maintenance', this)">
                     <i class="fas fa-tools"></i> Maintenance
                 </button>
-                <button type="button" class="role-btn role-cleaning" onclick="fillCreds('CLN001', 'cleaning123', 'cleaning', this)">
+                <button type="button" class="role-btn role-cleaning" onclick="selectRoleTheme('cleaning', this)">
                     <i class="fas fa-broom"></i> Cleaning
                 </button>
-                <button type="button" class="role-btn role-student" onclick="fillCreds('TG/2021/0001', 'password123', 'student', this)">
+                <button type="button" class="role-btn role-student" onclick="selectRoleTheme('student', this)">
                     <i class="fas fa-user-graduate"></i> Student
                 </button>
-                <button type="button" class="role-btn role-default active" onclick="fillCreds('', '', 'yellow', this)" title="Reset to original yellow background">
+                <button type="button" class="role-btn role-default active" onclick="selectRoleTheme('yellow', this)" title="Reset to original yellow background">
                     <i class="fas fa-undo"></i> Default
                 </button>
             </div>
@@ -69,12 +69,9 @@
             }
         }
 
-        // Fill credentials and dynamically switch the login page background theme
-        function fillCreds(u, p, theme, btn) {
-            if (u !== '') document.getElementById('username').value = u;
-            if (p !== '') document.getElementById('password').value = p;
+        // Dynamically switch the login page theme without filling sensitive credentials
+        function selectRoleTheme(theme, btn) {
             document.getElementById('errorMsg').style.display = 'none';
-
             applyTheme(theme);
 
             // Sync active state on role buttons
@@ -82,6 +79,11 @@
             if (btn) {
                 btn.classList.add('active');
             }
+        }
+
+        // Fallback backward-compatible alias that safely prevents any autofill
+        function fillCreds(u, p, theme, btn) {
+            selectRoleTheme(theme, btn);
         }
 
         // Detect role while user is typing in username input and change theme dynamically
