@@ -21,14 +21,14 @@
             <div class="brand-divider"></div>
         </div>
         <div id="errorMsg" class="error-msg">Invalid Credentials!</div>
-        <form id="loginForm" class="login-form" onsubmit="handleLogin(event)">
+        <form id="loginForm" class="login-form" onsubmit="handleLogin(event)" autocomplete="off">
             <div class="form-group">
                 <label>Student ID / Username <span class="required-star">*</span></label>
-                <input type="text" id="username" required placeholder="e.g. sub warden (admin), security, maintenance, cleaning">
+                <input type="text" id="username" name="hms_user_identifier" autocomplete="off" readonly onfocus="this.removeAttribute('readonly');" required placeholder="Enter Student ID / Username">
             </div>
             <div class="form-group">
                 <label>Password <span class="required-star">*</span></label>
-                <input type="password" id="password" required placeholder="Password">
+                <input type="password" id="password" name="hms_user_secret" autocomplete="new-password" readonly onfocus="this.removeAttribute('readonly');" required placeholder="Enter Password">
             </div>
             <button type="submit" class="btn btn-primary btn-login-submit">Login</button>
         </form>
@@ -39,7 +39,7 @@
             
             <!-- Row 1: Sub Warden & Student -->
             <div class="quick-role-row quick-role-primary">
-                <button type="button" class="role-btn role-admin active" onclick="selectRoleTheme('admin', this)">
+                <button type="button" class="role-btn role-admin" onclick="selectRoleTheme('admin', this)">
                     <i class="fas fa-user-shield"></i> Sub Warden
                 </button>
                 <button type="button" class="role-btn role-student" onclick="selectRoleTheme('student', this)">
@@ -63,6 +63,19 @@
     </div>
 
     <script>
+        // Force-clear inputs on page load to prevent browser password managers from auto-filling
+        window.addEventListener('DOMContentLoaded', () => {
+            const clearInputs = () => {
+                const u = document.getElementById('username');
+                const p = document.getElementById('password');
+                if (u) u.value = '';
+                if (p) p.value = '';
+            };
+            clearInputs();
+            setTimeout(clearInputs, 50);
+            setTimeout(clearInputs, 200);
+        });
+
         // Dynamically switch the login page background theme without auto-filling credentials
         function selectRoleTheme(theme, btn) {
             document.getElementById('errorMsg').style.display = 'none';
