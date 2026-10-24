@@ -33,30 +33,6 @@
             <button type="submit" class="btn btn-primary btn-login-submit">Login</button>
         </form>
 
-        <!-- Role Theme Switcher (Theme preview without credential exposure) -->
-        <div class="quick-role-wrapper">
-            <p class="quick-role-title">Portal Theme Switcher</p>
-            <div class="quick-role-grid">
-                <button type="button" class="role-btn role-admin" onclick="selectRoleTheme('admin', this)">
-                    <i class="fas fa-user-shield"></i> Sub Warden
-                </button>
-                <button type="button" class="role-btn role-security" onclick="selectRoleTheme('security', this)">
-                    <i class="fas fa-shield-alt"></i> Security
-                </button>
-                <button type="button" class="role-btn role-maintenance" onclick="selectRoleTheme('maintenance', this)">
-                    <i class="fas fa-tools"></i> Maintenance
-                </button>
-                <button type="button" class="role-btn role-cleaning" onclick="selectRoleTheme('cleaning', this)">
-                    <i class="fas fa-broom"></i> Cleaning
-                </button>
-                <button type="button" class="role-btn role-student" onclick="selectRoleTheme('student', this)">
-                    <i class="fas fa-user-graduate"></i> Student
-                </button>
-                <button type="button" class="role-btn role-default active" onclick="selectRoleTheme('yellow', this)" title="Reset to original yellow background">
-                    <i class="fas fa-undo"></i> Default
-                </button>
-            </div>
-        </div>
     </div>
 
     <script>
@@ -82,50 +58,24 @@
             }
         }
 
-        // Dynamically switch the login page theme without filling sensitive credentials
-        function selectRoleTheme(theme, btn) {
-            document.getElementById('errorMsg').style.display = 'none';
-            applyTheme(theme);
-
-            // Sync active state on role buttons
-            document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
-            if (btn) {
-                btn.classList.add('active');
-            }
-        }
-
-        // Fallback backward-compatible alias that safely prevents any autofill
-        function fillCreds(u, p, theme, btn) {
-            selectRoleTheme(theme, btn);
-        }
-
         // Detect role while user is typing in username input and change theme dynamically
         function detectThemeFromInput(val) {
             const v = (val || '').trim().toUpperCase();
             let theme = 'yellow';
-            let btnClass = '.role-default';
 
             if (v.startsWith('SEC') || v.includes('SECURITY')) {
                 theme = 'security';
-                btnClass = '.role-security';
             } else if (v.startsWith('MNT') || v.includes('MAINT')) {
                 theme = 'maintenance';
-                btnClass = '.role-maintenance';
             } else if (v.startsWith('CLN') || v.includes('CLEAN')) {
                 theme = 'cleaning';
-                btnClass = '.role-cleaning';
             } else if (v.startsWith('TG') || v.includes('STUDENT')) {
                 theme = 'student';
-                btnClass = '.role-student';
             } else if (v.startsWith('ADMIN') || v.includes('WARDEN')) {
                 theme = 'admin';
-                btnClass = '.role-admin';
             }
 
             applyTheme(theme);
-            document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
-            const matchedBtn = document.querySelector(btnClass);
-            if (matchedBtn) matchedBtn.classList.add('active');
         }
 
         async function handleLogin(event) {
