@@ -1,60 +1,23 @@
 package com.ruhuna.hms.entity;
 
-import jakarta.persistence.*;
 import java.time.LocalDate;
 
 /**
  * ============================================================================
- * Notice Entity (Administrative Circulars & Public Bulletin Board)
+ * Notice Domain Model (Administrative Circulars & Public Bulletin Board)
  * ============================================================================
+ * Pure POJO Model mapped via Pure SQL & JDBC RowMappers (Zero ORM).
  * Database Table: notices
- * 
- * Represents an official announcement or circular published by the Sub Warden
- * to disseminate critical hostel information to residents and staff.
- * 
- * Content Examples:
- * - Hostel fee payment settlement deadlines.
- * - Scheduled power cuts and water tank cleaning shutdowns.
- * - Security gate curfew reminders and leave pass policies.
- * - Disciplinary rules and hostel inspection schedules.
  * ============================================================================
  */
-@Entity
-@Table(name = "notices")
 public class Notice {
 
-    /**
-     * Primary key auto-increment ID.
-     */
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    /**
-     * Bold headline of the announcement (e.g. "Water Supply Maintenance Shutdown").
-     */
     private String title;
-    
-    /**
-     * Full detailed bulletin text body formatted as long-form content.
-     */
-    @Column(columnDefinition = "TEXT")
     private String content;
-    
-    /**
-     * Calendar date when this notice was authored and posted by the Sub Warden.
-     */
     private LocalDate datePosted;
-
-    /**
-     * Target stakeholder audience: 'ALL', 'STUDENTS', 'STAFF', or 'SECURITY'.
-     */
-    @Column(name = "target_audience")
     private String targetAudience = "ALL";
 
-    /**
-     * Default no-argument constructor required by Hibernate ORM.
-     */
     public Notice() {}
 
     // ==========================================

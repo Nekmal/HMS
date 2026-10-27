@@ -6,7 +6,7 @@
 
 [![Java](https://img.shields.io/badge/Java-17%2B-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)](https://www.oracle.com/java/)
 [![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.1.1-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
-[![Hibernate](https://img.shields.io/badge/Hibernate_ORM-7.x-59666C?style=for-the-badge&logo=hibernate&logoColor=white)](https://hibernate.org/orm/)
+[![Pure SQL & JDBC](https://img.shields.io/badge/Architecture-Pure_SQL_%26_Spring_JDBC_(Zero_ORM)-00758F?style=for-the-badge&logo=mysql&logoColor=white)](https://spring.io/projects/spring-framework)
 [![MariaDB / MySQL](https://img.shields.io/badge/Database-MariaDB%20%2F%20MySQL%208.0-003545?style=for-the-badge&logo=mariadb&logoColor=white)](https://mariadb.org/)
 [![Gradle](https://img.shields.io/badge/Build-Gradle_8.x-02303A?style=for-the-badge&logo=gradle&logoColor=white)](https://gradle.org/)
 [![Frontend](https://img.shields.io/badge/Frontend-HTML5_%2F_CSS3_%2F_ES6-E34F26?style=for-the-badge&logo=html5&logoColor=white)](https://developer.mozilla.org/en-US/docs/Web/HTML)
@@ -101,7 +101,7 @@ graph TD
     subgraph AppServer ["⚙️ Application Layer (Spring Boot 4.1.1 on Embedded Tomcat 11 — Port: 8094, Context: /hms)"]
         CTRL["10 REST API Controllers<br/><code>/hms/api/*</code>"]
         SRV["Service Layer<br/>(Business Rules, @Transactional, DTO Envelope)"]
-        REPO["Spring Data JPA Repositories<br/>(Hibernate ORM 7.x)"]
+        REPO["Pure SQL Repositories / DAOs<br/>(Spring JDBC & CallableStatement — Zero ORM)"]
         MAIL["JavaMailSender<br/>(SMTP Alert Dispatcher)"]
         CTRL --> SRV
         SRV --> REPO
@@ -278,7 +278,7 @@ sequenceDiagram
 
 ```text
 HMS/
-├── build.gradle                                     # Gradle build script (Spring Boot 4.1.1, Java 17, JPA, Mail)
+├── build.gradle                                     # Gradle build script (Spring Boot 4.1.1, Java 17, Spring JDBC, Mail)
 ├── settings.gradle                                  # Project identifier ('hms')
 ├── gradlew & gradlew.bat                            # Portable Gradle wrapper scripts
 ├── README.md                                        # Master project documentation
@@ -286,6 +286,9 @@ HMS/
 │
 ├── src/main/java/com/ruhuna/hms/
 │   ├── HmsApplication.java                          # Spring Boot bootstrapper & CommandLineRunner admin seeder
+│   │
+│   ├── config/                                      # Configuration & Initialization
+│   │   └── DatabaseInitializer.java                 # Pure SQL Schema & Object Initializer (Zero ORM)
 │   │
 │   ├── controller/                                  # 10 REST API Controllers
 │   │   ├── UserController.java                      # /api/users (Accounts, Authentication, Room Allocation)
@@ -303,7 +306,7 @@ HMS/
 │   │   ├── LoginRequest.java                        # Authentication payload
 │   │   └── ApiResponse.java                         # Standardized JSON response envelope
 │   │
-│   ├── entity/                                      # 9 JPA Relational Entities
+│   ├── entity/                                      # 9 Pure Domain POJO Models (Zero ORM)
 │   │   ├── User.java                                # User profile (Student, Admin, Staff)
 │   │   ├── Room.java                                # Hostel room entity with capacity constraints
 │   │   ├── Payment.java                             # Student monthly fee records
@@ -319,7 +322,7 @@ HMS/
 │   │   ├── BadRequestException.java                 # HTTP 400 validation handler
 │   │   └── GlobalExceptionHandler.java              # Centralized JSON error responses
 │   │
-│   ├── repository/                                  # 9 Spring Data JPA Interface Repositories
+│   ├── repository/                                  # 9 Pure SQL & Spring JDBC Repositories (DAOs)
 │   └── service/                                     # Service layer interfaces & implementations (@Transactional)
 │
 └── src/main/resources/
@@ -686,10 +689,12 @@ spring.datasource.url=jdbc:mysql://localhost:3306/hms_db?createDatabaseIfNotExis
 spring.datasource.username=root
 spring.datasource.password=
 
-# Hibernate DDL Auto & Dialect
-spring.jpa.hibernate.ddl-auto=update
-spring.jpa.show-sql=true
-spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQLDialect
+# Pure SQL & Spring JDBC Database Engine Configuration (Zero ORM Architecture)
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+spring.datasource.hikari.maximum-pool-size=15
+spring.datasource.hikari.minimum-idle=5
+spring.datasource.hikari.idle-timeout=30000
+spring.datasource.hikari.pool-name=HMS-HikariPool
 
 # Transactional Email (Optional SMTP setup)
 spring.mail.host=smtp.gmail.com
@@ -715,8 +720,8 @@ Open a PowerShell terminal in the project root directory:
 ```
 
 > [!IMPORTANT]
-> **Why boot the application first?**  
-> With `spring.jpa.hibernate.ddl-auto=update`, running the Spring Boot application first ensures Hibernate generates all 9 primary entity tables (`users`, `rooms`, `payments`, `complaints`, `gate_passes`, `inventory`, `room_inventory`, `staff_attendance`, `notices`) and creates the default admin user.
+> **Automatic Zero-ORM Schema Initialization:**  
+> The application uses a pure SQL [`DatabaseInitializer.java`](file:///d:/Progects%203.2/HMS/src/main/java/com/ruhuna/hms/config/DatabaseInitializer.java) on startup to automatically execute `CREATE TABLE IF NOT EXISTS` for all 13 relational tables, create the 8 performance indexes, create the 8 analytical views, and seed default administrative and resident accounts. No ORM or Hibernate tool is used!
 
 ---
 
@@ -751,8 +756,8 @@ Enter any of the credentials from the [Default Login Credentials](#-default-logi
 ## ❓ Troubleshooting & FAQs
 
 ### 1. `Table 'hms_db.users' doesn't exist` when importing SQL scripts
-- **Cause:** The SQL scripts were imported before Spring Boot created the base JPA entity tables.
-- **Solution:** Run `.\gradlew bootRun` first so Hibernate creates all core tables. Once the server finishes starting up, import the SQL scripts in phpMyAdmin.
+- **Cause:** Attempting to query or create views before running the application.
+- **Solution:** Run `.\gradlew bootRun` first so [`DatabaseInitializer.java`](file:///d:/Progects%203.2/HMS/src/main/java/com/ruhuna/hms/config/DatabaseInitializer.java) creates all 13 pure relational tables and default seed accounts automatically. Once the server finishes starting up, import the SQL scripts in phpMyAdmin.
 
 ### 2. `Port 8094 is already in use`
 - **Cause:** Another process or previous instance is running on port 8094.
