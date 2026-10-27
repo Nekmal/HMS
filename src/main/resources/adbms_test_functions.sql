@@ -2,6 +2,7 @@
 -- Advance Database Management Systems (ADBMS) - Mini Project
 -- University of Ruhuna - Hostel Management System (HMS)
 -- Comprehensive Execution & Verification Script for all 8 Stored Functions (UDFs)
+-- Master Dataset: 100 Rooms, 160 Students, 15 Staff, 1,800+ Shifts
 -- ============================================================================
 
 SET NAMES utf8mb4;
@@ -28,7 +29,7 @@ SELECT
     u.full_name AS Student_Name,
     fn_CalculateStudentFeeArrears(u.id) AS Total_Arrears_LKR
 FROM users u 
-WHERE u.id IN (8, 10);
+WHERE u.student_id IN ('TG/2021/0001', 'TG/2021/0005', 'TG/2021/0025');
 
 -- ----------------------------------------------------------------------------
 -- Function 3: Student Gate Pass Status Checker
@@ -41,7 +42,7 @@ SELECT
     u.full_name AS Student_Name,
     fn_CheckStudentGatePassStatus(u.id) AS Real_Time_Gate_Clearance
 FROM users u 
-WHERE u.id IN (8, 9, 12);
+WHERE u.student_id IN ('TG/2021/0001', 'TG/2021/0069', 'TG/2021/0081');
 
 -- ----------------------------------------------------------------------------
 -- Function 4: Warehouse Item Stock Availability Checker
@@ -55,7 +56,7 @@ SELECT
     i.category,
     fn_GetItemAvailableStock(i.id) AS Available_Units
 FROM inventory i 
-WHERE i.id IN (1, 2, 3, 5);
+WHERE i.id IN (1, 2, 3, 5, 7);
 
 -- ----------------------------------------------------------------------------
 -- Function 5: Room Block & Floor Extractor
@@ -68,7 +69,7 @@ SELECT
     r.block_name,
     fn_GetRoomBlockFloor(r.room_number) AS Architectural_Floor_Assignment
 FROM rooms r 
-WHERE r.room_number IN ('A-101', 'B-201', 'D-301');
+WHERE r.room_number IN ('A-101', 'A-125', 'B-201', 'C-315', 'D-420');
 
 -- ----------------------------------------------------------------------------
 -- Function 6: Room Occupancy Rate Calculator
@@ -83,7 +84,7 @@ SELECT
     r.current_occupancy AS Occupied_Beds,
     fn_GetRoomOccupancyRate(r.id) AS Occupancy_Rate_Pct
 FROM rooms r 
-WHERE r.id IN (1, 2, 3, 11);
+WHERE r.room_number IN ('A-101', 'A-125', 'B-215', 'B-220', 'C-301');
 
 -- ----------------------------------------------------------------------------
 -- Function 7: Staff Monthly Present Days Counter
@@ -98,7 +99,8 @@ SELECT
     'October 2026' AS Duty_Period,
     fn_GetStaffMonthlyPresentDays(u.id, 2026, 10) AS Present_Days_Logged
 FROM users u 
-WHERE u.id IN (2, 3, 4, 5, 6, 7);
+WHERE u.role IN ('SECURITY', 'MAINTENANCE', 'CLEANING')
+LIMIT 6;
 
 -- ----------------------------------------------------------------------------
 -- Function 8: Student Lifetime Complaints Aggregator
@@ -111,4 +113,4 @@ SELECT
     u.full_name AS Student_Name,
     fn_GetStudentTotalComplaints(u.id) AS Total_Complaints_Filed
 FROM users u 
-WHERE u.id IN (8, 10, 11, 15);
+WHERE u.student_id IN ('TG/2021/0001', 'TG/2021/0005', 'TG/2021/0009', 'TG/2021/0013');
