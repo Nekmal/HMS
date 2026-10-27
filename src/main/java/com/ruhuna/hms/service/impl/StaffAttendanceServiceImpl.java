@@ -42,8 +42,8 @@ public class StaffAttendanceServiceImpl implements StaffAttendanceService {
     /**
      * Dependency injection of repositories.
      *
-     * @param staffAttendanceRepository JPA repository for staff attendance.
-     * @param userRepository JPA repository for user lookup.
+     * @param staffAttendanceRepository Pure SQL repository for staff attendance.
+     * @param userRepository Pure SQL repository for user lookup.
      */
     @Autowired
     public StaffAttendanceServiceImpl(StaffAttendanceRepository staffAttendanceRepository,

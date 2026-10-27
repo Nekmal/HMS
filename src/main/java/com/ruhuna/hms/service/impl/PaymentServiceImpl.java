@@ -33,7 +33,7 @@ public class PaymentServiceImpl implements PaymentService {
     /**
      * Dependency injection of PaymentRepository and EmailService.
      *
-     * @param paymentRepository JPA repository for payment entities.
+     * @param paymentRepository Pure SQL repository for payment entities.
      * @param emailService Service used to dispatch email payment receipts.
      */
     @Autowired

@@ -37,8 +37,8 @@ public class UserServiceImpl implements UserService {
     /**
      * Dependency injection of UserRepository and RoomRepository.
      *
-     * @param userRepository JPA repository for users.
-     * @param roomRepository JPA repository for rooms.
+     * @param userRepository Pure SQL repository for users.
+     * @param roomRepository Pure SQL repository for rooms.
      */
     @Autowired
     public UserServiceImpl(UserRepository userRepository, RoomRepository roomRepository) {

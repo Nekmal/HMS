@@ -24,14 +24,14 @@ import java.util.List;
 public class RoomServiceImpl implements RoomService {
 
     /**
-     * Spring Data JPA repository for room data access operations.
+     * Pure SQL JDBC repository for room data access operations.
      */
     private final RoomRepository roomRepository;
 
     /**
      * Constructs a new {@code RoomServiceImpl} with necessary repository dependencies injected.
      *
-     * @param roomRepository The JPA repository for {@link Room} entities.
+     * @param roomRepository The Pure SQL repository for {@link Room} entities.
      */
     @Autowired
     public RoomServiceImpl(RoomRepository roomRepository) {
@@ -45,7 +45,7 @@ public class RoomServiceImpl implements RoomService {
      */
     @Override
     public List<Room> getAllRooms() {
-        // Query Spring Data JPA repository to retrieve all room records
+        // Query Pure SQL repository to retrieve all room records
         return roomRepository.findAll();
     }
 

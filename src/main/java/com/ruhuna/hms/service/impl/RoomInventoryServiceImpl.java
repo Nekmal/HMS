@@ -41,9 +41,9 @@ public class RoomInventoryServiceImpl implements RoomInventoryService {
     /**
      * Dependency injection of repositories.
      *
-     * @param roomInventoryRepository JPA repository for room inventory damages.
-     * @param roomRepository JPA repository for rooms.
-     * @param inventoryRepository JPA repository for master warehouse items.
+     * @param roomInventoryRepository Pure SQL repository for room inventory damages.
+     * @param roomRepository Pure SQL repository for rooms.
+     * @param inventoryRepository Pure SQL repository for master warehouse items.
      */
     @Autowired
     public RoomInventoryServiceImpl(RoomInventoryRepository roomInventoryRepository,
