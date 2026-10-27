@@ -32,7 +32,7 @@ public class GatePassServiceImpl implements GatePassService {
     /**
      * Dependency injection of GatePassRepository.
      *
-     * @param gatePassRepository JPA repository for gate pass records.
+     * @param gatePassRepository Pure SQL repository for gate pass records.
      */
     @Autowired
     public GatePassServiceImpl(GatePassRepository gatePassRepository) {

@@ -24,14 +24,14 @@ import java.util.List;
 public class InventoryServiceImpl implements InventoryService {
 
     /**
-     * Spring Data JPA repository for inventory data access operations.
+     * Pure SQL JDBC repository for inventory data access operations.
      */
     private final InventoryRepository inventoryRepository;
 
     /**
      * Constructs a new {@code InventoryServiceImpl} with required repository dependency.
      *
-     * @param inventoryRepository The JPA repository for {@link Inventory} items.
+     * @param inventoryRepository The Pure SQL repository for {@link Inventory} items.
      */
     @Autowired
     public InventoryServiceImpl(InventoryRepository inventoryRepository) {
@@ -45,7 +45,7 @@ public class InventoryServiceImpl implements InventoryService {
      */
     @Override
     public List<Inventory> getAllInventory() {
-        // Query Spring Data JPA repository to fetch all warehouse inventory records
+        // Query Pure SQL repository to fetch all warehouse inventory records
         return inventoryRepository.findAll();
     }
 

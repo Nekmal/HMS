@@ -31,7 +31,7 @@ public class ComplaintServiceImpl implements ComplaintService {
     /**
      * Dependency injection of ComplaintRepository.
      *
-     * @param complaintRepository JPA repository for complaint entities.
+     * @param complaintRepository Pure SQL repository for complaint entities.
      */
     @Autowired
     public ComplaintServiceImpl(ComplaintRepository complaintRepository) {
