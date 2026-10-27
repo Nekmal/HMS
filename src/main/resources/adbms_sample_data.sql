@@ -314,19 +314,32 @@ INSERT INTO users (id, student_id, full_name, password, email, phone, role, room
 (176, 'TG/2021/0160', 'Sanjaya Mendis', 'student123', 'sanjaya.mendis@fot.ruh.ac.lk', '0771691360', 'STUDENT', 40);
 
 -- ----------------------------------------------------------------------------
--- 3. INVENTORY CATALOG (Central Logistics Master Warehouse Stock)
+-- 3. INVENTORY CATALOG (20 Comprehensive Hostel Catalog Items)
+-- Categories: Furniture, Electrical, Plumbing, Bedding, Security, Appliances, Sanitation, Structural, Safety
 -- ----------------------------------------------------------------------------
 DELETE FROM inventory;
 
 INSERT INTO inventory (id, item_name, total_quantity, available_quantity, broken_quantity, category) VALUES
-(1, 'Study Desk',         450, 435, 15, 'Furniture'),
-(2, 'Wooden Chair',       500, 472, 28, 'Furniture'),
-(3, 'Ceiling Fan',        200, 188, 12, 'Electrical'),
-(4, 'LED Tube Light',     600, 565, 35, 'Electrical'),
-(5, 'Water Tap Fixture',  250, 232, 18, 'Plumbing'),
-(6, 'Bed Mattress',       420, 412,  8, 'Bedding'),
-(7, 'Door Lock Unit',     180, 171,  9, 'Security'),
-(8, 'Wall Socket Unit',   300, 288, 12, 'Electrical');
+(1,  'Study Desk',                    450, 430, 20, 'Furniture'),
+(2,  'Wooden Chair',                  550, 515, 35, 'Furniture'),
+(3,  'Ceiling Fan',                   220, 204, 16, 'Electrical'),
+(4,  'LED Tube Light',                650, 608, 42, 'Electrical'),
+(5,  'Water Tap Fixture',             280, 256, 24, 'Plumbing'),
+(6,  'Bed Mattress',                  440, 428, 12, 'Bedding'),
+(7,  'Door Lock Unit',                200, 186, 14, 'Security'),
+(8,  'Wall Socket Unit',              320, 302, 18, 'Electrical'),
+(9,  'Cloth Wardrobe / Locker',       420, 408, 12, 'Furniture'),
+(10, 'Bathroom Shower Head',          180, 168, 12, 'Plumbing'),
+(11, 'Toilet Flush Cistern',          160, 146, 14, 'Plumbing'),
+(12, 'Electric Kettle Boiler',        60,  52,  8,  'Appliances'),
+(13, 'Ironing Board Station',         40,  35,  5,  'Appliances'),
+(14, 'Fire Extinguisher ABC',         80,  76,  4,  'Safety'),
+(15, 'Window Glass Louver Panel',     300, 282, 18, 'Structural'),
+(16, 'Bed Frame & Headboard',         420, 412, 8,  'Bedding'),
+(17, 'Corridor Emergency Light',      90,  82,  8,  'Electrical'),
+(18, 'Waste Dustbin Unit',            250, 238, 12, 'Sanitation'),
+(19, 'Heavy Duty Floor Mop & Bucket', 100, 92,  8,  'Sanitation'),
+(20, 'Bathroom Exhaust Fan',          140, 128, 12, 'Electrical');
 
 -- ----------------------------------------------------------------------------
 -- 4. STAFF ATTENDANCE HISTORY (From 2026-06-01 to 2026-10-27: ~2,000 Shifts)
@@ -2983,40 +2996,61 @@ INSERT INTO payments (invoice_no, user_id, amount, month, status, payment_date) 
 ('INV-202610-10800', 176, 1500.00, 'October 2026', 'PAID', '2026-10-06');
 
 -- ----------------------------------------------------------------------------
--- 6. MAINTENANCE COMPLAINTS & WORK ORDERS (35 Comprehensive Incidents)
+-- 6. MAINTENANCE COMPLAINTS & WORK ORDERS (Covering all 20 Catalog Items)
 -- Across Blocks A, B, C, D (June - October 2026)
 -- ----------------------------------------------------------------------------
 DELETE FROM complaints;
 
 INSERT INTO complaints (user_id, room_number, item, description, status, created_at, notified_at, assigned_to, priority, escalation_count, due_date, admin_notes) VALUES
-(17, 'A-101', 'Ceiling Fan', 'Speed 4 produces burning electrical smell and sparks', 'RESOLVED', '2026-06-10', '2026-06-11', 'Sunil Rathnayake', 'HIGH', 0, '2026-06-13', 'Capacitor and regulator replaced. Tested operational.'),
-(21, 'A-102', 'Water Tap Fixture', 'Basin tap washer fractured, leaking constantly', 'RESOLVED', '2026-06-15', '2026-06-16', 'Gamini Dissanayake', 'NORMAL', 0, '2026-06-18', 'New copper valve spindle installed.'),
-(25, 'A-103', 'Wooden Chair', 'Backrest joint loose and cracked', 'RESOLVED', '2026-06-22', '2026-06-23', 'Anura Wijesinghe', 'NORMAL', 0, '2026-06-25', 'Reinforced with steel L-brackets.'),
-(33, 'A-105', 'LED Tube Light', 'Study light completely burnt out', 'RESOLVED', '2026-07-02', '2026-07-03', 'Sunil Rathnayake', 'NORMAL', 0, '2026-07-04', 'Installed 20W daylight LED tube.'),
-(41, 'A-107', 'Door Lock Unit', 'Key jammed inside lock cylinder', 'RESOLVED', '2026-07-08', '2026-07-09', 'Anura Wijesinghe', 'HIGH', 0, '2026-07-10', 'Mortise cylinder extracted and replaced.'),
-(49, 'A-109', 'Wall Socket Unit', 'Plug loose causing charger disconnection', 'RESOLVED', '2026-07-14', '2026-07-15', 'Sunil Rathnayake', 'NORMAL', 0, '2026-07-16', 'Replaced switch-socket faceplate.'),
-(57, 'A-111', 'Water Tap Fixture', 'Shower head valve blocked with mineral scale', 'RESOLVED', '2026-07-20', '2026-07-21', 'Gamini Dissanayake', 'NORMAL', 0, '2026-07-22', 'Descaled and replaced spray nozzle.'),
-(65, 'A-113', 'Ceiling Fan', 'Blades unbalanced and shaking noisily', 'RESOLVED', '2026-08-03', '2026-08-04', 'Sarath Gunasekara', 'NORMAL', 0, '2026-08-06', 'Re-balanced blades and tightened downrod.'),
-(73, 'A-115', 'Study Desk', 'Table drawer rails off track and jammed', 'RESOLVED', '2026-08-11', '2026-08-12', 'Anura Wijesinghe', 'LOW', 0, '2026-08-14', 'Roller tracks aligned and lubricated.'),
-(81, 'A-117', 'LED Tube Light', 'Light flickering and humming loudly', 'RESOLVED', '2026-08-18', '2026-08-19', 'Sunil Rathnayake', 'NORMAL', 0, '2026-08-20', 'Electronic ballast unit replaced.'),
-(89, 'A-119', 'Door Lock Unit', 'Latch bolt sticking, room cannot lock properly', 'RESOLVED', '2026-08-25', '2026-08-26', 'Anura Wijesinghe', 'HIGH', 0, '2026-08-27', 'Internal spring mechanism replaced.'),
-(97, 'A-121', 'Water Tap Fixture', 'Sink drainage pipe leaking under counter', 'RESOLVED', '2026-09-02', '2026-09-03', 'Gamini Dissanayake', 'NORMAL', 0, '2026-09-05', 'P-trap gasket replaced and sealed.'),
-(105, 'A-123', 'Bed Mattress', 'Mattress spring protruding dangerously', 'RESOLVED', '2026-09-08', '2026-09-09', 'Maintenance Team', 'NORMAL', 0, '2026-09-11', 'Replaced with fresh orthopedic warehouse mattress.'),
-(113, 'A-125', 'Ceiling Fan', 'Speed switch knob broken off', 'RESOLVED', '2026-09-14', '2026-09-15', 'Sunil Rathnayake', 'LOW', 0, '2026-09-16', 'Rotary switch knob replaced.'),
-(117, 'B-201', 'Water Tap Fixture', 'Bathroom main shutoff valve leaking', 'RESOLVED', '2026-09-20', '2026-09-21', 'Gamini Dissanayake', 'NORMAL', 0, '2026-09-23', 'Gate valve packed with teflon and tightened.'),
-(125, 'B-203', 'Wall Socket Unit', 'Charred mark on wall socket after power surge', 'RESOLVED', '2026-09-28', '2026-09-29', 'Sunil Rathnayake', 'URGENT', 0, '2026-09-30', 'Complete terminal replacement and wire test.'),
-(133, 'B-205', 'Wooden Chair', 'Left armrest split along wood grain', 'RESOLVED', '2026-10-04', '2026-10-05', 'Anura Wijesinghe', 'LOW', 0, '2026-10-07', 'Glued with polyurethane and clamped.'),
-(141, 'B-207', 'LED Tube Light', 'Both fluorescent fixtures dead in room', 'RESOLVED', '2026-10-10', '2026-10-11', 'Sunil Rathnayake', 'NORMAL', 0, '2026-10-12', 'Replaced dual 36W LED fixtures.'),
-(149, 'B-209', 'Ceiling Fan', 'Motor makes grinding noise at high speed', 'IN_PROGRESS', '2026-10-18', '2026-10-19', 'Sarath Gunasekara', 'NORMAL', 0, '2026-10-28', 'Bearings disassembled; awaiting spare bearing set.'),
-(157, 'B-211', 'Wooden Chair', 'Seat cushion wooden base cracked', 'IN_PROGRESS', '2026-10-20', '2026-10-21', 'Anura Wijesinghe', 'NORMAL', 0, '2026-10-29', 'Carpentry workshop replacing timber base.'),
-(165, 'B-213', 'Water Tap Fixture', 'Low water pressure in bathroom cold supply', 'IN_PROGRESS', '2026-10-22', '2026-10-23', 'Gamini Dissanayake', 'HIGH', 1, '2026-10-28', 'Sub Warden escalated. Municipal branch line inspection scheduled.'),
-(173, 'B-215', 'Door Lock Unit', 'Card/key mechanism sticking occasionally', 'IN_PROGRESS', '2026-10-24', '2026-10-25', 'Anura Wijesinghe', 'NORMAL', 0, '2026-10-29', 'Lubricant applied; new deadbolt being prepped.'),
-(17, 'A-101', 'Study Desk', 'Table leg bracket loose and wobbling', 'IN_PROGRESS', '2026-10-25', '2026-10-25', 'Anura Wijesinghe', 'NORMAL', 0, '2026-10-30', 'Bracket welding in progress at engineering workshop.'),
-(29, 'A-104', 'Wall Socket Unit', 'Sparks when inserting laptop charger', 'PENDING', '2026-10-26', NULL, NULL, 'URGENT', 0, NULL, 'Reported yesterday; high priority electrician assignment pending.'),
-(45, 'A-108', 'Water Tap Fixture', 'Bathroom sink drain blocked with debris', 'PENDING', '2026-10-26', NULL, NULL, 'NORMAL', 0, NULL, 'Scheduled for plumbing drain snake clearance.'),
-(61, 'A-112', 'Ceiling Fan', 'Fan does not turn on at any speed', 'PENDING', '2026-10-27', NULL, NULL, 'URGENT', 0, NULL, 'Reported this morning; check capacitor/breaker circuit.'),
-(77, 'A-116', 'LED Tube Light', 'Light tube flickering intermittently', 'PENDING', '2026-10-27', NULL, NULL, 'LOW', 0, NULL, 'Reported today; regular maintenance ticket.'),
-(121, 'B-202', 'Door Lock Unit', 'External door handle loose and wobbly', 'PENDING', '2026-10-27', NULL, NULL, 'NORMAL', 0, NULL, 'Reported today; spindle tightening required.');
+(17, 'A-101', 'Ceiling Fan', 'Speed 4 produces burning electrical smell and sparks', 'RESOLVED', '2026-06-10', '2026-06-11', 'Sunil Rathnayake', 'HIGH', 0, '2026-06-13', '''Capacitor and regulator replaced. Tested operational.'''),
+(21, 'A-102', 'Water Tap Fixture', 'Basin tap washer fractured, leaking constantly', 'RESOLVED', '2026-06-15', '2026-06-16', 'Gamini Dissanayake', 'NORMAL', 0, '2026-06-18', '''New copper valve spindle installed.'''),
+(25, 'A-103', 'Wooden Chair', 'Backrest joint loose and cracked', 'RESOLVED', '2026-06-20', '2026-06-21', 'Anura Wijesinghe', 'NORMAL', 0, '2026-06-23', '''Reinforced with steel L-brackets.'''),
+(29, 'A-104', 'Bathroom Shower Head', 'Shower spray head cracked and spraying sideways', 'RESOLVED', '2026-06-25', '2026-06-26', 'Gamini Dissanayake', 'NORMAL', 0, '2026-06-28', '''Replaced with new chrome shower head.'''),
+(33, 'A-105', 'LED Tube Light', 'Study light completely burnt out', 'RESOLVED', '2026-07-02', '2026-07-03', 'Sunil Rathnayake', 'NORMAL', 0, '2026-07-04', '''Installed 20W daylight LED tube.'''),
+(37, 'A-106', 'Cloth Wardrobe / Locker', 'Wardrobe door hinge broken and door hanging', 'RESOLVED', '2026-07-05', '2026-07-06', 'Anura Wijesinghe', 'NORMAL', 0, '2026-07-08', '''Replaced heavy duty cabinet hinges.'''),
+(41, 'A-107', 'Door Lock Unit', 'Key jammed inside lock cylinder', 'RESOLVED', '2026-07-08', '2026-07-09', 'Anura Wijesinghe', 'HIGH', 0, '2026-07-10', '''Mortise cylinder extracted and replaced.'''),
+(45, 'A-108', 'Toilet Flush Cistern', 'Flush cistern siphon float valve leaking into pan', 'RESOLVED', '2026-07-12', '2026-07-13', 'Gamini Dissanayake', 'NORMAL', 0, '2026-07-15', '''Internal float valve and flapper replaced.'''),
+(49, 'A-109', 'Wall Socket Unit', 'Plug loose causing charger disconnection', 'RESOLVED', '2026-07-14', '2026-07-15', 'Sunil Rathnayake', 'NORMAL', 0, '2026-07-16', '''Replaced switch-socket faceplate.'''),
+(53, 'A-110', 'Window Glass Louver Panel', 'Louver blade cracked by strong wind', 'RESOLVED', '2026-07-18', '2026-07-19', 'Nimal Jayawardena', 'HIGH', 0, '2026-07-21', '''Cut and fitted frosted glass louver sheet.'''),
+(57, 'A-111', 'Bathroom Exhaust Fan', 'Exhaust fan motor hums but does not spin', 'RESOLVED', '2026-07-20', '2026-07-21', 'Sarath Gunasekara', 'NORMAL', 0, '2026-07-23', '''Motor freed and capacitor replaced.'''),
+(61, 'A-112', 'Electric Kettle Boiler', 'Common pantry kettle element burnt out', 'RESOLVED', '2026-07-24', '2026-07-25', 'Sunil Rathnayake', 'NORMAL', 0, '2026-07-26', '''Thermostat reset and new heating base supplied.'''),
+(65, 'A-113', 'Ceiling Fan', 'Blades unbalanced and shaking noisily', 'RESOLVED', '2026-08-03', '2026-08-04', 'Sarath Gunasekara', 'NORMAL', 0, '2026-08-06', '''Re-balanced blades and tightened downrod.'''),
+(69, 'A-114', 'Bed Frame & Headboard', 'Wooden bed slat fractured under mattress', 'RESOLVED', '2026-08-07', '2026-08-08', 'Nimal Jayawardena', 'NORMAL', 0, '2026-08-10', '''Replaced two treated timber cross slats.'''),
+(73, 'A-115', 'Study Desk', 'Table drawer rails off track and jammed', 'RESOLVED', '2026-08-11', '2026-08-12', 'Anura Wijesinghe', 'LOW', 0, '2026-08-14', '''Roller tracks aligned and lubricated.'''),
+(77, 'A-116', 'Corridor Emergency Light', 'Emergency battery backup indicator showing red fault', 'RESOLVED', '2026-08-15', '2026-08-16', 'Sunil Rathnayake', 'HIGH', 0, '2026-08-17', '''Replaced 6V sealed lead battery pack.'''),
+(81, 'A-117', 'LED Tube Light', 'Light flickering and humming loudly', 'RESOLVED', '2026-08-18', '2026-08-19', 'Sunil Rathnayake', 'NORMAL', 0, '2026-08-20', '''Electronic ballast unit replaced.'''),
+(85, 'A-118', 'Waste Dustbin Unit', 'Foot pedal mechanism snapped on common bin', 'RESOLVED', '2026-08-22', '2026-08-23', 'Maintenance Team', 'LOW', 0, '2026-08-24', '''Linkage wire replaced and greased.'''),
+(89, 'A-119', 'Door Lock Unit', 'Latch bolt sticking, room cannot lock properly', 'RESOLVED', '2026-08-25', '2026-08-26', 'Anura Wijesinghe', 'HIGH', 0, '2026-08-27', '''Internal spring mechanism replaced.'''),
+(93, 'A-120', 'Ironing Board Station', 'Ironing board leg stand collapsed and wobbly', 'RESOLVED', '2026-08-28', '2026-08-29', 'Nimal Jayawardena', 'NORMAL', 0, '2026-08-30', '''Joint pin welded and heat pad refitted.'''),
+(97, 'A-121', 'Water Tap Fixture', 'Sink drainage pipe leaking under counter', 'RESOLVED', '2026-09-02', '2026-09-03', 'Gamini Dissanayake', 'NORMAL', 0, '2026-09-05', '''P-trap gasket replaced and sealed.'''),
+(101, 'A-122', 'Fire Extinguisher ABC', 'Pressure gauge needle dropped into recharge red zone', 'RESOLVED', '2026-09-06', '2026-09-07', 'Sarath Gunasekara', 'URGENT', 0, '2026-09-08', '''Cylinder swapped with certified refilled unit.'''),
+(105, 'A-123', 'Bed Mattress', 'Mattress spring protruding dangerously', 'RESOLVED', '2026-09-08', '2026-09-09', 'Maintenance Team', 'NORMAL', 0, '2026-09-11', '''Replaced with fresh orthopedic warehouse mattress.'''),
+(109, 'A-124', 'Heavy Duty Floor Mop & Bucket', 'Mop wringer lever handle fractured', 'RESOLVED', '2026-09-11', '2026-09-12', 'Maintenance Team', 'LOW', 0, '2026-09-13', '''New wringer unit issued from central inventory.'''),
+(113, 'A-125', 'Ceiling Fan', 'Speed switch knob broken off', 'RESOLVED', '2026-09-14', '2026-09-15', 'Sunil Rathnayake', 'LOW', 0, '2026-09-16', '''Rotary switch knob replaced.'''),
+(117, 'B-201', 'Water Tap Fixture', 'Bathroom main shutoff valve leaking', 'RESOLVED', '2026-09-20', '2026-09-21', 'Gamini Dissanayake', 'NORMAL', 0, '2026-09-23', '''Gate valve packed with teflon and tightened.'''),
+(121, 'B-202', 'Toilet Flush Cistern', 'Handle push button jammed inside bezel', 'RESOLVED', '2026-09-24', '2026-09-25', 'Gamini Dissanayake', 'NORMAL', 0, '2026-09-26', '''Dual-flush push button replaced.'''),
+(125, 'B-203', 'Wall Socket Unit', 'Charred mark on wall socket after power surge', 'RESOLVED', '2026-09-28', '2026-09-29', 'Sunil Rathnayake', 'URGENT', 0, '2026-09-30', '''Complete terminal replacement and wire test.'''),
+(129, 'B-204', 'Cloth Wardrobe / Locker', 'Locker lock key cylinder spinning freely', 'RESOLVED', '2026-10-02', '2026-10-03', 'Anura Wijesinghe', 'NORMAL', 0, '2026-10-05', '''Cam lock cylinder replaced with master set.'''),
+(133, 'B-205', 'Wooden Chair', 'Left armrest split along wood grain', 'RESOLVED', '2026-10-04', '2026-10-05', 'Anura Wijesinghe', 'LOW', 0, '2026-10-07', '''Glued with polyurethane and clamped.'''),
+(137, 'B-206', 'Bathroom Shower Head', 'Flexible hose pipe burst at fitting joint', 'RESOLVED', '2026-10-08', '2026-10-09', 'Gamini Dissanayake', 'HIGH', 0, '2026-10-10', '''Stainless steel shower hose replaced.'''),
+(141, 'B-207', 'LED Tube Light', 'Both fluorescent fixtures dead in room', 'RESOLVED', '2026-10-10', '2026-10-11', 'Sunil Rathnayake', 'NORMAL', 0, '2026-10-12', '''Replaced dual 36W LED fixtures.'''),
+(145, 'B-208', 'Window Glass Louver Panel', 'Louver blade cracked and hanging loose', 'IN_PROGRESS', '2026-10-16', '2026-10-17', 'Nimal Jayawardena', 'HIGH', 0, '2026-10-28', '''Replacement glass pane pre-cut; installation underway.'''),
+(149, 'B-209', 'Ceiling Fan', 'Motor makes grinding noise at high speed', 'IN_PROGRESS', '2026-10-18', '2026-10-19', 'Sarath Gunasekara', 'NORMAL', 0, '2026-10-28', '''Bearings disassembled; awaiting spare bearing set.'''),
+(153, 'B-210', 'Bathroom Exhaust Fan', 'Fan motor overheating and cutting out', 'IN_PROGRESS', '2026-10-19', '2026-10-20', 'Sarath Gunasekara', 'NORMAL', 0, '2026-10-29', '''Thermal fuse replaced, testing air flow velocity.'''),
+(157, 'B-211', 'Wooden Chair', 'Seat cushion wooden base cracked', 'IN_PROGRESS', '2026-10-20', '2026-10-21', 'Anura Wijesinghe', 'NORMAL', 0, '2026-10-29', '''Carpentry workshop replacing timber base.'''),
+(161, 'B-212', 'Toilet Flush Cistern', 'Cistern filling extremely slowly', 'IN_PROGRESS', '2026-10-21', '2026-10-22', 'Gamini Dissanayake', 'NORMAL', 0, '2026-10-29', '''Inlet filter cleaned; pressure diaphragm ordered.'''),
+(165, 'B-213', 'Water Tap Fixture', 'Low water pressure in bathroom cold supply', 'IN_PROGRESS', '2026-10-22', '2026-10-23', 'Gamini Dissanayake', 'HIGH', 1, '2026-10-28', '''Sub Warden escalated. Municipal branch line inspection scheduled.'''),
+(169, 'B-214', 'Bed Frame & Headboard', 'Bed frame headboard joints loose and rattling', 'IN_PROGRESS', '2026-10-23', '2026-10-24', 'Nimal Jayawardena', 'LOW', 0, '2026-10-30', '''Tightened through-bolts; anti-vibration felt added.'''),
+(173, 'B-215', 'Door Lock Unit', 'Card/key mechanism sticking occasionally', 'IN_PROGRESS', '2026-10-24', '2026-10-25', 'Anura Wijesinghe', 'NORMAL', 0, '2026-10-29', '''Lubricant applied; new deadbolt being prepped.'''),
+(17, 'A-101', 'Study Desk', 'Table leg bracket loose and wobbling', 'IN_PROGRESS', '2026-10-25', '2026-10-25', 'Anura Wijesinghe', 'NORMAL', 0, '2026-10-30', '''Bracket welding in progress at engineering workshop.'''),
+(21, 'A-102', 'Cloth Wardrobe / Locker', 'Hanging rail detached inside wardrobe', 'IN_PROGRESS', '2026-10-25', '2026-10-26', 'Anura Wijesinghe', 'NORMAL', 0, '2026-10-30', '''Heavy duty closet flange supports being screwed in.'''),
+(29, 'A-104', 'Wall Socket Unit', 'Sparks when inserting laptop charger', 'PENDING', '2026-10-26', NULL, NULL, 'URGENT', 0, NULL, '''Reported yesterday; high priority electrician assignment pending.'''),
+(45, 'A-108', 'Water Tap Fixture', 'Bathroom sink drain blocked with debris', 'PENDING', '2026-10-26', NULL, NULL, 'NORMAL', 0, NULL, '''Scheduled for plumbing drain snake clearance.'''),
+(61, 'A-112', 'Ceiling Fan', 'Fan does not turn on at any speed', 'PENDING', '2026-10-27', NULL, NULL, 'URGENT', 0, NULL, '''Reported this morning; check capacitor/breaker circuit.'''),
+(77, 'A-116', 'LED Tube Light', 'Light tube flickering intermittently', 'PENDING', '2026-10-27', NULL, NULL, 'LOW', 0, NULL, '''Reported today; regular maintenance ticket.'''),
+(93, 'A-120', 'Electric Kettle Boiler', 'Common pantry kettle leaking water from bottom', 'PENDING', '2026-10-27', NULL, NULL, 'NORMAL', 0, NULL, '''Reported today; check heating seal or replace unit.'''),
+(109, 'A-124', 'Window Glass Louver Panel', 'Two glass louvers cracked by storm gust', 'PENDING', '2026-10-27', NULL, NULL, 'HIGH', 0, NULL, '''Reported today; glass technician dispatch needed.'''),
+(121, 'B-202', 'Door Lock Unit', 'External door handle loose and wobbly', 'PENDING', '2026-10-27', NULL, NULL, 'NORMAL', 0, NULL, '''Reported today; spindle tightening required.''');
 
 -- ----------------------------------------------------------------------------
 -- 7. STUDENT GATE PASSES & CAMPUS LEAVE (30 Comprehensive Records)
@@ -3056,34 +3090,56 @@ INSERT INTO gate_passes (user_id, reason, from_date, to_date, status) VALUES
 (125, 'Late night gate pass request submitted after curfew hours', '2026-10-14', '2026-10-15', 'REJECTED');
 
 -- ----------------------------------------------------------------------------
--- 8. ROOM INVENTORY DAMAGES & ASSET REPAIR TRACKER
+-- 8. ROOM INVENTORY DAMAGES & ASSET REPAIR TRACKER (Across all 20 Items)
 -- ----------------------------------------------------------------------------
 DELETE FROM room_inventory;
 
 INSERT INTO room_inventory (room_id, inventory_id, broken_quantity, damage_description, status, reported_date) VALUES
-(1, 3, 1, 'Ceiling fan speed 4 spark regulator defect', 'REPAIRED', '2026-06-10'),
-(2, 5, 1, 'Basin water tap leaking continuously', 'REPAIRED', '2026-06-15'),
-(3, 2, 1, 'Study chair backrest joint cracked', 'REPAIRED', '2026-06-22'),
-(5, 4, 1, 'LED study light ballast dead', 'REPAIRED', '2026-07-02'),
-(7, 7, 1, 'Door lock mortise cylinder broken', 'REPAIRED', '2026-07-08'),
-(9, 8, 1, 'Bedside switch socket burnt out', 'REPAIRED', '2026-07-14'),
-(11, 5, 1, 'Bathroom shower head clogged and cracked', 'REPAIRED', '2026-07-20'),
-(13, 3, 1, 'Ceiling fan blades wobbling dangerously', 'REPAIRED', '2026-08-03'),
-(15, 1, 1, 'Study desk drawer track dislodged', 'REPAIRED', '2026-08-11'),
-(17, 4, 1, 'LED fluorescent tube fixture flickering', 'REPAIRED', '2026-08-18'),
-(19, 7, 1, 'Door latch bolt spring fractured', 'REPAIRED', '2026-08-25'),
-(21, 5, 1, 'Sink drainage pipe joint leaking', 'REPAIRED', '2026-09-02'),
-(23, 6, 1, 'Mattress spring unit torn through fabric', 'REPAIRED', '2026-09-08'),
-(25, 3, 1, 'Ceiling fan knob cracked off', 'REPAIRED', '2026-09-14'),
-(26, 5, 1, 'Cold water valve stem leaking under basin', 'REPAIRED', '2026-09-20'),
-(28, 8, 1, 'Wall socket scorched after short circuit', 'REPAIRED', '2026-09-28'),
-(30, 2, 1, 'Wooden study chair armrest fractured', 'REPAIRED', '2026-10-04'),
-(32, 4, 2, 'Twin tube lights completely dark', 'REPAIRED', '2026-10-10'),
-(34, 3, 1, 'Ceiling fan motor bearing grinding noise', 'BROKEN', '2026-10-18'),
-(36, 2, 1, 'Study chair wooden seat panel cracked', 'BROKEN', '2026-10-20'),
-(38, 5, 1, 'Main floor cold water supply pressure drop', 'BROKEN', '2026-10-22'),
-(40, 7, 1, 'Door lock latch sticking during closing', 'BROKEN', '2026-10-24'),
-(1, 1, 1, 'Study desk leg bracket weld fractured', 'BROKEN', '2026-10-25');
+(1,  3,  1, 'Ceiling fan speed 4 spark regulator defect',                   'REPAIRED', '2026-06-10'),
+(2,  5,  1, 'Basin water tap leaking continuously',                       'REPAIRED', '2026-06-15'),
+(3,  2,  1, 'Study chair backrest joint cracked',                         'REPAIRED', '2026-06-20'),
+(4,  10, 1, 'Bathroom shower head cracked and spraying sideways',          'REPAIRED', '2026-06-25'),
+(5,  4,  1, 'LED study light ballast dead',                               'REPAIRED', '2026-07-02'),
+(6,  9,  1, 'Wardrobe door hinge broken off cabinet frame',               'REPAIRED', '2026-07-05'),
+(7,  7,  1, 'Door lock mortise cylinder broken',                          'REPAIRED', '2026-07-08'),
+(8,  11, 1, 'Toilet flush cistern siphon float valve leaking into pan',   'REPAIRED', '2026-07-12'),
+(9,  8,  1, 'Bedside switch socket burnt out',                            'REPAIRED', '2026-07-14'),
+(10, 15, 1, 'Window frosted glass louver shattered during wind',          'REPAIRED', '2026-07-18'),
+(11, 20, 1, 'Bathroom exhaust fan motor seized up',                       'REPAIRED', '2026-07-20'),
+(12, 12, 1, 'Pantry electric kettle element shorted',                     'REPAIRED', '2026-07-24'),
+(13, 3,  1, 'Ceiling fan blades wobbling dangerously',                    'REPAIRED', '2026-08-03'),
+(14, 16, 1, 'Wooden bed frame headboard cross slat cracked',              'REPAIRED', '2026-08-07'),
+(15, 1,  1, 'Study desk drawer track dislodged and jammed',               'REPAIRED', '2026-08-11'),
+(16, 17, 1, 'Corridor emergency light backup battery failed test',        'REPAIRED', '2026-08-15'),
+(17, 4,  1, 'LED fluorescent tube fixture flickering loudly',             'REPAIRED', '2026-08-18'),
+(18, 18, 1, 'Common corridor dustbin foot pedal wire snapped',            'REPAIRED', '2026-08-22'),
+(19, 7,  1, 'Door latch bolt spring fractured',                           'REPAIRED', '2026-08-25'),
+(20, 13, 1, 'Laundry ironing board leg support brace buckled',            'REPAIRED', '2026-08-28'),
+(21, 5,  1, 'Sink drainage pipe joint leaking under vanity',              'REPAIRED', '2026-09-02'),
+(22, 14, 1, 'Corridor ABC fire extinguisher pressure drop',               'REPAIRED', '2026-09-06'),
+(23, 6,  1, 'Mattress spring unit torn through top fabric',               'REPAIRED', '2026-09-08'),
+(24, 19, 1, 'Cleaning floor mop bucket wringer lever broken',             'REPAIRED', '2026-09-11'),
+(25, 3,  1, 'Ceiling fan knob cracked off switch',                        'REPAIRED', '2026-09-14'),
+(26, 5,  1, 'Cold water valve stem leaking under basin',                  'REPAIRED', '2026-09-20'),
+(27, 11, 1, 'Toilet cistern push button valve jammed open',               'REPAIRED', '2026-09-24'),
+(28, 8,  1, 'Wall socket scorched after short circuit surge',             'REPAIRED', '2026-09-28'),
+(29, 9,  1, 'Wardrobe key cylinder spinning loose',                       'REPAIRED', '2026-10-02'),
+(30, 2,  1, 'Wooden study chair armrest fractured along grain',           'REPAIRED', '2026-10-04'),
+(31, 10, 1, 'Shower flexible hose pipe burst near mixer joint',          'REPAIRED', '2026-10-08'),
+(32, 4,  2, 'Twin 36W tube lights completely burned out',                 'REPAIRED', '2026-10-10'),
+(33, 15, 1, 'Window glass louver blade cracked and hanging dangerously',  'BROKEN',   '2026-10-16'),
+(34, 3,  1, 'Ceiling fan motor bearing grinding noise',                   'BROKEN',   '2026-10-18'),
+(35, 20, 1, 'Bathroom exhaust fan motor overheating',                     'BROKEN',   '2026-10-19'),
+(36, 2,  1, 'Study chair wooden seat panel cracked in middle',            'BROKEN',   '2026-10-20'),
+(37, 11, 1, 'Toilet cistern inlet diaphragm leaking and slow refill',     'BROKEN',   '2026-10-21'),
+(38, 5,  1, 'Main bathroom cold water supply pressure drop',              'BROKEN',   '2026-10-22'),
+(39, 16, 1, 'Bed frame side rail bolt stripped and wobbly',               'BROKEN',   '2026-10-23'),
+(40, 7,  1, 'Door lock latch sticking during closing',                    'BROKEN',   '2026-10-24'),
+(1,  1,  1, 'Study desk leg bracket weld fractured',                      'BROKEN',   '2026-10-25'),
+(2,  9,  1, 'Cloth wardrobe hanging rod bracket torn out of timber',      'BROKEN',   '2026-10-25'),
+(4,  8,  1, 'Bedside wall socket throwing sparks when charging laptop',    'BROKEN',   '2026-10-26'),
+(12, 12, 1, 'Pantry kettle body leaking boiling water from base joint',   'BROKEN',   '2026-10-27'),
+(8,  5,  1, 'Basin water tap handle broken off valve stem',               'BROKEN',   '2026-10-27');
 
 -- ----------------------------------------------------------------------------
 -- 9. OFFICIAL BULLETIN NOTICES (Administrative Circulars June - October 2026)
