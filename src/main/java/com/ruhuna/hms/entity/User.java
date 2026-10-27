@@ -1,81 +1,24 @@
 package com.ruhuna.hms.entity;
 
-import jakarta.persistence.*;
-
 /**
  * ============================================================================
- * User Entity (System Resident & Staff Directory)
+ * User Domain Model (System Resident & Staff Directory)
  * ============================================================================
+ * Pure POJO Model mapped via Pure SQL & JDBC RowMappers (Zero ORM).
  * Database Table: users
- * 
- * Represents all human actors operating within the Hostel Management System:
- * - STUDENT: Resident undergraduate living in a hostel room.
- * - ADMIN: Sub Warden managing allocations, passes, treasury, and staff.
- * - SECURITY: Gate officer recording campus entries and departures.
- * - MAINTENANCE: Technician resolving facility and equipment complaints.
- * - CLEANING: Housekeeping assistant managing block sanitation.
- *
- * Relationships:
- * - ManyToOne with {@link Room}: Links a resident student to their assigned hostel room.
- * 
- * Performance Indexes:
- * - 'idx_users_student_id' on (student_id)
- * - 'idx_users_room_role' on (room_id, role)
  * ============================================================================
  */
-@Entity
-@Table(name = "users")
 public class User {
 
-    /**
-     * Primary key auto-increment ID.
-     */
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    /**
-     * Unique student registration index (e.g. "TG/2021/0001") or staff username (e.g. "SEC001", "admin").
-     */
-    @Column(unique = true, nullable = false)
     private String studentId;
-
-    /**
-     * Full legal name of the user (e.g. "Kasun Silva", "Nimal Perera").
-     */
     private String fullName;
-
-    /**
-     * Plaintext or hashed password used for authentication.
-     */
     private String password;
-
-    /**
-     * University or personal contact email address for automated notifications.
-     */
     private String email;
-
-    /**
-     * Mobile phone number for SMS or emergency warden contact.
-     */
     private String phone;
-    
-    /**
-     * System authorization role: STUDENT, ADMIN, SECURITY, CLEANING, MAINTENANCE.
-     */
     private String role;
-
-    /**
-     * Foreign key reference to the assigned hostel room (for students).
-     * Nullable for non-resident staff and administrators.
-     */
-    @ManyToOne
-    @JoinColumn(name = "room_id")
     private Room room;
 
-    /**
-     * Default no-argument constructor required by Hibernate ORM.
-     */
     public User() {}
 
     /**

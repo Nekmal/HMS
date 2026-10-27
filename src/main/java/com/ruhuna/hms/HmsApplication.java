@@ -15,15 +15,16 @@ import org.springframework.context.annotation.Bean;
  * 
  * Architecture Overview:
  * - Framework: Spring Boot 4.1.1 / Spring 6.x
- * - Persistence: Spring Data JPA with Hibernate ORM 7.x
+ * - Persistence: 100% Pure SQL & Spring JDBC (Zero ORM Architecture - No Hibernate)
+ * - ADBMS Advanced Objects: Stored Procedures, Functions, Triggers, Views, Indexes, and ACID Transactions
  * - Embedded Web Server: Apache Tomcat 11.x (Port: 8094, Context Path: /hms)
  * - Database Engine: MySQL / MariaDB (Database: hms_db)
- * - Layered Design: Controller -> Service -> Repository -> Entity -> MySQL
+ * - Layered Design: Controller -> Service -> Pure SQL Repository (DAO) -> Domain Model -> MySQL
  *
  * Responsibilities:
  * 1. Initializes the Spring ApplicationContext and performs component scanning.
- * 2. Scans JPA repositories and entities in 'com.ruhuna.hms' package hierarchy.
- * 3. Executes CommandLineRunner beans to seed mandatory default administrative accounts.
+ * 2. Manages Pure SQL JDBC repositories, services, and REST controllers.
+ * 3. Initializes database schema, indexes, views, and seed accounts via DatabaseInitializer.
  * ============================================================================
  */
 @SpringBootApplication
