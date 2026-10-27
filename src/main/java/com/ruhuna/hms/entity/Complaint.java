@@ -1,110 +1,31 @@
 package com.ruhuna.hms.entity;
 
-import jakarta.persistence.*;
 import java.time.LocalDate;
 
 /**
  * ============================================================================
- * Complaint Entity (Student Maintenance & Issue Tickets)
+ * Complaint Domain Model (Student Maintenance & Issue Tickets)
  * ============================================================================
+ * Pure POJO Model mapped via Pure SQL & JDBC RowMappers (Zero ORM).
  * Database Table: complaints
- * 
- * Represents a maintenance or repair ticket filed by a resident student regarding
- * defective room furnishings, sanitary fixtures, or electrical appliances.
- * 
- * Lifecycle States:
- * - PENDING: Newly filed ticket awaiting administrative dispatch.
- * - IN_PROGRESS: Dispatched to maintenance technician with assigned due date.
- * - RESOLVED: Repair completed and tested. Triggers 'trg_AfterComplaintResolvedLog'.
- * 
- * Performance Indexes:
- * - 'idx_complaints_status_room' on (status, room_number)
  * ============================================================================
  */
-@Entity
-@Table(name = "complaints")
 public class Complaint {
 
-    /**
-     * Primary key auto-increment ID.
-     */
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    /**
-     * Foreign key relationship referencing the resident student who filed this complaint.
-     */
-    @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
     private User user;
-
-    /**
-     * Detailed problem description submitted by student (e.g., "Fan regulator smoking").
-     */
     private String description;
-    
-    /**
-     * Ticket resolution status: 'PENDING', 'IN_PROGRESS', or 'RESOLVED'.
-     */
     private String status;
-    
-    /**
-     * Date when the complaint was initially submitted by the student.
-     */
     private LocalDate createdAt;
-
-    /**
-     * Physical room location where the issue occurred (e.g. "C-112", "A-105").
-     */
-    @Column(name = "room_number")
     private String roomNumber;
-
-    /**
-     * Defective equipment name (e.g. "Ceiling Fan", "Study Table", "LED Bulb", "Water Tap").
-     */
-    @Column(name = "item")
     private String item;
-
-    /**
-     * Timestamp when the Sub Warden dispatched this ticket to maintenance.
-     */
-    @Column(name = "notified_at")
     private LocalDate notifiedAt;
-
-    /**
-     * Name of the assigned maintenance technician (e.g. "Sunil Rathnayake").
-     */
-    @Column(name = "assigned_to")
     private String assignedTo;
-
-    /**
-     * Repair priority level: 'LOW', 'NORMAL', 'HIGH', or 'URGENT'.
-     */
-    @Column(name = "priority")
     private String priority = "NORMAL";
-
-    /**
-     * Count tracking how many times administration escalated this ticket due to delays.
-     */
-    @Column(name = "escalation_count")
     private Integer escalationCount = 0;
-
-    /**
-     * Target resolution due date set by the Sub Warden.
-     */
-    @Column(name = "due_date")
     private LocalDate dueDate;
-
-    /**
-     * Administrative instructions, escalation logs, or technician notes.
-     */
-    @Column(name = "admin_notes", columnDefinition = "TEXT")
     private String adminNotes;
 
-    /**
-     * Default no-argument constructor required by Hibernate ORM.
-     */
     public Complaint() {}
 
     /**
