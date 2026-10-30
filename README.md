@@ -2,7 +2,7 @@
 ### 🎓 Advanced Database Management Systems (ADBMS) — Mini Project
 #### Department of Information and Communication Technology, Faculty of Technology, University of Ruhuna
 
----
+--
 
 [![Java](https://img.shields.io/badge/Java-17%2B-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)](https://www.oracle.com/java/)
 [![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.1.1-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
