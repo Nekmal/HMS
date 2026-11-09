@@ -798,7 +798,7 @@ The system provides test credentials for each of the 5 operational roles. When t
 > [!NOTE]
 > The root administrator account (`admin` / `admin123`) is **automatically seeded** upon first startup by Spring Boot via [`HmsApplication.java`](file:///d:/Progects%203.2/HMS/src/main/java/com/ruhuna/hms/HmsApplication.java).
 
----
+--
 
 ##  Step-by-Step Setup & Execution Guide
 
